@@ -10,6 +10,7 @@ import { nameExits } from './exitNames.js';
 export function createStationExits(map) {
   const remembered = new Map(); // 역 id → { key: 역 모양, exits }
   let drawnKeys = null; // 지금 지도에 그려 둔 출구들 (같으면 다시 그리지 않는다)
+  let drawnCoords = []; // 지금 지도에 그려 둔 출구 자리들
 
   // stations: 화면에 보일 역들, bands: ui/stationBands.js의 결과, skipId: 끌어서 옮기는 중인 역 (출구 숨김)
   function update(stations, bands, skipId) {
@@ -41,8 +42,13 @@ export function createStationExits(map) {
     const keys = shown.map((entry) => entry.key).join('|');
     if (keys === drawnKeys) return;
     drawnKeys = keys;
-    updateExits(map, shown.flatMap((entry) => entry.exits));
+    const exits = shown.flatMap((entry) => entry.exits);
+    drawnCoords = exits.map((exit) => exit.coord);
+    updateExits(map, exits);
   }
 
-  return { update };
+  // 지금 지도에 그려 둔 출구 자리들 [[경도, 위도], …] (역 말풍선이 피해 갈 때 쓴다)
+  const coords = () => drawnCoords;
+
+  return { update, coords };
 }

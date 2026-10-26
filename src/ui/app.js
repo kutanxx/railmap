@@ -17,7 +17,7 @@ import {
 } from '../map/trackLayers.js';
 import { addTrainLayers } from '../map/trainLayers.js';
 import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
-import { updateStationLabels } from '../map/stationLabels.js';
+import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
 import {
   getState,
   subscribe,
@@ -237,12 +237,13 @@ export function startApp(map, loadMessage) {
   }
 
   // 역 출구 (stationExits.js): 역 모양이 바뀌었거나, 지도를 움직여 새 역이 보일 때 찾는다
-  // 끌어서 옮기는 중인 역은 출구를 숨긴다
+  // 끌어서 옮기는 중인 역은 출구를 숨긴다. 그다음 역 말풍선을 출구를 덮지 않는 쪽으로 옮긴다
   let stationExits = null;
   let lastBands = null; // 마지막으로 그린 역들과 그 모양
   function updateStationExits() {
     if (stationExits && lastBands) {
       stationExits.update(lastBands.stations, lastBands.bands, ui.stationPreview?.id);
+      arrangeStationLabels(map, stationExits.coords());
     }
   }
 
@@ -270,12 +271,12 @@ export function startApp(map, loadMessage) {
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
-    updateStationExits();
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
     updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
     updateStationLabels(map, stations, stationColors, economy.stationRiders, shapes);
+    updateStationExits();
     panel.show(infoPanelView(ui.selected, shapes));
     routePanel.show(
       routePanelView({
@@ -330,7 +331,7 @@ export function startApp(map, loadMessage) {
   addDraftLayers(map);
   addHandleLayers(map);
   stationExits = createStationExits(map);
-  // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾는다
+  // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾고 말풍선 자리를 다시 고른다
   map.on('idle', updateStationExits);
 
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──

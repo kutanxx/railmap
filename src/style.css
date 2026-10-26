@@ -177,7 +177,8 @@ body {
   background: #f2c230;
 }
 
-/* 역에서 오른쪽 위 말풍선으로 가는 지시선 */
+/* 역에서 말풍선으로 가는 지시선. 기본은 오른쪽 위이고,
+   출구나 다른 말풍선을 덮지 않게 map/stationLabels.js가 길이·방향과 말풍선 자리를 바꾼다 */
 .station-label-line {
   position: absolute;
   left: 0;
