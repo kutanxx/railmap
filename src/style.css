@@ -68,6 +68,17 @@ body {
   background: #efe7d6;
 }
 
+/* 도구 버튼 옆 작은 숫자 (단축키) */
+.tool-key {
+  margin-left: 5px;
+  color: #9a8f7b;
+  font-size: 11px;
+}
+
+.tool-button.active .tool-key {
+  color: #a7bed4;
+}
+
 /* 지금 고른 도구 */
 .tool-button.active {
   background: #1f3a55;
@@ -379,10 +390,16 @@ body {
 }
 
 .route-item-dot {
+  display: inline-flex;
   flex: none;
-  width: 12px;
-  height: 12px;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .route-item-name {
@@ -394,7 +411,7 @@ body {
   color: #9a8f7b;
 }
 
-/* 역 말풍선 안의 노선 색 점 */
+/* 역 말풍선 안의 노선 번호 배지 (노선 색 동그라미 + 흰 번호) */
 .station-label-routes {
   display: inline-flex;
   gap: 3px;
@@ -407,9 +424,16 @@ body {
 }
 
 .station-label-route {
-  width: 8px;
-  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .route-detail .panel-facts {
@@ -445,6 +469,100 @@ body {
 .speed-button.active {
   background: #1f3a55;
   color: #ffffff;
+}
+
+/* 조작 안내 카드를 여는 [?] 버튼 (배속 버튼 옆) */
+.help-button {
+  width: 36px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-button:hover {
+  background: #efe7d6;
+}
+
+/* [혼잡도 보기] 버튼과 색 설명 (배속 버튼 옆) */
+.congestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.congestion-button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.congestion-button:hover {
+  background: #efe7d6;
+}
+
+.congestion-button.active {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.congestion-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+  color: #6f6656;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.congestion-legend[hidden] {
+  display: none;
+}
+
+.congestion-legend i {
+  width: 10px;
+  height: 10px;
+  margin-left: 4px;
+  border-radius: 50%;
+}
+
+/* 조작 안내 카드: 키(굵게) + 하는 일 */
+.help-card {
+  max-width: 460px;
+}
+
+.help-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0 16px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.help-list dt {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.help-list dd {
+  margin: 0;
+  color: #6f6656;
 }
 
 /* 노선 패널의 열차 수 − n + */
@@ -633,6 +751,26 @@ body {
 
 .route-stops li {
   padding: 2px 0;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+/* 끌어온 역이 들어갈 자리 (그 줄의 자리를 차지한다) */
+.route-stops li.drop-target {
+  background: #efe7d6;
+}
+
+.route-stops-hint {
+  margin-left: 4px;
+  color: #9a8f7b;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* [노선 복제] 버튼은 삭제 버튼 위에 한 줄로 */
+.route-duplicate {
+  width: 100%;
+  margin: 0 0 8px;
 }
 
 .route-stops li span {
@@ -820,6 +958,14 @@ body {
 /* 패널의 사용법 안내 (작은 글씨) */
 .panel-hint {
   margin: 0 0 12px;
+  color: #9a8f7b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 삭제 버튼 아래: 지우면 함께 사라지는 것 */
+.panel-removal {
+  margin: 6px 0 0;
   color: #9a8f7b;
   font-size: 11px;
   line-height: 1.5;

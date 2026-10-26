@@ -9,6 +9,7 @@
 // 이웃 역과 나누기: 원 안의 건물 면적을 CATCHMENT_CELL_M 크기 칸(격자)마다 따로 적어 둔다(cells).
 // 나중에 칸마다 가장 가까운 역에만 인구를 주면(game/catchment.js), 붙어 있는 역이 같은 건물을 두 번 세지 않는다.
 import {
+  STATION_MIN_ZOOM,
   POPULATION_RADIUS_M,
   CATCHMENT_CELL_M,
   PEOPLE_PER_BUILT_M2,
@@ -21,6 +22,9 @@ const BASE_SOURCE = 'openmaptiles';
 const BUILDING_LAYER = 'building';
 // 원을 몇 각형으로 근사할지
 const CIRCLE_STEPS = 32;
+
+// 인구를 믿을 만하게 잴 만큼 확대했는지 (역 놓기·옮기기는 이때만 된다)
+export const zoomedInEnough = (map) => map.getZoom() >= STATION_MIN_ZOOM;
 
 // 결과: { population, builtArea: 건물 면적(㎡), cells: [[경도, 위도, 면적㎡], …] }
 // 건물 데이터가 없으면 builtArea = null, cells = null, 인구는 기본값

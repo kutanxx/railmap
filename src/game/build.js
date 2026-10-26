@@ -8,6 +8,7 @@ import {
   canAfford,
   findStation,
   findTrack,
+  findRoute,
   trackCoords,
   routeTracks,
 } from './state.js';
@@ -147,6 +148,30 @@ export function removeTrack(id) {
     removeBrokenRoutes();
     return true;
   });
+}
+
+// ── 지우기 미리보기 ────────────────────
+
+// 고른 것을 지우면 함께 사라지는 것. 상태는 고치지 않는다 (지우기 전에 미리 보여줄 때 쓴다)
+// selected: { type: 'station' | 'track' | 'route', id }
+// 결과: { trackIds: 함께 지워지는 선로 id들, routes: 함께 지워지는 노선들 }
+// 역을 지우면 이어진 선로와 그 역·선로를 쓰는 노선이, 선로를 지우면 그 선로를 쓰는 노선이 사라진다
+export function removalPreview(selected) {
+  if (selected.type === 'route') {
+    const route = findRoute(selected.id);
+    return { trackIds: [], routes: route ? [route] : [] };
+  }
+  const trackIds =
+    selected.type === 'station'
+      ? state.tracks.filter((t) => t.from === selected.id || t.to === selected.id).map((t) => t.id)
+      : [selected.id];
+  const gone = new Set(trackIds);
+  const routes = state.routes.filter(
+    (route) =>
+      (selected.type === 'station' && route.stations.includes(selected.id)) ||
+      routeTracks(route).some((track) => !track || gone.has(track.id)),
+  );
+  return { trackIds, routes };
 }
 
 // ── 안쪽에서만 쓰는 것 ─────────────────

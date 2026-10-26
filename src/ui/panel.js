@@ -4,7 +4,8 @@ import { formatPopulation } from './format.js';
 // 오른쪽 정보 패널. 선택한 역 또는 선로의 정보를 보여주고 고치거나 지운다.
 // 상태를 직접 고치지 않고 onRename, onRotate, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
 
-export function createPanel(element, { onRename, onRotate, onDeleteStation, onDeleteTrack }) {
+// onDeletePreview(true | false): 삭제 버튼에 마우스를 올리고 내릴 때 (지도에 사라질 것을 보여준다)
+export function createPanel(element, { onRename, onRotate, onDeleteStation, onDeleteTrack, onDeletePreview }) {
   element.innerHTML = `
     <section class="panel-station">
       <div class="panel-title">역 정보</div>
@@ -27,6 +28,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
       <div class="panel-coord"></div>
       <p class="panel-hint">이 역을 끌면 옮길 수 있어요. 이전 비용과 늘어난 선로 공사비가 들어요.</p>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
+      <p class="panel-removal panel-station-removal"></p>
     </section>
     <section class="panel-track">
       <div class="panel-title">선로 정보</div>
@@ -37,6 +39,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
       </dl>
       <p class="panel-hint">흰 점을 끌어서 경유점을 옮기고, 두 번 클릭해 지워요. 선 중간의 작은 점을 끌면 경유점이 생겨요.</p>
       <button type="button" class="panel-delete panel-delete-track">선로 삭제</button>
+      <p class="panel-removal panel-track-removal"></p>
     </section>
   `;
 
@@ -70,6 +73,12 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   element.querySelector('.panel-delete-station').addEventListener('click', () => {
     if (station) onDeleteStation(station.id);
   });
+  for (const button of element.querySelectorAll('.panel-delete')) {
+    button.addEventListener('mouseenter', () => onDeletePreview(true));
+    button.addEventListener('mouseleave', () => onDeletePreview(false));
+  }
+  const stationRemoval = element.querySelector('.panel-station-removal');
+  const trackRemoval = element.querySelector('.panel-track-removal');
 
   // ── 선로 ──
   const lengthText = element.querySelector('.panel-track-length');
@@ -81,9 +90,11 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   });
 
   // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균,
-  //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지 }
-  function showStation({ station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack }) {
+  //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지, removal: 지우면 사라지는 것 }
+  function showStation(view) {
+    const { station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack } = view;
     station = { id: nextStation.id };
+    stationRemoval.textContent = view.removal;
     stationName.show(nextStation.id, nextStation.name);
     // 선로가 이어진 역은 승강장이 선로를 따라 휘므로 방향을 직접 돌릴 수 없다
     angleInput.hidden = followsTrack;
@@ -113,10 +124,13 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }
 
-  // info = { id, lengthKm, fromName, toName, waypointCount }
-  function showTrack(info) {
+  // info = { id, lengthKm, bridgeKm: 물 위 교량 길이, fromName, toName, waypointCount }, removal: 지우면 사라지는 것
+  function showTrack(info, removal) {
     track = { id: info.id };
-    lengthText.textContent = `${info.lengthKm.toFixed(2)} km`;
+    trackRemoval.textContent = removal;
+    // 물 위를 지나는 구간이 있으면 교량 길이도 함께 적는다
+    const bridge = info.bridgeKm >= 0.01 ? ` (교량 ${info.bridgeKm.toFixed(2)} km)` : '';
+    lengthText.textContent = `${info.lengthKm.toFixed(2)} km${bridge}`;
     endsText.textContent = `${info.fromName} ↔ ${info.toName}`;
     waypointsText.textContent = `${info.waypointCount}개`;
   }
@@ -132,7 +146,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     stationSection.hidden = view?.type !== 'station';
     trackSection.hidden = view?.type !== 'track';
     if (view?.type === 'station') showStation(view);
-    if (view?.type === 'track') showTrack(view.track);
+    if (view?.type === 'track') showTrack(view.track, view.removal);
   }
 
   show(null);

@@ -12,6 +12,9 @@ export function createRoutePanel(
     onRecolor,
     onTrainCount,
     onDelete,
+    onDeletePreview,
+    onDuplicate,
+    onMoveStop,
     onRemoveStation,
     onToggleInsert,
     onFinishDraft,
@@ -56,12 +59,14 @@ export function createRoutePanel(
         <dt>길이</dt><dd class="route-length"></dd>
       </dl>
       <div class="panel-field">
-        <span>역 순서</span>
+        <span>역 순서 <small class="route-stops-hint">끌어서 순서를 바꿔요</small></span>
         <ol class="route-stops"></ol>
         <button type="button" class="route-insert">역 끼워넣기</button>
         <p class="route-message route-edit-message"></p>
       </div>
+      <button type="button" class="route-insert route-duplicate">노선 복제 (같은 역 순서로 새 노선)</button>
       <button type="button" class="panel-delete route-delete">노선 삭제</button>
+      <p class="panel-removal route-removal"></p>
     </section>
     <section class="route-list-section">
       <div class="panel-title">노선 목록</div>
@@ -118,9 +123,17 @@ export function createRoutePanel(
 
   element.querySelector('.route-finish').addEventListener('click', onFinishDraft);
   element.querySelector('.route-cancel').addEventListener('click', onCancelDraft);
-  element.querySelector('.route-delete').addEventListener('click', () => {
+  element.querySelector('.route-duplicate').addEventListener('click', () => {
+    if (routeId) onDuplicate(routeId);
+  });
+  const deleteButton = element.querySelector('.route-delete');
+  deleteButton.addEventListener('click', () => {
     if (routeId) onDelete(routeId);
   });
+  // 마우스를 올리면 지도에 사라질 노선을 빨간 점선으로 보여준다
+  deleteButton.addEventListener('mouseenter', () => onDeletePreview(true));
+  deleteButton.addEventListener('mouseleave', () => onDeletePreview(false));
+  const removalText = element.querySelector('.route-removal');
   insertButton.addEventListener('click', () => {
     if (routeId) onToggleInsert(routeId);
   });
@@ -154,6 +167,7 @@ export function createRoutePanel(
         button.classList.toggle('active', button.dataset.color === selected.color);
       }
       trainCount = selected.trainCount;
+      removalText.textContent = `지우면 열차 ${trainCount}대도 함께 사라져요 (열차 값은 돌려받지 않아요). 선로와 역은 남아요.`;
       trainCountText.textContent = `${trainCount}대`;
       minusButton.disabled = trainCount <= 0;
       plusButton.disabled = trainCount >= MAX_TRAINS_PER_ROUTE;
@@ -189,11 +203,32 @@ export function createRoutePanel(
     loadText.replaceChildren(`${Math.round(load * 100)}%`, small);
   }
 
-  // 역 순서: 역 이름 + [빼기] 버튼
+  // 역 순서: 역 이름 + [빼기] 버튼. 줄을 끌어다 다른 줄 위에 놓으면 그 자리로 옮긴다
+  let draggedIndex = null;
   function renderStops(stops) {
     stopList.replaceChildren(
-      ...stops.map((stop) => {
+      ...stops.map((stop, index) => {
         const item = document.createElement('li');
+        item.draggable = true;
+        item.addEventListener('dragstart', (event) => {
+          draggedIndex = index;
+          event.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragover', (event) => {
+          if (draggedIndex === null) return;
+          event.preventDefault(); // 여기에 놓을 수 있다고 알린다
+          item.classList.add('drop-target');
+        });
+        item.addEventListener('dragleave', () => item.classList.remove('drop-target'));
+        item.addEventListener('drop', (event) => {
+          event.preventDefault();
+          item.classList.remove('drop-target');
+          if (draggedIndex !== null && draggedIndex !== index) onMoveStop(routeId, draggedIndex, index);
+          draggedIndex = null;
+        });
+        item.addEventListener('dragend', () => {
+          draggedIndex = null;
+        });
         const name = document.createElement('span');
         name.textContent = stop.name;
         const remove = document.createElement('button');
@@ -207,7 +242,7 @@ export function createRoutePanel(
     );
   }
 
-  // 노선 목록: 색 점 + 이름 + 월 수입. 누르면 그 노선을 고른다
+  // 노선 목록: 번호 배지(노선 색) + 이름 + 월 수입. 누르면 그 노선을 고른다
   function renderList(routes, selectedId) {
     if (routes.length === 0) {
       const empty = document.createElement('p');
@@ -225,6 +260,7 @@ export function createRoutePanel(
         const dot = document.createElement('span');
         dot.className = 'route-item-dot';
         dot.style.background = route.color;
+        dot.textContent = route.number;
         const name = document.createElement('span');
         name.className = 'route-item-name';
         name.textContent = route.name;

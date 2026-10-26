@@ -8,6 +8,9 @@ import {
 } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
 
+// 노선 번호 (1호선이면 1). 노선 id가 "r번호"라서 이름을 바꿔도 번호는 그대로다
+export const routeNumber = (route) => Number(route.id.slice(1));
+
 // 노선을 만들 때 내는 돈: 기본 열차 값
 export function newRouteCost() {
   return DEFAULT_TRAINS_PER_ROUTE * TRAIN_COST;
@@ -60,6 +63,33 @@ export function recolorRoute(id, color) {
 // 열차 수를 바꿀 때 내는 돈: 늘린 대수 × 열차 값 (줄이면 0, 돌려받지 않는다)
 export function trainPurchaseCost(route, count) {
   return Math.max(0, count - route.trainCount) * TRAIN_COST;
+}
+
+// 노선을 복제한다: 같은 역 순서로 새 노선을 만든다 (이름·색은 다음 차례, 기본 열차 값을 낸다)
+// 급행·완행처럼 비슷한 노선을 여러 개 만들 때 쓴다. 결과: 새 노선, 돈이 모자라면 null
+export function duplicateRoute(id) {
+  const route = findRoute(id);
+  return route ? addRoute([...route.stations]) : null;
+}
+
+// 노선의 역 순서를 바꾼다: from번째 역을 to번째 자리로 옮긴다
+// 바뀐 순서에서도 이웃한 역끼리 선로로 바로 이어져 있어야 한다. 결과: 바꿨으면 null, 못 바꾸면 이유(글)
+export function moveRouteStop(routeId, from, to) {
+  const route = findRoute(routeId);
+  const stations = [...route.stations];
+  const [moved] = stations.splice(from, 1);
+  stations.splice(to, 0, moved);
+  for (let i = 1; i < stations.length; i++) {
+    if (!findTrackBetween(stations[i - 1], stations[i])) {
+      const a = findStation(stations[i - 1]).name;
+      const b = findStation(stations[i]).name;
+      return `${a}과(와) ${b} 사이에 선로가 없어서 그 순서로는 바꿀 수 없어요.`;
+    }
+  }
+  changeRoute(null, routeId, (target) => {
+    target.stations = stations;
+  });
+  return null;
 }
 
 // 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)

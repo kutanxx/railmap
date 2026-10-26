@@ -2,16 +2,17 @@
 // 두 역 사이 하루 승객 = RIDERS_FACTOR × (인구 A ÷ 1000) × (인구 B ÷ 1000) ÷ 소요 시간^DEMAND_TIME_POWER
 // 월 수입 = 하루 승객 × 거리 요금(fareWon) × 한 달 날수
 // 소요 시간(분) = 처음 타는 열차 기다리는 시간 + 타고 가는 시간 (+ 갈아타기)
+// 타고 가는 시간은 열차가 실제로 달리는 모습(가속·감속·꺾이는 곳 감속, running.js)으로 잰다
 // 열차가 많을수록 기다리는 시간이 줄어서 수요가 늘어난다. 열차가 0대인 노선은 승객을 나르지 않는다.
 // 정원: 가장 붐비는 한 시간(출퇴근)에 노선이 나를 수 있는 양(열차 × 운행 횟수 × 정원 × 노선 길이)보다
 //       그 시간에 타려는 양(승객 × 그 노선에서 탄 거리 × PEAK_HOUR_SHARE)이 많으면
 //       혼잡도가 100%를 넘고, 넘친 만큼 승객을 놓친다.
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
-import { getState, routeTracks, trackLengthKm } from './state.js';
+import { getState, routeTracks, trackLengthKm, trackCoords } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
+import { buildRun } from './running.js';
 import {
-  TRAIN_SPEED_KMH,
   STATION_DWELL_SECONDS,
   RIDERS_FACTOR,
   DEMAND_TIME_POWER,
@@ -31,7 +32,8 @@ const WON_PER_EOK = 100000000; // 1억 원
 //   routeRevenue / routeRiders / routeAvgKm: Map(노선 id → 월 수입 / 하루 승객 / 평균 탄 거리 km),
 //   routeLoad: Map(노선 id → 혼잡도, 1 = 100%), routeLost: Map(노선 id → 자리가 없어 놓친 하루 승객),
 //   stationRiders: Map(역 id → 하루 이용객 = 그 역에서 타고 내린 사람),
-//   stationPopulation: Map(역 id → 이웃 역과 나눈 뒤의 인구) }
+//   stationPopulation: Map(역 id → 이웃 역과 나눈 뒤의 인구),
+//   trackLoad: Map(선로 id → 그 구간의 혼잡도, 1 = 100%. 여러 노선이 지나면 가장 붐비는 노선) }
 let economy = {
   revenue: 0,
   opex: 0,
@@ -44,6 +46,7 @@ let economy = {
   routeLost: new Map(),
   stationRiders: new Map(),
   stationPopulation: new Map(),
+  trackLoad: new Map(),
 };
 
 export function getEconomy() {
@@ -52,6 +55,7 @@ export function getEconomy() {
 
 // 노선망과 인구로 월 수입과 운영비를 다시 계산한다
 export function updateEconomy() {
+  runSeconds.clear();
   const { stations, tracks, routes } = getState();
   const running = routes.filter((route) => route.trainCount > 0);
   const graph = buildGraph(running);
@@ -64,6 +68,7 @@ export function updateEconomy() {
   // 1) 타려는 승객: 두 역 사이마다 { origin, destination, riders, km, routeKm }
   const journeys = [];
   const wantedKm = zeros(routes); // 노선별 (타려는 승객 × 그 노선에서 탈 거리) 합
+  const segmentWanted = new Map(); // 노선의 이웃한 두 역 사이를 지나려는 승객 ("노선|역|역" → 명)
   for (const origin of servedStations) {
     for (const [destination, trip] of shortestTrips(graph, origin)) {
       // 같은 두 역을 두 번 세지 않도록 한 방향만 센다 (riders에 오가는 사람이 모두 들어 있다)
@@ -76,6 +81,7 @@ export function updateEconomy() {
       for (const [routeId, km] of trip.routeKm) {
         wantedKm.set(routeId, wantedKm.get(routeId) + riders * km);
       }
+      for (const key of trip.segments) segmentWanted.set(key, (segmentWanted.get(key) ?? 0) + riders);
     }
   }
 
@@ -83,6 +89,17 @@ export function updateEconomy() {
   const routeLoad = zeros(routes);
   for (const route of running) {
     routeLoad.set(route.id, (wantedKm.get(route.id) * PEAK_HOUR_SHARE) / hourlyCapacityKm(route));
+  }
+  // 구간 혼잡도 = 가장 붐비는 한 시간에 그 구간을 지나려는 사람 ÷ 한 시간에 그 구간을 지나는 자리
+  // (지도에서 혼잡도 보기를 켜면 선로를 이 값으로 칠한다)
+  const trackLoad = new Map();
+  for (const route of running) {
+    const seatsPerHour = hourlyCapacityKm(route) / routeLengthKm(route);
+    routeTracks(route).forEach((track, i) => {
+      const key = segmentKey(route.id, route.stations[i], route.stations[i + 1]);
+      const load = ((segmentWanted.get(key) ?? 0) * PEAK_HOUR_SHARE) / seatsPerHour;
+      trackLoad.set(track.id, Math.max(trackLoad.get(track.id) ?? 0, load));
+    });
   }
 
   // 2) 실제로 탄 승객: 지나는 노선 중 가장 붐비는 노선이 100%를 넘으면 그만큼 못 탄다
@@ -131,23 +148,38 @@ export function updateEconomy() {
     routeLost,
     stationRiders,
     stationPopulation: population,
+    trackLoad,
   };
 }
 
 // ── 안쪽에서만 쓰는 계산 ──────────────────
 
-// 노선 하나를 왕복하는 데 걸리는 시간 (분): 달리는 시간 + 역마다 서는 시간
+// 선로 하나를 역에서 역까지 달리는 데 걸리는 시간 (게임 초). 한 번 계산할 때마다 선로별로 기억해 둔다
+const runSeconds = new Map();
+function trackRunSeconds(track) {
+  if (!runSeconds.has(track.id)) runSeconds.set(track.id, buildRun(trackCoords(track)).seconds);
+  return runSeconds.get(track.id);
+}
+
+// 노선의 이웃한 두 역 사이 구간 이름. 오가는 방향을 같은 구간으로 친다
+function segmentKey(routeId, a, b) {
+  return a < b ? `${routeId}|${a}|${b}` : `${routeId}|${b}|${a}`;
+}
+
+const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);
+
+// 노선 하나를 왕복하는 데 걸리는 시간 (분): 달리는 시간 × 2 + 역에 서는 시간
+// (가운데 역은 오가며 두 번, 끝 역은 한 번 선다. sim.js의 배차 간격과 같은 계산)
 function roundTripMinutes(route) {
-  const km = routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);
-  return 2 * ((km / TRAIN_SPEED_KMH) * 60 + route.stations.length * DWELL_MINUTES);
+  const running = routeTracks(route).reduce((sum, track) => sum + trackRunSeconds(track), 0) / 60;
+  return 2 * running + (2 * route.stations.length - 2) * DWELL_MINUTES;
 }
 
 // 노선이 한 시간에 나를 수 있는 양 (사람 × km)
 // = 열차 대수 × 열차 한 대의 한 시간 편도 운행 횟수 × 정원 × 노선 길이
 function hourlyCapacityKm(route) {
-  const km = routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);
   const oneWayRunsPerTrain = (60 / roundTripMinutes(route)) * 2;
-  return route.trainCount * oneWayRunsPerTrain * TRAIN_CAPACITY * km;
+  return route.trainCount * oneWayRunsPerTrain * TRAIN_CAPACITY * routeLengthKm(route);
 }
 
 // 길찾기용 그래프. 점 하나 = "어느 역에서 어느 노선을 타고 있음"
@@ -175,7 +207,7 @@ function buildGraph(routes) {
     // 이웃한 역 사이: 달리는 시간 + 다음 역에 서는 시간, 탄 거리는 선로 길이
     routeTracks(route).forEach((track, i) => {
       const km = trackLengthKm(track);
-      const minutes = (km / TRAIN_SPEED_KMH) * 60 + DWELL_MINUTES;
+      const minutes = trackRunSeconds(track) / 60 + DWELL_MINUTES;
       const a = nodeOf(route.stations[i], route.id);
       const b = nodeOf(route.stations[i + 1], route.id);
       connect(a, b, minutes, km);
@@ -201,7 +233,8 @@ function buildGraph(routes) {
 }
 
 // 출발역에서 갈 수 있는 모든 역까지 가장 빠른 여행
-// 결과: Map(도착역 id → { minutes, km: 탄 거리, routeKm: Map(탄 노선 id → 그 노선에서 탄 거리) })
+// 결과: Map(도착역 id → { minutes, km: 탄 거리, routeKm: Map(탄 노선 id → 그 노선에서 탄 거리),
+//                        segments: 지나는 구간 이름들 (segmentKey) })
 function shortestTrips(graph, origin) {
   const { nodes, edges, boarding, byStation } = graph;
   const minutes = new Array(nodes.length).fill(Infinity);
@@ -240,12 +273,18 @@ function shortestTrips(graph, origin) {
     if (minutes[best] === Infinity) continue;
     // 거꾸로 따라가며 노선마다 탄 거리를 더한다 (갈아타기는 거리 0)
     const routeKm = new Map();
+    const segments = [];
     for (let i = best; i >= 0; i = previous[i]) {
       const before = previous[i] >= 0 ? km[previous[i]] : 0;
       const route = nodes[i].route;
       routeKm.set(route, (routeKm.get(route) ?? 0) + (km[i] - before));
+      // 같은 노선의 두 역 사이를 달린 것이면 그 구간을 적는다 (갈아타기는 빼고)
+      const from = nodes[previous[i]];
+      if (from && from.route === route && from.station !== nodes[i].station) {
+        segments.push(segmentKey(route, from.station, nodes[i].station));
+      }
     }
-    trips.set(station, { minutes: minutes[best], km: km[best], routeKm });
+    trips.set(station, { minutes: minutes[best], km: km[best], routeKm, segments });
   }
   return trips;
 }

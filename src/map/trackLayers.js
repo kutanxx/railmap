@@ -12,6 +12,14 @@ const TRACK_COLORS = {
   body: '#3E4651', // 몸통
   center: '#D8C9AA', // 가운데 줄
   selected: '#F2C230', // 선택 표시
+  removing: '#B0402F', // 지우면 사라질 것 (경고 말풍선과 같은 빨강)
+};
+
+// 혼잡도 보기를 켰을 때 선로 가운데 줄 색 (노선 패널의 혼잡도 글자색과 같은 뜻)
+export const LOAD_COLORS = {
+  ok: '#4F8F5B', // 여유
+  busy: '#D9A031', // 붐빔 (CROWDED_WARNING 이상)
+  over: '#B0402F', // 넘침 (100% 넘음)
 };
 
 // 줌에 따라 선 굵기를 바꾼다 (줌 → px). 지수 보간이라 확대할수록 빠르게 굵어진다
@@ -76,10 +84,31 @@ export function addTrackLayers(map) {
     layout: ROUND_LINE,
     paint: { 'line-color': TRACK_CENTER_COLOR, 'line-width': TRACK_CENTER_WIDTH },
   });
+  // 지우기 미리보기: 함께 지워질 선로는 빨간 몸통, 사라질 노선이 지나는 선로는 빨간 점선
+  map.addLayer({
+    id: 'track-removing-gone',
+    type: 'line',
+    source: TRACK_SOURCE,
+    filter: ['==', ['get', 'removing'], 'gone'],
+    layout: ROUND_LINE,
+    paint: { 'line-color': TRACK_COLORS.removing, 'line-width': TRACK_BODY_WIDTH },
+  });
+  map.addLayer({
+    id: 'track-removing-route',
+    type: 'line',
+    source: TRACK_SOURCE,
+    filter: ['==', ['get', 'removing'], 'route'],
+    paint: {
+      'line-color': TRACK_COLORS.removing,
+      'line-width': zoomWidth(1.5, 3, 7),
+      'line-dasharray': [2, 1.5],
+    },
+  });
 }
 
 // 선로 전체를 다시 그린다
-// lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null }]
+// lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null,
+//            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null }]
 // selectedIds = 노란색으로 강조할 선로 id들 (Set)
 export function updateTracks(map, lines, selectedIds) {
   map.getSource(TRACK_SOURCE).setData({
@@ -91,6 +120,7 @@ export function updateTracks(map, lines, selectedIds) {
         id: line.id,
         routeColor: line.routeColor,
         selected: selectedIds.has(line.id),
+        removing: line.removing ?? null,
       },
     })),
   });

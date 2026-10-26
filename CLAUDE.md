@@ -36,9 +36,10 @@ src/
     build.js          역·선로 바꾸기 (짓기, 이름, 옮기기, 방향, 경유점, 지우기)
     routes.js         노선 바꾸기 (만들기, 이름·색, 열차 수, 역 끼워넣기·빼기, 지우기)
     history.js        되돌리기·다시 하기 기록
-    sim.js            시간 흐름, 열차 이동, 매달 정산 부르기
+    sim.js            시간 흐름, 열차 이동, 종점 배차 간격, 매달 정산 부르기
+    running.js        역 사이를 달리는 모습 (가속·감속, 꺾이는 곳 감속)
     demand.js         승객 수요(중력 모델), 혼잡도, 수입 계산
-    economy.js        공사비, 운영비, 거리 요금
+    economy.js        공사비(교량 포함), 운영비, 거리 요금
     catchment.js      가까운 역끼리 주변 인구 나누기
     save.js           저장·불러오기·새로 시작, 자동 저장, 내보내기
   map/                지도에 그리기
@@ -50,17 +51,20 @@ src/
     exitFinder.js     역 출구 자리 찾기 (건물을 피해 가까운 길가로, 큰 사거리는 네 모퉁이로)
     exitLayers.js     출구 통로와 노란 출구 번호 배지
     stationLabels.js  역 이름 말풍선
-    population.js     역 주변 인구 재기 (건물 면적)
+    population.js     역 주변 인구 재기 (건물 면적), 역을 놓을 만큼 확대했는지
+    water.js          선로가 물 위를 지나는 길이 재기 (교량 공사비)
   ui/                 화면 조작과 패널
     app.js            게임 화면의 중심: 화면 상태, 패널·도구 만들기, 다시 그리기, 상태 연결
-    mapInput.js       지도 클릭·마우스·키보드 처리
+    mapInput.js       지도 클릭·마우스·키보드 처리 (단축키, 오른쪽 클릭 취소)
     animation.js      매 프레임 시간 흘리기와 열차 다시 그리기
     views.js          상태를 패널에 보여줄 내용으로 바꾸기
     stationShapes.js  승강장 방향(선로 따라 자동), 환승역·종착역
     stationBands.js   가까이서 보이는 역 모양 (선로 따라 휘는 승강장 띠 + 대합실)
     stationExits.js   역 출구 찾기·기억·그리기 연결
     exitNames.js      출구 이름 붙이기 (나라별 방식, 지금은 서울식)
-    toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선)
+    toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선) + 숫자키 표시
+    congestionToggle.js [혼잡도 보기] 버튼과 색 설명
+    helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기
     trackEditor.js    선로 경유점 끌기·지우기

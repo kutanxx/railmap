@@ -1,7 +1,7 @@
 // 역 끌어서 옮기기: [선택] 도구로 먼저 고른 역을 끌면 옮겨진다 (고르지 않은 역은 끌리지 않아 실수로 옮기지 않는다).
 // 끄는 동안 이어진 선로가 따라오고, 마우스 옆에 이전 비용을 보여준다. 놓으면 새 자리의 주변 인구를 다시 잰다.
 import { stationIdAt } from '../map/stationLayers.js';
-import { estimatePopulation } from '../map/population.js';
+import { estimatePopulation, zoomedInEnough } from '../map/population.js';
 import { moveStationCost, moveStation } from '../game/build.js';
 import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
@@ -16,6 +16,11 @@ export function createStationMover({ map, ui, render, cursorTip, shortfall, cost
     if (ui.tool !== 'select' || ui.selected?.type !== 'station') return;
     const id = stationIdAt(map, event.point);
     if (id !== ui.selected.id) return;
+    // 너무 멀리 보면 새 자리 인구를 제대로 못 재므로 옮기지 않는다 (지도는 그대로 끌린다)
+    if (!zoomedInEnough(map)) {
+      showCallout(map, event.lngLat.toArray(), '더 확대해야 역을 옮길 수 있어요', 'bad');
+      return;
+    }
     // 지도가 끌려 움직이지 않게 막는다
     event.preventDefault();
     drag = { id, startPoint: event.point, moved: false };

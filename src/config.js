@@ -88,8 +88,17 @@ export const TIME_SCALE = 30;
 // 배속 버튼에 나오는 값. 0은 멈춤
 export const SPEED_OPTIONS = [0, 1, 3];
 
-// 열차 속도 (km/h, 게임 시간 기준)
+// 열차 최고 속도 (km/h, 게임 시간 기준)
 export const TRAIN_SPEED_KMH = 60;
+// 출발할 때 빨라지고 역에 설 때 느려지는 정도 (m/s², 실제 지하철은 0.8~1.0쯤)
+export const TRAIN_ACCELERATION = 0.9;
+// 선로가 꺾이는 곳의 제한 속도: GENTLE_CURVE_ANGLE도까지는 그대로 달리고,
+// SHARP_CURVE_ANGLE도 이상 꺾이면 SHARP_CURVE_SPEED_KMH까지 줄인다 (그 사이는 비례로)
+export const GENTLE_CURVE_ANGLE = 15;
+export const SHARP_CURVE_ANGLE = 90;
+export const SHARP_CURVE_SPEED_KMH = 30;
+// 꺾이는 곳 앞뒤로 이만큼(미터)은 제한 속도로 달린다
+export const CURVE_ZONE_M = 60;
 
 // 역에 멈춰 있는 시간 (게임 시간 초)
 export const STATION_DWELL_SECONDS = 30;
@@ -117,6 +126,8 @@ export const START_MONEY = 600;
 // 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
 // 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값
 export const TRACK_COST_PER_KM = 60;
+// 물(한강·호수 등) 위를 지나는 구간은 교량이라 km당 이만큼 든다 (보통 선로의 2.5배)
+export const BRIDGE_COST_PER_KM = 150;
 export const STATION_COST = 40;
 // 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
 export const STATION_MOVE_COST_RATIO = 0.25;
@@ -143,7 +154,8 @@ export const SECONDS_PER_MONTH = 20;
 // 두 역 사이 하루 승객(명, 오가는 사람 모두) =
 //   RIDERS_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER
 // DEMAND_TIME_POWER: 클수록 먼 역끼리는 덜 오간다 (교통 연구에서 흔히 0.5~3, 1.5가 잘 맞았다는 연구도 있다)
-export const RIDERS_FACTOR = 55;
+// 열차 가감속을 넣으면서 소요 시간이 늘어 승객이 12%쯤 줄어서, 예전 밸런스(55)에 맞게 62로 올렸다
+export const RIDERS_FACTOR = 62;
 export const DEMAND_TIME_POWER = 1.0;
 // 소요 시간이 이보다 짧아도 이 값(분)으로 친다. 아주 가까운 두 역의 수요가 터무니없이 커지지 않게
 export const MIN_TRIP_MINUTES = 3;
@@ -153,6 +165,9 @@ export const TRANSFER_MINUTES = 2;
 // ── 역 주변 인구 ─────────────────────────
 // 역을 놓을 때 이 반경(미터) 안의 건물 바닥 면적을 재어 인구를 추정한다
 export const POPULATION_RADIUS_M = 500;
+// 이 줌 이상으로 확대해야 역을 놓거나 옮길 수 있다. 더 멀리 보면 지도 건물 자료가 블록으로 뭉쳐 있어서
+// 같은 자리라도 인구가 10%쯤 다르게 재진다 (줌 14부터는 늘 같은 자료라 같은 숫자가 나온다)
+export const STATION_MIN_ZOOM = 14;
 // 이웃 역과 인구를 나눌 때 쓰는 칸 크기(미터). 칸마다 가장 가까운 역에만 인구를 준다
 // 작을수록 정확하지만 저장 파일이 커진다
 export const CATCHMENT_CELL_M = 50;

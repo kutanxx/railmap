@@ -7,8 +7,12 @@ import {
   routeTracks,
   routeLengthKm,
   trackLengthKm,
+  trackCoords,
 } from '../game/state.js';
 import { getEconomy } from '../game/demand.js';
+import { removalPreview } from '../game/build.js';
+import { trackCostForCoords } from '../game/economy.js';
+import { routeNumber } from '../game/routes.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 
@@ -29,6 +33,7 @@ export function infoPanelView(selected, shapes) {
       averageRiders: averageStationRiders(),
       angle: shapes.get(station.id)?.angle ?? station.angle,
       followsTrack: shapes.get(station.id)?.followsTrack ?? false,
+      removal: removalText(selected),
     };
   }
   if (selected?.type === 'track') {
@@ -39,13 +44,25 @@ export function infoPanelView(selected, shapes) {
       track: {
         id: track.id,
         lengthKm: trackLengthKm(track),
+        bridgeKm: trackCostForCoords(trackCoords(track)).bridgeKm,
         fromName: findStation(track.from).name,
         toName: findStation(track.to).name,
         waypointCount: track.waypoints.length,
       },
+      removal: removalText(selected),
     };
   }
   return null;
+}
+
+// 역·선로를 지우면 함께 사라지는 것을 패널 삭제 버튼 아래에 적을 글
+function removalText(selected) {
+  const { trackIds, routes } = removalPreview(selected);
+  const lost = [];
+  if (selected.type === 'station' && trackIds.length > 0) lost.push(`선로 ${trackIds.length}개`);
+  if (routes.length > 0) lost.push(`노선 ${routes.length}개(${routes.map((r) => r.name).join(', ')})`);
+  if (lost.length === 0) return '지워도 다른 것은 그대로예요.';
+  return `지우면 ${lost.join('와 ')}도 함께 사라져요. 버튼에 마우스를 올리면 지도에 빨갛게 보여요.`;
 }
 
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
@@ -61,6 +78,7 @@ export function routePanelView({ selected, tool, draft, routes, inserting, messa
       id: r.id,
       name: r.name,
       color: r.color,
+      number: routeNumber(r),
       lengthKm: routeLengthKm(r),
       revenue: routeRevenue.get(r.id) ?? 0,
       riders: routeRiders.get(r.id) ?? 0,
@@ -70,6 +88,7 @@ export function routePanelView({ selected, tool, draft, routes, inserting, messa
       id: route.id,
       name: route.name,
       color: route.color,
+      number: routeNumber(route),
       lengthKm: routeLengthKm(route),
       stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,
@@ -88,21 +107,22 @@ function averageStationRiders() {
   return served.length > 0 ? served.reduce((sum, riders) => sum + riders, 0) / served.length : 0;
 }
 
-// 노선 색: 선로마다 지나는 노선 중 먼저 만든 노선의 색, 역마다 지나는 노선 색 전부
+// 노선 색: 선로마다 지나는 노선 중 먼저 만든 노선의 색
+// 역마다 지나는 노선 전부 [{ color, number }] (역 말풍선의 노선 번호 배지)
 export function routeColors(routes) {
   const trackColor = new Map();
-  const stationColors = new Map();
+  const stationRoutes = new Map();
   for (const route of routes) {
     for (const track of routeTracks(route)) {
       if (!trackColor.has(track.id)) trackColor.set(track.id, route.color);
     }
-    for (const id of route.stations) {
-      const colors = stationColors.get(id) ?? [];
-      if (!colors.includes(route.color)) colors.push(route.color);
-      stationColors.set(id, colors);
+    for (const id of new Set(route.stations)) {
+      const list = stationRoutes.get(id) ?? [];
+      list.push({ color: route.color, number: routeNumber(route) });
+      stationRoutes.set(id, list);
     }
   }
-  return { trackColor, stationColors };
+  return { trackColor, stationRoutes };
 }
 
 // 노란색으로 강조할 선로: 고른 선로 하나, 또는 고른 노선의 선로 전부

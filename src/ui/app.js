@@ -1,7 +1,7 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js
-import { REGION_NAME, BANKRUPT_GRACE_MONTHS } from '../config.js';
+import { REGION_NAME, BANKRUPT_GRACE_MONTHS, CROWDED_WARNING } from '../config.js';
 import {
   addStationLayers,
   updateStations,
@@ -14,6 +14,7 @@ import {
   addDraftLayers,
   updateDraft,
   addHandleLayers,
+  LOAD_COLORS,
 } from '../map/trackLayers.js';
 import { addTrainLayers } from '../map/trainLayers.js';
 import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
@@ -25,6 +26,7 @@ import {
   findStation,
   findTrackBetween,
   routeCoords,
+  routeTracks,
   monthlyInterest,
 } from '../game/state.js';
 import {
@@ -33,6 +35,7 @@ import {
   removeStation,
   addTrack,
   removeTrack,
+  removalPreview,
 } from '../game/build.js';
 import {
   addRoute,
@@ -41,11 +44,14 @@ import {
   setRouteTrainCount,
   removeRoute,
   removeStationFromRoute,
+  duplicateRoute,
+  moveRouteStop,
   newRouteCost,
   trainPurchaseCost,
 } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
-import { trackCostForCoords } from '../game/economy.js';
+import { trackCostForCoords, setWaterMeasure } from '../game/economy.js';
+import { waterKm } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
@@ -68,6 +74,8 @@ import { stationShapes } from './stationShapes.js';
 import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
+import { createHelpCard } from './helpCard.js';
+import { createCongestionToggle } from './congestionToggle.js';
 
 export function startApp(map, loadMessage) {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구, 선택한 것, 진행 중인 편집
@@ -79,7 +87,12 @@ export function startApp(map, loadMessage) {
     trackPreview: null, // 끌어서 고치는 중인 선로 { id, waypoints }
     stationPreview: null, // 끌어서 옮기는 중인 역 { id, coord }
     hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
+    removing: null, // 삭제 버튼에 마우스를 올려서 지도에 미리 보여줄 것 { type, id } 또는 null
+    congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
   };
+
+  // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
+  setWaterMeasure((coords) => waterKm(map, coords));
 
   // 화면 가운데 말풍선 알림
   const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);
@@ -91,9 +104,17 @@ export function startApp(map, loadMessage) {
       ui.routeMessage = '';
     }
     ui.selected = next;
+    ui.removing = null;
   }
 
-  const toolbar = createToolbar(document.getElementById('toolbar'), (toolId) => {
+  // 삭제 버튼에 마우스를 올리면 고른 것을 지울 때 사라질 선로·노선을 지도에 빨갛게 보여준다
+  const previewDelete = (on) => {
+    ui.removing = on ? ui.selected : null;
+    renderTracks();
+  };
+
+  // 도구 바꾸기 (도구 버튼, 숫자키 1~4)
+  function chooseTool(toolId) {
     ui.tool = toolId;
     select(null); // 도구를 바꾸면 선택도 푼다
     // 도구를 바꾸면 그리던 선로·고르던 노선은 취소
@@ -104,23 +125,36 @@ export function startApp(map, loadMessage) {
     if (toolId === 'select') map.doubleClickZoom.enable();
     else map.doubleClickZoom.disable();
     render();
-  });
+  }
+  const toolbar = createToolbar(document.getElementById('toolbar'), chooseTool);
+
+  // 고른 역·선로·노선 지우기 (패널의 삭제 버튼, Delete 키)
+  function deleteSelected() {
+    const selected = ui.selected;
+    if (!selected) return;
+    select(null);
+    if (selected.type === 'station') removeStation(selected.id);
+    if (selected.type === 'track') removeTrack(selected.id);
+    if (selected.type === 'route') removeRoute(selected.id);
+  }
 
   const speedControl = createSpeedControl(document.getElementById('speed'), setSpeed);
+  createHelpCard(document.getElementById('help'), document.getElementById('help-button'));
+  // 혼잡도 보기 켜고 끄기 (버튼, C 키)
+  const toggleCongestion = () => {
+    ui.congestion = !ui.congestion;
+    render();
+  };
+  const congestionToggle = createCongestionToggle(document.getElementById('congestion'), toggleCongestion);
   const status = createStatus(document.getElementById('status'));
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
   const panel = createPanel(document.getElementById('panel'), {
     onRename: (id, name) => renameStation(id, name),
     onRotate: (id, angle) => rotateStation(id, angle),
-    onDeleteStation: (id) => {
-      select(null);
-      removeStation(id);
-    },
-    onDeleteTrack: (id) => {
-      select(null);
-      removeTrack(id);
-    },
+    onDeleteStation: deleteSelected,
+    onDeleteTrack: deleteSelected,
+    onDeletePreview: previewDelete,
   });
 
   const routePanel = createRoutePanel(document.getElementById('routes'), {
@@ -136,11 +170,25 @@ export function startApp(map, loadMessage) {
       const route = getState().routes.find((r) => r.id === id);
       notice(shortfall(trainPurchaseCost(route, count)), 'bad');
     },
-    onDelete: (id) => {
-      select(null);
-      removeRoute(id);
-    },
+    onDelete: deleteSelected,
+    onDeletePreview: previewDelete,
     // 노선에서 역 빼기: 못 빼면 이유를 패널에 보여준다
+    // [노선 복제]: 같은 역 순서로 새 노선. 열차 값이 모자라면 이유를 알려준다
+    onDuplicate: (id) => {
+      const copy = duplicateRoute(id);
+      if (!copy) {
+        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
+        return;
+      }
+      select({ type: 'route', id: copy.id });
+      render();
+      notice(`${copy.name}을(를) 만들었어요`);
+    },
+    // 역 순서 끌어서 바꾸기: 못 바꾸면 이유를 패널에 보여준다
+    onMoveStop: (routeId, from, to) => {
+      ui.routeMessage = moveRouteStop(routeId, from, to) ?? '';
+      render();
+    },
     onRemoveStation: (routeId, stationId) => {
       ui.routeMessage = removeStationFromRoute(routeId, stationId) ?? '';
       render();
@@ -218,18 +266,37 @@ export function startApp(map, loadMessage) {
   function renderTracks() {
     const { tracks, routes } = getState();
     const { trackColor } = routeColors(routes);
+    // 혼잡도 보기를 켜면 가운데 줄을 노선 색 대신 구간 혼잡도 색으로 (열차가 다니지 않는 선로는 칠하지 않는다)
+    const { trackLoad } = getEconomy();
+    const centerColor = (track) => {
+      if (!ui.congestion) return trackColor.get(track.id) ?? null;
+      const load = trackLoad.get(track.id);
+      if (load === undefined) return null;
+      if (load > 1) return LOAD_COLORS.over;
+      return load >= CROWDED_WARNING ? LOAD_COLORS.busy : LOAD_COLORS.ok;
+    };
     const preview = ui.trackPreview;
     const coordsOf = (track) => [
       shownCoord(findStation(track.from)),
       ...(preview?.id === track.id ? preview.waypoints : track.waypoints),
       shownCoord(findStation(track.to)),
     ];
+    // 지우기 미리보기: 함께 지워질 선로는 'gone', 사라질 노선이 지나는 선로는 'route'
+    const removing = new Map();
+    if (ui.removing) {
+      const { trackIds, routes: lostRoutes } = removalPreview(ui.removing);
+      for (const route of lostRoutes) {
+        for (const track of routeTracks(route)) if (track) removing.set(track.id, 'route');
+      }
+      for (const id of trackIds) removing.set(id, 'gone');
+    }
     updateTracks(
       map,
       tracks.map((track) => ({
         id: track.id,
         coords: coordsOf(track),
-        routeColor: trackColor.get(track.id) ?? null,
+        routeColor: centerColor(track),
+        removing: removing.get(track.id) ?? null,
       })),
       highlightedTracks(ui.selected),
     );
@@ -251,7 +318,7 @@ export function startApp(map, loadMessage) {
   function render() {
     const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
     const stations = shownStations();
-    const { stationColors } = routeColors(routes);
+    const { stationRoutes } = routeColors(routes);
     // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
     const shapes = stationShapes(stations, getState().tracks, routes);
     const bands = stationBands(stations, getState().tracks, routes, shapes);
@@ -268,6 +335,7 @@ export function startApp(map, loadMessage) {
     });
     bankruptDialog.show({ bankrupt, year, month, money });
     toolbar.setActive(ui.tool);
+    congestionToggle.setActive(ui.congestion);
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
@@ -275,7 +343,7 @@ export function startApp(map, loadMessage) {
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
     updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
-    updateStationLabels(map, stations, stationColors, economy.stationRiders, shapes);
+    updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes);
     updateStationExits();
     panel.show(infoPanelView(ui.selected, shapes));
     routePanel.show(
@@ -309,6 +377,9 @@ export function startApp(map, loadMessage) {
     ui,
     select,
     render,
+    chooseTool,
+    deleteSelected,
+    toggleCongestion,
     renderTracks,
     trackTool,
     routeTool,

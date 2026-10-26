@@ -9,6 +9,7 @@ export function createSpeedControl(element, onSelect) {
     button.type = 'button';
     button.className = 'speed-button';
     button.textContent = speed === 0 ? '멈춤' : `${speed}배`;
+    if (speed === 0) button.title = 'Space 키로 멈춤·다시 가기';
     button.addEventListener('click', () => onSelect(speed));
     element.append(button);
     buttons.set(speed, button);
