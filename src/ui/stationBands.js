@@ -21,7 +21,8 @@ import {
 } from '../config.js';
 import { localProjection, inverseProjection } from '../map/population.js';
 
-// 결과: Map(역 id → [{ kind: 'platform' | 'concourse', coords: [[경도, 위도], …], width: 폭(미터) }])
+// 결과: Map(역 id → { parts: [{ kind: 'platform' | 'concourse', coords: [[경도, 위도], …], width: 폭(미터) }],
+//                     heading: 상행(노선의 앞 역 쪽) 방향, 나침반 각도(북쪽 0°, 시계 방향) — 출구 번호를 매길 때 쓴다 })
 // stations: 화면에 보일 역들 (끌어서 옮기는 중이면 그 자리), shapes: stationShapes()의 결과 (방향)
 export function stationBands(stations, tracks, routes, shapes) {
   const coordOf = new Map(stations.map((station) => [station.id, station.coord]));
@@ -51,6 +52,7 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
 
   const random = seededRandom(station.id);
   const parts = [];
+  let heading = 0;
   const groups = platformGroups(station, arms, tracks, routes);
   if (groups.length === 0) {
     // 선로가 없는 역: 정한 방향(0 = 가로, 시계 방향)으로 곧게
@@ -59,6 +61,7 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
     const dx = Math.cos(radians) * half;
     const dy = -Math.sin(radians) * half; // 북쪽이 +y라서 시계 방향은 −
     addPlatform(parts, [[-dx, -dy], [dx, dy]], 1, 'through', random);
+    heading = compassBearing([dx, dy]);
   }
   const directions = []; // 띠마다 역 자리에서의 방향 (환승역 큰 대합실을 돌릴 때 쓴다)
   for (const group of groups) {
@@ -78,6 +81,12 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
     addPlatform(parts, points, group.count, group.armIds.length === 2 ? 'through' : 'terminal', random);
     directions.push(directionAt(points, origin));
   }
+  if (groups.length > 0) {
+    // 상행: 첫 띠의 앞 역 쪽 선로 방향. 노선의 첫 역이라 앞 역이 없으면 뒤 역 쪽의 반대
+    const [first] = groups;
+    const [x, y] = directionAt(arms.get(first.armIds[0]), 15);
+    heading = compassBearing(first.up ? [x, y] : [-x, -y]);
+  }
   if (groups.length >= 2) {
     // 환승역: 선로가 만나는 역 자리에 큰 대합실 (첫 띠 방향으로 놓은 정사각형)
     const [ux, uy] = directions[0];
@@ -89,14 +98,18 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
     });
   }
 
-  return parts.map((part) => ({
-    kind: part.kind,
-    width: part.width,
-    coords: part.points.map(toLngLat),
-  }));
+  return {
+    parts: parts.map((part) => ({
+      kind: part.kind,
+      width: part.width,
+      coords: part.points.map(toLngLat),
+    })),
+    heading,
+  };
 }
 
-// 띠 묶음 정하기. 결과: [{ armIds: [선로 id 1~2개], count: 이 띠를 함께 쓰는 노선 수 }]
+// 띠 묶음 정하기. 결과: [{ armIds: [선로 id 1~2개], count: 이 띠를 함께 쓰는 노선 수,
+//                         up: armIds[0]이 앞 역(상행) 쪽 선로인지 }]
 function platformGroups(station, arms, tracks, routes) {
   const between = (a, b) =>
     tracks.find((t) => (t.from === a && t.to === b) || (t.from === b && t.to === a));
@@ -106,29 +119,27 @@ function platformGroups(station, arms, tracks, routes) {
   for (const route of routes) {
     route.stations.forEach((id, i) => {
       if (id !== station.id) return;
-      const armIds = [
-        ...new Set(
-          [route.stations[i - 1], route.stations[i + 1]]
-            .filter((other) => other !== undefined)
-            .map((other) => between(station.id, other)?.id)
-            .filter((armId) => armId && arms.has(armId)),
-        ),
-      ];
+      const armOf = (other) => {
+        const armId = other === undefined ? undefined : between(station.id, other)?.id;
+        return arms.has(armId) ? armId : null;
+      };
+      const previous = armOf(route.stations[i - 1]);
+      const armIds = [...new Set([previous, armOf(route.stations[i + 1])].filter(Boolean))];
       if (armIds.length === 0) return;
       // 같은 두 선로를 쓰면 지나는 방향이 달라도 같은 띠다
       const key = [...armIds].sort().join('+');
-      const group = byKey.get(key) ?? { armIds, routeIds: new Set() };
+      const group = byKey.get(key) ?? { armIds, up: previous !== null, routeIds: new Set() };
       group.routeIds.add(route.id);
       byKey.set(key, group);
     });
   }
   if (byKey.size > 0) {
-    return [...byKey.values()].map((group) => ({ armIds: group.armIds, count: group.routeIds.size }));
+    return [...byKey.values()].map(({ armIds, up, routeIds }) => ({ armIds, up, count: routeIds.size }));
   }
 
   // 노선이 없으면: 선로가 하나면 그 하나, 여럿이면 가장 곧게 이어지는 두 개
   const ids = [...arms.keys()];
-  if (ids.length <= 1) return ids.map((id) => ({ armIds: [id], count: 1 }));
+  if (ids.length <= 1) return ids.map((id) => ({ armIds: [id], up: true, count: 1 }));
   const outward = new Map(ids.map((id) => [id, directionAt(arms.get(id), 15)]));
   let best = null;
   let straightest = Infinity; // 두 방향이 반대일수록(곧을수록) 작다
@@ -143,7 +154,7 @@ function platformGroups(station, arms, tracks, routes) {
       }
     }
   }
-  return [{ armIds: best, count: 1 }];
+  return [{ armIds: best, up: true, count: 1 }];
 }
 
 // 띠(points)에 승강장과 대합실을 붙인다
@@ -235,6 +246,9 @@ function subLine(points, from, to) {
 
 // 선의 처음부터 length미터까지
 const sliceFrom = (points, length) => subLine(points, 0, length);
+
+// 평면 방향(동쪽 x, 북쪽 y) → 나침반 각도 (북쪽 0°, 시계 방향, 0~360)
+const compassBearing = ([x, y]) => ((Math.atan2(x, y) * 180) / Math.PI + 360) % 360;
 
 // s미터 자리에서 선이 나아가는 방향 (길이 1)
 function directionAt(points, s) {

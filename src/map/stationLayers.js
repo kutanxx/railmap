@@ -45,10 +45,10 @@ const ICON_SIZE = [
 // 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 서울 위도로 한 번만 계산한다
 const METERS_PER_PIXEL_Z0 = (40075016.686 * Math.cos((START_CENTER[1] * Math.PI) / 180)) / 512;
 // 띠의 테두리 굵기 (줌 → px): 줌 14에서 1.5, 18부터 3
-const outlinePx = (zoom) => Math.min(3, 1.5 + (zoom - PLATFORM_REAL_SIZE_ZOOM) * 0.375);
-// 실제 폭(미터, 지물 속성 width)을 화면 굵기(px)로 바꾸는 식. extraPx(줌)만큼 더 굵게
+export const outlinePx = (zoom) => Math.min(3, 1.5 + (zoom - PLATFORM_REAL_SIZE_ZOOM) * 0.375);
+// 실제 폭(미터, 지물 속성 width)을 화면 굵기(px)로 바꾸는 식. extraPx(줌)만큼 더 굵게 (통로도 같이 쓴다)
 // 한 줌 확대할 때마다 미터당 px이 두 배가 되므로 2의 지수로 보간한다
-const metersWide = (extraPx) => [
+export const metersWide = (extraPx) => [
   'interpolate',
   ['exponential', 2],
   ['zoom'],
@@ -136,7 +136,7 @@ export function addStationLayers(map) {
 
 // 역 목록 전체를 한 번에 다시 그린다
 // shapes = Map(역 id → { angle: 승강장 방향, transfer: 환승역인지 }) (ui/stationShapes.js)
-// bands = Map(역 id → [{ kind, coords, width }]) (ui/stationBands.js)
+// bands = Map(역 id → { parts: [{ kind, coords, width }] }) (ui/stationBands.js)
 export function updateStations(map, stations, selectedId, shapes, bands) {
   const points = [];
   const pieces = [];
@@ -148,7 +148,7 @@ export function updateStations(map, stations, selectedId, shapes, bands) {
       geometry: { type: 'Point', coordinates: station.coord },
       properties: { id: station.id, angle, transfer, selected },
     });
-    for (const { kind, coords, width } of bands.get(station.id) ?? []) {
+    for (const { kind, coords, width } of bands.get(station.id)?.parts ?? []) {
       pieces.push({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates: coords },

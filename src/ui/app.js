@@ -16,6 +16,7 @@ import {
   addHandleLayers,
 } from '../map/trackLayers.js';
 import { addTrainLayers } from '../map/trainLayers.js';
+import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
 import { updateStationLabels } from '../map/stationLabels.js';
 import {
   getState,
@@ -65,6 +66,7 @@ import { startAnimation } from './animation.js';
 import { createStationMover } from './stationMover.js';
 import { stationShapes } from './stationShapes.js';
 import { stationBands } from './stationBands.js';
+import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 
 export function startApp(map, loadMessage) {
@@ -234,6 +236,16 @@ export function startApp(map, loadMessage) {
     trackEditor.showHandles();
   }
 
+  // 역 출구 (stationExits.js): 역 모양이 바뀌었거나, 지도를 움직여 새 역이 보일 때 찾는다
+  // 끌어서 옮기는 중인 역은 출구를 숨긴다
+  let stationExits = null;
+  let lastBands = null; // 마지막으로 그린 역들과 그 모양
+  function updateStationExits() {
+    if (stationExits && lastBands) {
+      stationExits.update(lastBands.stations, lastBands.bands, ui.stationPreview?.id);
+    }
+  }
+
   // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
   function render() {
     const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
@@ -242,6 +254,7 @@ export function startApp(map, loadMessage) {
     // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
     const shapes = stationShapes(stations, getState().tracks, routes);
     const bands = stationBands(stations, getState().tracks, routes, shapes);
+    lastBands = { stations, bands };
 
     renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
     const economy = getEconomy();
@@ -257,6 +270,7 @@ export function startApp(map, loadMessage) {
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
+    updateStationExits();
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
@@ -305,13 +319,19 @@ export function startApp(map, loadMessage) {
   const trackEditor = createTrackEditor(ctx);
   createStationMover(ctx);
 
-  // 그리는 순서: 역세권 원 → 선로 → 역 → 열차 → 미리보기 → 선로 손잡이 (나중에 추가한 것이 위에 보인다)
+  // 그리는 순서: 역세권 원 → 선로 → 출구 통로 → 역 → 열차 → 출구 배지 → 미리보기 → 선로 손잡이
+  // (나중에 추가한 것이 위에 보인다)
   addCatchmentLayer(map);
   addTrackLayers(map);
+  addPassageLayers(map);
   addStationLayers(map);
   addTrainLayers(map);
+  addExitLayers(map);
   addDraftLayers(map);
   addHandleLayers(map);
+  stationExits = createStationExits(map);
+  // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾는다
+  map.on('idle', updateStationExits);
 
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──
   const animation = startAnimation(map);

@@ -21,18 +21,47 @@ export const START_MONTH = 3;
 
 // ── 역(승강장) 모양 ─────────────────────
 // 가까이 확대하면 역은 "승강장 띠 + 대합실"로 그려진다. 띠는 놓은 선로 모양을 따라 휜다
-// 승강장 띠의 실제 크기 (미터). 2호선 10량 열차가 약 200m
-export const PLATFORM_LENGTH_M = 190;
-export const PLATFORM_WIDTH_M = 20;
+// 승강장 띠의 실제 크기 (미터). 5~8호선 8량 승강장이 약 160m (2호선 10량은 약 200m)
+export const PLATFORM_LENGTH_M = 150;
+export const PLATFORM_WIDTH_M = 12;
 // 대합실(표를 찍고 지나가는 넓은 곳)의 기본 크기 (미터). 띠 위에 더 넓게 붙는다
-export const CONCOURSE_LENGTH_M = 45;
-export const CONCOURSE_WIDTH_M = 36;
+export const CONCOURSE_LENGTH_M = 35;
+export const CONCOURSE_WIDTH_M = 22;
 // 역마다 대합실 크기를 얼마나 다르게 할지 (0이면 모두 같고, 0.25면 ±25%까지)
 export const STATION_SHAPE_VARIETY = 0.25;
 // 환승역에서 선로가 만나는 곳에 놓는 큰 대합실의 크기 (미터, 가로·세로)
-export const TRANSFER_HALL_M = 60;
+export const TRANSFER_HALL_M = 34;
 // 같은 선로를 두 노선이 함께 쓰면 띠를 나란히 놓는다. 띠 사이 틈 (미터)
 export const PARALLEL_PLATFORM_GAP_M = 3;
+
+// ── 역 출구 ────────────────────────────
+// 대합실 양옆으로 통로를 뻗어, 건물이 없는 가장 가까운 길가(보도)에 출구를 놓는다
+// 통로를 이만큼(미터)까지 뻗어도 길가가 없으면, 건물 밑이면 "건물 연결" 출구, 빈 땅이면 그냥 출구로 한다
+export const EXIT_SEARCH_M = 120;
+// 길가가 없을 때 대합실에서 출구까지 거리 (미터)
+export const BUILDING_EXIT_M = 40;
+// 도로 가장자리에서 이만큼(미터) 안쪽까지를 보도로 본다
+export const SIDEWALK_M = 8;
+// 도로 종류별 반쪽 폭 (미터). 지도 데이터에는 도로 폭이 없어서 종류로 어림한다. 여기 없는 종류(골목길·철도 등)는 무시
+export const ROAD_HALF_WIDTH_M = {
+  motorway: 15, // 고속도로·도시고속도로
+  trunk: 14, // 큰 간선도로
+  primary: 12, // 주요 도로 (예: 을지로, 퇴계로)
+  secondary: 10,
+  tertiary: 8,
+  minor: 5, // 동네 길
+  service: 3, // 건물 진입로
+};
+// 역 하나의 출구 수 상한, 이보다 가까운 출구는 하나로 합친다 (미터)
+export const MAX_EXITS_PER_STATION = 8;
+export const EXIT_MIN_GAP_M = 25;
+// 통로 폭 (미터)
+export const PASSAGE_WIDTH_M = 4;
+// 이 줌부터 출구가 작은 노란 점으로, EXIT_LABEL_ZOOM부터 통로와 번호 배지로 보인다
+export const EXIT_DOT_ZOOM = 15;
+export const EXIT_LABEL_ZOOM = 16;
+// 출구 이름 붙이는 방식. 지금은 'seoul'(상행 오른쪽 앞이 1번, 시계 방향)만 있다 (ui/exitNames.js)
+export const EXIT_NAMING = 'seoul';
 
 // 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 그림으로 대신 보여준다
 export const PLATFORM_REAL_SIZE_ZOOM = 14;
