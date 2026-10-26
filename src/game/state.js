@@ -1,7 +1,7 @@
 // 게임 상태: 역, 선로 등. 화면 코드와 분리되어 있고,
 // 상태가 바뀌면 subscribe로 등록한 함수들을 불러서 화면이 다시 그리게 한다.
 import { length, lineString } from '@turf/turf';
-import { ROUTE_COLORS } from '../config.js';
+import { ROUTE_COLORS, DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE } from '../config.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0 }
@@ -10,9 +10,16 @@ const state = {
   // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …] }
   // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다
   tracks: [],
-  // 노선 하나 = { id: 'r1', name: '1호선', color: '#3F6E9A', stations: [역 id, …] }
+  // 노선 하나 = { id: 'r1', name: '1호선', color: '#3F6E9A', stations: [역 id, …], trainCount: 1 }
   // 이웃한 두 역 사이에는 반드시 선로가 있다
   routes: [],
+  // 열차 하나 = { id, routeId, distance: 노선 위 위치(km), direction: 1 또는 -1, dwell: 남은 정차 시간(초) }
+  // 열차는 sim.js가 노선의 열차 수에 맞춰 만들고 매 프레임 움직인다
+  trains: [],
+  // 시간 배속 (0 = 멈춤, 1 = 1배, 3 = 3배)
+  speed: 1,
+  // 게임 시작 뒤 흐른 게임 시간 (초)
+  elapsedSeconds: 0,
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
@@ -32,6 +39,12 @@ export function subscribe(listener) {
 
 function notify() {
   for (const listener of listeners) listener(state);
+}
+
+// 시간 배속을 바꾼다
+export function setSpeed(speed) {
+  state.speed = speed;
+  notify();
 }
 
 // ── 역 ──────────────────────────────
@@ -129,6 +142,7 @@ export function addRoute(stationIds) {
     name: `${number}호선`,
     color: ROUTE_COLORS[(number - 1) % ROUTE_COLORS.length].color,
     stations: stationIds,
+    trainCount: DEFAULT_TRAINS_PER_ROUTE,
   };
   state.routes.push(route);
   notify();
@@ -146,6 +160,14 @@ export function recolorRoute(id, color) {
   const route = findRoute(id);
   if (!route) return;
   route.color = color;
+  notify();
+}
+
+// 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)
+export function setRouteTrainCount(id, count) {
+  const route = findRoute(id);
+  if (!route) return;
+  route.trainCount = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
   notify();
 }
 

@@ -12,12 +12,27 @@ body {
   inset: 0;
 }
 
-/* 왼쪽 위 남색 배지 (날짜 · 지역) */
-.badge {
+/* 왼쪽 위: 첫 줄은 날짜 배지 + 배속 버튼, 그 아래 도구 막대
+   (화면이 좁아도 오른쪽 패널·서로와 겹치지 않게 왼쪽에 모은다) */
+.top-left {
   position: fixed;
   top: 16px;
   left: 16px;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 남색 배지 (날짜 · 지역) */
+.badge {
   padding: 8px 14px;
   border-radius: 6px;
   background: #1f3a55;
@@ -29,11 +44,6 @@ body {
 
 /* ── 위쪽 도구 막대 ── */
 .toolbar {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
   display: flex;
   gap: 6px;
   padding: 6px;
@@ -397,4 +407,68 @@ body {
 
 .route-detail .panel-facts {
   margin-top: 12px;
+}
+
+/* ── 배속 버튼 ── */
+.speed {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.speed-button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.speed-button:hover {
+  background: #efe7d6;
+}
+
+.speed-button.active {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+/* 노선 패널의 열차 수 − n + */
+.route-trains {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1f3a55;
+  font-size: 14px;
+}
+
+.route-trains button {
+  width: 30px;
+  height: 28px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-trains button:disabled {
+  border-color: #d6c9af;
+  color: #d6c9af;
+  cursor: default;
+}
+
+.route-trains-count {
+  min-width: 34px;
+  text-align: center;
 }

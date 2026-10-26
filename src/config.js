@@ -38,3 +38,23 @@ export const ROUTE_COLORS = [
   { name: '청록', color: '#3E8A8A' },
   { name: '자두', color: '#9C5B7A' },
 ];
+
+// ── 시간과 열차 ─────────────────────────
+// 1배일 때 실제 1초가 게임 몇 초인지. 30이면 실제 1초 = 게임 30초
+export const TIME_SCALE = 30;
+
+// 배속 버튼에 나오는 값. 0은 멈춤
+export const SPEED_OPTIONS = [0, 1, 3];
+
+// 열차 속도 (km/h, 게임 시간 기준)
+export const TRAIN_SPEED_KMH = 60;
+
+// 역에 멈춰 있는 시간 (게임 시간 초)
+export const STATION_DWELL_SECONDS = 30;
+
+// 노선 하나에 처음 넣는 열차 수와 최대 열차 수
+export const DEFAULT_TRAINS_PER_ROUTE = 1;
+export const MAX_TRAINS_PER_ROUTE = 10;
+
+// 열차 길이 (미터). 지도 위 캡슐 길이가 된다
+export const TRAIN_LENGTH_M = 120;

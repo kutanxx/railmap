@@ -1,11 +1,11 @@
 // 오른쪽 노선 패널: 새 노선 만들기 안내, 고른 노선 정보, 노선 목록.
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
-import { ROUTE_COLORS } from '../config.js';
+import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE } from '../config.js';
 import { bindNameInput } from './nameInput.js';
 
 export function createRoutePanel(
   element,
-  { onSelect, onRename, onRecolor, onDelete, onFinishDraft, onCancelDraft },
+  { onSelect, onRename, onRecolor, onTrainCount, onDelete, onFinishDraft, onCancelDraft },
 ) {
   element.innerHTML = `
     <section class="route-draft">
@@ -28,6 +28,14 @@ export function createRoutePanel(
         <span>색</span>
         <div class="route-swatches"></div>
       </div>
+      <div class="panel-field">
+        <span>열차 수</span>
+        <div class="route-trains">
+          <button type="button" class="route-trains-minus" aria-label="열차 빼기">−</button>
+          <b class="route-trains-count"></b>
+          <button type="button" class="route-trains-plus" aria-label="열차 더하기">+</button>
+        </div>
+      </div>
       <dl class="panel-facts">
         <dt>길이</dt><dd class="route-length"></dd>
         <dt>역 순서</dt><dd class="route-stations"></dd>
@@ -49,7 +57,19 @@ export function createRoutePanel(
   const stationsText = element.querySelector('.route-stations');
   const list = element.querySelector('.route-list');
 
+  const trainCountText = element.querySelector('.route-trains-count');
+  const minusButton = element.querySelector('.route-trains-minus');
+  const plusButton = element.querySelector('.route-trains-plus');
+
   let routeId = null; // 지금 보여주는 노선 id
+  let trainCount = 0; // 지금 보여주는 노선의 열차 수
+
+  minusButton.addEventListener('click', () => {
+    if (routeId) onTrainCount(routeId, trainCount - 1);
+  });
+  plusButton.addEventListener('click', () => {
+    if (routeId) onTrainCount(routeId, trainCount + 1);
+  });
   const routeName = bindNameInput(element.querySelector('.route-name'), onRename);
 
   // 색 고르기 버튼 6개
@@ -78,7 +98,7 @@ export function createRoutePanel(
   //   tool: 지금 도구 id,
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
   //   routes: [{ id, name, color, lengthKm }],
-  //   selected: { id, name, color, lengthKm, stationNames } 또는 null,
+  //   selected: { id, name, color, lengthKm, stationNames, trainCount } 또는 null,
   // }
   function show({ tool, draft, routes, selected }) {
     const showDraft = tool === 'route';
@@ -100,6 +120,10 @@ export function createRoutePanel(
       for (const button of swatchButtons) {
         button.classList.toggle('active', button.dataset.color === selected.color);
       }
+      trainCount = selected.trainCount;
+      trainCountText.textContent = `${trainCount}대`;
+      minusButton.disabled = trainCount <= 0;
+      plusButton.disabled = trainCount >= MAX_TRAINS_PER_ROUTE;
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
       stationsText.textContent = selected.stationNames.join(' → ');
     } else {

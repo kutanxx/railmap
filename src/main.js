@@ -13,6 +13,7 @@ import {
   REGION_NAME,
   START_YEAR,
   START_MONTH,
+  TIME_SCALE,
 } from './config.js';
 import { loadBeigeStyle } from './map/style.js';
 import {
@@ -24,37 +25,39 @@ import {
   trackIdAt,
   addDraftLayers,
   updateDraft,
+  addTrainLayers,
+  updateTrains,
 } from './map/layers.js';
 import { updateStationLabels } from './map/stationLabels.js';
 import {
   getState,
   subscribe,
+  setSpeed,
   findStation,
   addStation,
   renameStation,
   rotateStation,
   removeStation,
-  findTrack,
   addTrack,
   removeTrack,
   trackCoords,
-  trackLengthKm,
   findTrackBetween,
-  findRoute,
   addRoute,
   renameRoute,
   recolorRoute,
+  setRouteTrainCount,
   removeRoute,
-  routeTracks,
   routeCoords,
-  routeLengthKm,
 } from './game/state.js';
+import { syncTrains, stepSimulation, trainFeatures } from './game/sim.js';
 import { renderBadge } from './ui/badge.js';
 import { createToolbar } from './ui/toolbar.js';
+import { createSpeedControl } from './ui/speedControl.js';
 import { createPanel } from './ui/panel.js';
 import { createTrackTool } from './ui/trackTool.js';
 import { createRouteTool } from './ui/routeTool.js';
 import { createRoutePanel } from './ui/routePanel.js';
+import { infoPanelView, routePanelView, routeColors, highlightedTracks } from './ui/views.js';
 
 renderBadge(document.getElementById('badge'), {
   year: START_YEAR,
@@ -92,6 +95,8 @@ map.on('load', () => {
     render();
   });
 
+  const speedControl = createSpeedControl(document.getElementById('speed'), setSpeed);
+
   const panel = createPanel(document.getElementById('panel'), {
     onRename: (id, name) => renameStation(id, name),
     onRotate: (id, angle) => rotateStation(id, angle),
@@ -112,6 +117,7 @@ map.on('load', () => {
     },
     onRename: (id, name) => renameRoute(id, name),
     onRecolor: (id, color) => recolorRoute(id, color),
+    onTrainCount: (id, count) => setRouteTrainCount(id, count),
     onDelete: (id) => {
       selected = null;
       removeRoute(id);
@@ -155,80 +161,13 @@ map.on('load', () => {
     },
   });
 
-  // 선택한 역·선로를 오른쪽 위 패널에 보여줄 내용으로 바꾼다. 없거나 지워졌으면 null
-  function panelView() {
-    if (selected?.type === 'station') {
-      const station = findStation(selected.id);
-      return station ? { type: 'station', station } : null;
-    }
-    if (selected?.type === 'track') {
-      const track = findTrack(selected.id);
-      if (!track) return null;
-      return {
-        type: 'track',
-        track: {
-          id: track.id,
-          lengthKm: trackLengthKm(track),
-          fromName: findStation(track.from).name,
-          toName: findStation(track.to).name,
-          waypointCount: track.waypoints.length,
-        },
-      };
-    }
-    return null;
-  }
-
-  // 노선 패널에 보여줄 내용
-  function routePanelView(routes) {
-    const route = selected?.type === 'route' ? findRoute(selected.id) : null;
-    const draft = routeTool.getDraft();
-    const stationNames = (ids) => ids.map((id) => findStation(id).name);
-    return {
-      tool: currentTool,
-      draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },
-      routes: routes.map((r) => ({
-        id: r.id,
-        name: r.name,
-        color: r.color,
-        lengthKm: routeLengthKm(r),
-      })),
-      selected: route && {
-        id: route.id,
-        name: route.name,
-        color: route.color,
-        lengthKm: routeLengthKm(route),
-        stationNames: stationNames(route.stations),
-      },
-    };
-  }
-
-  // 상태를 읽어서 화면 전체를 다시 그린다
+  // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
   function render() {
-    const { stations, tracks, routes } = getState();
-
-    // 노선 색: 선로마다 지나는 노선 중 먼저 만든 노선의 색, 역마다 지나는 노선 색 전부
-    const trackColor = new Map();
-    const stationColors = new Map();
-    for (const route of routes) {
-      for (const track of routeTracks(route)) {
-        if (!trackColor.has(track.id)) trackColor.set(track.id, route.color);
-      }
-      for (const id of route.stations) {
-        const colors = stationColors.get(id) ?? [];
-        if (!colors.includes(route.color)) colors.push(route.color);
-        stationColors.set(id, colors);
-      }
-    }
-
-    // 노란색으로 강조할 선로: 고른 선로 하나, 또는 고른 노선의 선로 전부
-    const highlighted = new Set();
-    if (selected?.type === 'track') highlighted.add(selected.id);
-    if (selected?.type === 'route') {
-      const route = findRoute(selected.id);
-      if (route) for (const track of routeTracks(route)) highlighted.add(track.id);
-    }
+    const { stations, tracks, routes, speed } = getState();
+    const { trackColor, stationColors } = routeColors(routes);
 
     toolbar.setActive(currentTool);
+    speedControl.setActive(speed);
     updateTracks(
       map,
       tracks.map((track) => ({
@@ -236,21 +175,48 @@ map.on('load', () => {
         coords: trackCoords(track),
         routeColor: trackColor.get(track.id) ?? null,
       })),
-      highlighted,
+      highlightedTracks(selected),
     );
     updateStations(map, stations, selected?.type === 'station' ? selected.id : null);
     updateStationLabels(map, stations, stationColors);
-    panel.show(panelView());
-    routePanel.show(routePanelView(routes));
+    panel.show(infoPanelView(selected));
+    routePanel.show(
+      routePanelView({ selected, tool: currentTool, draft: routeTool.getDraft(), routes }),
+    );
     map.getCanvas().style.cursor = currentTool === 'select' ? '' : 'crosshair';
   }
 
-  // 그리는 순서: 선로 → 역 → 그리는 중인 미리보기 (나중에 추가한 것이 위에 보인다)
+  // 그리는 순서: 선로 → 역 → 열차 → 그리는 중인 미리보기 (나중에 추가한 것이 위에 보인다)
   addTrackLayers(map);
   addStationLayers(map);
+  addTrainLayers(map);
   addDraftLayers(map);
+
+  // 상태가 바뀌면: 열차를 노선에 맞추고 → 화면을 다시 그린다
+  let trainsChanged = true;
+  subscribe(() => {
+    syncTrains();
+    trainsChanged = true;
+  });
   subscribe(render);
   render();
+
+  // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 ──
+  let lastFrame = performance.now();
+  function frame(now) {
+    // 탭을 오래 비웠다 돌아와도 열차가 순간이동하지 않게 한 프레임은 최대 0.1초로 친다
+    const realSeconds = Math.min((now - lastFrame) / 1000, 0.1);
+    lastFrame = now;
+    const { speed } = getState();
+    // 멈춤 상태이고 바뀐 것도 없으면 다시 그리지 않는다
+    if (speed > 0 || trainsChanged) {
+      stepSimulation(realSeconds * speed * TIME_SCALE);
+      updateTrains(map, trainFeatures());
+      trainsChanged = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 
   map.on('click', (event) => {
     const coord = event.lngLat.toArray();
