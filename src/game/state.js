@@ -5,7 +5,6 @@
 // 바꾸는 함수는 따로 있다: 역·선로는 build.js, 노선은 routes.js, 저장은 save.js
 import { length, lineString } from '@turf/turf';
 import {
-  START_MONEY,
   START_YEAR,
   START_MONTH,
   DEBT_INTEREST_PER_MONTH,
@@ -13,6 +12,7 @@ import {
   BANKRUPT_GRACE_MONTHS,
 } from '../config.js';
 import { createHistory } from './history.js';
+import { getRegion } from './region.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea, cells }
@@ -35,7 +35,7 @@ const state = {
   // 게임 시작 뒤 흐른 게임 시간 (초)
   elapsedSeconds: 0,
   // 자금 (억 원)
-  money: START_MONEY,
+  money: getRegion().startMoney,
   // 지금 날짜와 이번 달이 얼마나 지났는지 (0 ~ 1)
   year: START_YEAR,
   month: START_MONTH,

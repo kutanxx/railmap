@@ -5,6 +5,10 @@
 // 시작 화면에서 고르는 지도들. 역·선로·노선·열차·돈 계산은 어느 지도든 똑같다
 // name: 왼쪽 위 배지에 보일 지역 이름, title·description: 시작 화면 글,
 // center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
+// 지도마다 다른 돈 계산 (밸런스):
+//   startMoney: 시작 자금 (억)
+//   populationScale: 건물 면적으로 잰 인구에 곱하는 배율 (1 = PEOPLE_PER_BUILT_M2 그대로)
+//   trackCostScale: 선로·교량 공사비와 선로 운영비에 곱하는 배율 (지방은 땅값이 싸서 1보다 작다)
 export const REGIONS = {
   seoul: {
     name: '서울',
@@ -12,6 +16,9 @@ export const REGIONS = {
     description: 'OpenStreetMap의 실제 서울 도심 위에 노선을 깔아요',
     center: [126.9895, 37.5615],
     zoom: 14,
+    startMoney: 600,
+    populationScale: 1,
+    trackCostScale: 1,
   },
   sollae: {
     name: '솔내 지방',
@@ -19,6 +26,13 @@ export const REGIONS = {
     description: '마을 넷과 금빛강, 봉우리산이 있는 가상의 지방이에요',
     center: [131.0, 37.56],
     zoom: 12,
+    startMoney: 600,
+    // 지방 소도시는 건물이 낮고 넓게 퍼져 있어서 건물 면적만으로 재면 인구가 적게 나온다.
+    // 3배면 솔내 약 5만, 가람 3만, 새터 4만, 한골 5만 명이 된다
+    populationScale: 3,
+    // 땅값이 싸서 선로 공사비와 선로 운영비가 서울의 절반이다.
+    // 이 두 값으로 솔내–가람 첫 노선(열차 1대)이 서울 첫 노선처럼 200개월쯤에 본전이 된다
+    trackCostScale: 0.5,
   },
 };
 
@@ -135,8 +149,7 @@ export const TRAIN_LENGTH_M = 120;
 export const TRAIN_MIN_SCREEN_PX = 24;
 
 // ── 돈 (단위: 억 원) ────────────────────
-// 시작 자금. 역 3개짜리 첫 노선(약 320억)을 지을 수 있을 만큼
-export const START_MONEY = 600;
+// 시작 자금은 지도마다 다르다: 위의 REGIONS의 startMoney (서울 600억 = 역 3개짜리 첫 노선 약 320억 + 여유)
 
 // 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
 // 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값

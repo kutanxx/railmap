@@ -1,4 +1,4 @@
-// 역 주변 인구 추정: 반경 POPULATION_RADIUS_M 안의 건물 바닥 면적(㎡) × PEOPLE_PER_BUILT_M2.
+// 역 주변 인구 추정: 반경 POPULATION_RADIUS_M 안의 건물 바닥 면적(㎡) × 1㎡당 사람 수 (지도마다 배율, game/region.js).
 // 지도 데이터는 도심의 건물을 블록 단위로 합쳐 두어서 "건물 개수"는 실제보다 훨씬 적게 나온다.
 // 그래서 개수 대신 원 안에 들어오는 건물 면적을 잰다.
 // 건물은 지도 자료에서 찾는다 (mapFeatures.js: 실제 지도는 불러온 타일, 가상 지도는 GeoJSON). 없으면 기본값을 쓴다.
@@ -12,11 +12,11 @@ import {
   STATION_MIN_ZOOM,
   POPULATION_RADIUS_M,
   CATCHMENT_CELL_M,
-  PEOPLE_PER_BUILT_M2,
   DEFAULT_STATION_POPULATION,
   MIN_STATION_POPULATION,
 } from '../config.js';
 import { readMapFeatures, isVirtualMap } from './mapFeatures.js';
+import { peoplePerBuiltM2 } from '../game/region.js';
 
 // 원을 몇 각형으로 근사할지
 const CIRCLE_STEPS = 32;
@@ -73,7 +73,7 @@ export function estimatePopulation(map, coord) {
     cells.push([round(lng, 5), round(lat, 5), Math.round(area)]);
   }
 
-  const population = Math.max(MIN_STATION_POPULATION, Math.round(builtArea * PEOPLE_PER_BUILT_M2));
+  const population = Math.max(MIN_STATION_POPULATION, Math.round(builtArea * peoplePerBuiltM2()));
   return { population, builtArea: Math.round(builtArea), cells };
 }
 

@@ -1,7 +1,8 @@
 // 역세권 나누기: 가까이 붙은 역들이 같은 건물을 두 번 세지 않게, 인구를 칸마다 가장 가까운 역에만 준다.
 // 역마다 지을 때 적어 둔 칸 목록(station.cells)을 쓰므로 지도 데이터 없이 계산할 수 있다.
 // 그래서 역을 짓거나 지우거나 되돌리거나 불러와도 언제나 같은 결과가 나온다.
-import { PEOPLE_PER_BUILT_M2, MIN_STATION_POPULATION, POPULATION_RADIUS_M } from '../config.js';
+import { MIN_STATION_POPULATION, POPULATION_RADIUS_M } from '../config.js';
+import { peoplePerBuiltM2 } from './region.js';
 
 // 결과: Map(역 id → 이웃 역과 나눈 뒤의 인구)
 export function sharedPopulations(stations) {
@@ -19,7 +20,7 @@ export function sharedPopulations(stations) {
       // 이 칸에 더 가까운 다른 역이 있으면 그 역 몫이다
       if (near.every((other) => distanceSq(other.coord, lng, lat) >= own)) builtArea += area;
     }
-    result.set(station.id, Math.max(MIN_STATION_POPULATION, Math.round(builtArea * PEOPLE_PER_BUILT_M2)));
+    result.set(station.id, Math.max(MIN_STATION_POPULATION, Math.round(builtArea * peoplePerBuiltM2())));
   }
   return result;
 }

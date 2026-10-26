@@ -15,6 +15,7 @@ import {
   FARE_LONG_KM,
   FARE_LONG_STEP_KM,
 } from '../config.js';
+import { getRegion } from './region.js';
 
 // 역 하나 공사비
 export function stationCost() {
@@ -34,17 +35,20 @@ export function setWaterMeasure(measure) {
 }
 
 // 좌표들을 잇는 선로의 길이(km), 그중 물 위(교량) 길이(km), 공사비
-// 공사비 = (길이 − 교량) × TRACK_COST_PER_KM + 교량 × BRIDGE_COST_PER_KM
+// 공사비 = ((길이 − 교량) × TRACK_COST_PER_KM + 교량 × BRIDGE_COST_PER_KM) × 지도의 선로 공사비 배율
 export function trackCostForCoords(coords) {
   const km = coords.length >= 2 ? length(lineString(coords), { units: 'kilometers' }) : 0;
   const bridgeKm = km > 0 ? Math.min(km, measureWaterKm(coords)) : 0;
-  return { km, bridgeKm, cost: (km - bridgeKm) * TRACK_COST_PER_KM + bridgeKm * BRIDGE_COST_PER_KM };
+  const base = (km - bridgeKm) * TRACK_COST_PER_KM + bridgeKm * BRIDGE_COST_PER_KM;
+  return { km, bridgeKm, cost: base * getRegion().trackCostScale };
 }
 
-// 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 + 열차 대수 × 열차당 운영비
+// 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 × 지도의 선로 공사비 배율 + 열차 대수 × 열차당 운영비
 export function monthlyOpex(stationCount, totalTrackKm, totalTrains) {
   return (
-    stationCount * OPEX_PER_STATION + totalTrackKm * OPEX_PER_TRACK_KM + totalTrains * OPEX_PER_TRAIN
+    stationCount * OPEX_PER_STATION +
+    totalTrackKm * OPEX_PER_TRACK_KM * getRegion().trackCostScale +
+    totalTrains * OPEX_PER_TRAIN
   );
 }
 
