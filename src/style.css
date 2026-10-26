@@ -1,0 +1,28 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #efe7d6;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+}
+
+/* 지도는 화면 전체를 채운다 */
+#map {
+  position: fixed;
+  inset: 0;
+}
+
+/* 왼쪽 위 남색 배지 (날짜 · 지역) */
+.badge {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: #1f3a55;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  pointer-events: none;
+}

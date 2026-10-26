@@ -1,0 +1,796 @@
+<title>솔내 철도 공사</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: map-first survey bench. Flat explainer-map on the left with a section profile under it, surveyor's ledger on the right. Single light look on purpose (it is a printed-map aesthetic). */
+:root{
+  color-scheme: light;
+  --paper:#ECE4D3; --panel:#FAF7F0; --panel-2:#F2ECDF; --rule:#DCD2BF;
+  --ink:#1F3A55; --ink-2:#4A5B6C; --muted:#847E71;
+  --survey:#C9772F; --survey-bg:#F6E4CF; --signal:#F2C230;
+  --good:#2E7350; --good-bg:#DDEBDF; --bad:#A8402B; --bad-bg:#F5DED6; --warn:#8A5E0E; --warn-bg:#F4E6C4; --info:#3D5F80; --info-bg:#E1E9F1;
+  --f-display:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body)}
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:800 18px var(--f-display);letter-spacing:-.01em;margin:0}
+.brand small{font:500 12px var(--f-body);color:var(--muted);letter-spacing:0}
+.mark{width:26px;height:26px;border-radius:6px;background:var(--ink);position:relative;overflow:hidden;flex:none}
+.mark::before,.mark::after{content:"";position:absolute;left:-4px;right:-4px;height:2px;background:var(--panel);top:9px;transform:rotate(-35deg)}
+.mark::after{top:15px}
+.kpis{display:flex;gap:8px 22px;margin-left:auto;flex-wrap:wrap}
+.kpi label{display:block;font-size:11px;color:var(--muted);letter-spacing:.04em}
+.kpi b{font:500 16px var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi b.neg{color:var(--bad)} .kpi b.pos{color:var(--good)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;padding:6px 12px;font:500 13px var(--f-body);color:var(--ink-2);cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 348px;gap:12px;min-height:0}
+.stage{display:grid;grid-template-rows:minmax(0,1fr) 178px;gap:12px;min-height:0;min-width:0}
+.mapwrap{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--rule);background:#DCD1BA;min-height:0;touch-action:none;user-select:none;-webkit-user-select:none}
+#map{position:absolute;inset:0;display:block;cursor:crosshair}
+.badge{position:absolute;top:12px;left:12px;background:var(--ink);color:var(--panel);font:800 13px var(--f-display);padding:7px 12px;border-radius:6px;letter-spacing:.02em;pointer-events:none}
+.layers{position:absolute;top:12px;right:12px}
+.hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:max-content;max-width:min(420px,calc(100% - 320px));background:var(--panel);border:1.5px solid var(--ink);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:500;text-align:center;pointer-events:none;transition:opacity .35s}
+.hint.off{opacity:0}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.zoom button{width:36px;height:32px;border:0;background:transparent;font:600 16px var(--f-body);color:var(--ink);cursor:pointer}
+.zoom button+button{border-top:1px solid var(--rule)}
+.zoom .fit{font-size:11px}
+.readout{position:absolute;left:12px;bottom:12px;display:flex;align-items:flex-end;gap:12px;font:500 11px var(--f-num);color:var(--ink-2);pointer-events:none;background:rgba(250,247,240,.88);padding:5px 9px;border-radius:6px}
+.scale{display:flex;flex-direction:column;gap:2px}
+.scalebar{height:6px;border:1.5px solid var(--ink-2);border-top:0}
+.profile{background:var(--panel);border:1px solid var(--rule);border-radius:10px;display:flex;flex-direction:column;min-height:0;padding:8px 12px 6px}
+.phead{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.phead h2{margin:0;font:800 13px var(--f-display)}
+#ptitle{font-size:12px;color:var(--ink-2)}
+.legend{margin-left:auto;display:flex;gap:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
+#profile{flex:1;width:100%;min-height:0;display:block}
+.ledger{background:var(--panel);border:1px solid var(--rule);border-radius:10px;overflow:auto;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.sec:last-child{border-bottom:0}
+.sec h3{margin:0;font:800 11px var(--f-display);letter-spacing:.08em;color:var(--muted)}
+.dhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dtitle{font:800 19px var(--f-display);letter-spacing:-.01em;text-wrap:balance}
+.tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--survey-bg);color:#8C4E17}
+.tag.ex{background:var(--info-bg);color:var(--info)}
+.sub{margin:0;color:var(--ink-2);font-size:13px}
+.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;color:var(--ink-2)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat{background:var(--panel-2);border-radius:6px;padding:6px 9px}
+.stat span{display:block;font-size:11px;color:var(--muted)}
+.stat b{font:500 15px var(--f-num);font-variant-numeric:tabular-nums}
+.stat b.bad{color:var(--bad)} .stat b.warn{color:var(--warn)}
+.costs{display:flex;flex-direction:column;gap:4px;font-size:12px}
+.crow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:8px}
+.crow span{color:var(--ink-2)}
+.crow i{display:block;height:6px;border-radius:3px;background:var(--rule);position:relative;overflow:hidden}
+.crow i::after{content:"";position:absolute;inset:0;width:var(--w);background:var(--c,var(--ink-2));border-radius:3px}
+.crow b{font:500 12px var(--f-num);font-variant-numeric:tabular-nums;text-align:right;min-width:64px}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--rule);padding-top:8px}
+.total b{font:500 18px var(--f-num)}
+.econ{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:11px;color:var(--muted)}
+.econ b{display:block;font:500 13px var(--f-num);color:var(--ink)}
+.econ b.pos{color:var(--good)} .econ b.neg{color:var(--bad)}
+.warns{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.warns li{font-size:12px;padding:5px 9px;border-radius:6px;line-height:1.4}
+.warns .bad{background:var(--bad-bg);color:var(--bad)}
+.warns .warn{background:var(--warn-bg);color:var(--warn)}
+.warns .info{background:var(--info-bg);color:var(--info)}
+.flash{font-size:12px;color:var(--bad);margin:0;font-weight:500}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--ink);background:var(--panel);color:var(--ink);font:600 13px var(--f-body);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{background:var(--panel-2)}
+.btn.primary{background:var(--ink);color:var(--panel)}
+.btn.primary:hover{background:#2A4A6A}
+.btn.small{padding:5px 10px;font-size:12px;border-color:var(--rule)}
+.list{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.lrow{width:100%;display:flex;justify-content:space-between;gap:8px;align-items:baseline;text-align:left;border:1px solid transparent;background:var(--panel-2);border-radius:6px;padding:7px 10px;cursor:pointer;font:500 13px var(--f-body);color:var(--ink)}
+.lrow.on{border-color:var(--ink);background:#FFF8E1}
+.lrow small{font:500 11px var(--f-num);color:var(--ink-2);white-space:nowrap}
+.trow{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:2px 0}
+.trow .pop{font:500 12px var(--f-num);color:var(--ink-2);margin-left:auto;margin-right:10px}
+.chip{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--panel-2);color:var(--muted)}
+.chip.on{background:var(--good-bg);color:var(--good)}
+.goal{display:flex;gap:6px;flex-wrap:wrap}
+.goal .chip{font-size:12px;padding:3px 9px}
+.empty{margin:0;color:var(--muted);font-size:13px}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-2)}
+.log time{font:500 11px var(--f-num);color:var(--muted);margin-right:6px}
+.log .good{color:var(--good)} .log .bad{color:var(--bad)}
+@media (max-width:880px){
+  html,body{height:auto}
+  .app{height:auto;display:flex;flex-direction:column}
+  .main,.stage{display:flex;flex-direction:column}
+  .mapwrap{height:62vh;min-height:340px}
+  .profile{height:178px}
+  .ledger{overflow:visible}
+  .kpis{margin-left:0}
+}
+@media (max-width:700px){ .hint{top:auto;bottom:52px;max-width:calc(100% - 24px)} }
+@media (prefers-reduced-motion:reduce){ .hint{transition:none} }
+</style>
+
+<div class="app">
+  <header class="top">
+    <h1 class="brand"><span class="mark" aria-hidden="true"></span>솔내 철도 공사 <small>0단계 프로토타입</small></h1>
+    <div class="kpis">
+      <div class="kpi"><label>자금</label><b id="money">₩ 0억</b></div>
+      <div class="kpi"><label>월 수지</label><b id="net">0.0억</b></div>
+      <div class="kpi"><label>날짜</label><b id="date">1962년 3월</b></div>
+    </div>
+    <div class="seg" role="group" aria-label="시간 속도">
+      <button id="sp0" data-sp="0" aria-pressed="false">멈춤</button>
+      <button id="sp1" data-sp="1" aria-pressed="true">1배</button>
+      <button id="sp3" data-sp="3" aria-pressed="false">3배</button>
+    </div>
+  </header>
+  <div class="main">
+    <div class="stage">
+      <div class="mapwrap" id="mapwrap">
+        <canvas id="map" aria-label="솔내 지방 측량 지도. 마을을 눌러 노선을 시작합니다."></canvas>
+        <div class="badge" id="badge">1962년 3월 · 솔내 지방</div>
+        <div class="hint" id="hint">예시 노선이에요. 주황 점을 끌어 다듬거나 건설해 보세요.</div>
+        <div class="seg layers" role="group" aria-label="지도 레이어">
+          <button id="lyN" data-ly="normal" aria-pressed="true">일반</button>
+          <button id="lyT" data-ly="terrain" aria-pressed="false">지형</button>
+        </div>
+        <div class="readout"><div class="scale"><span id="scaleLabel">1 km</span><div class="scalebar" id="scalebar" style="width:60px"></div></div><span id="elev">표고 —</span></div>
+        <div class="zoom"><button id="zin" aria-label="확대">+</button><button id="zout" aria-label="축소">−</button><button id="zfit" class="fit" aria-label="전체 보기">전체</button></div>
+      </div>
+      <section class="profile">
+        <div class="phead"><h2>종단면도</h2><span id="ptitle"></span>
+          <div class="legend"><span><i style="background:#C9B48D"></i>지형</span><span><i style="background:#1F3A55"></i>선로</span><span><i style="background:#C9772F"></i>터널</span><span><i style="background:#8FA6BB"></i>교량</span></div>
+        </div>
+        <canvas id="profile"></canvas>
+      </section>
+    </div>
+    <aside class="ledger" id="ledger">
+      <div class="sec" id="secDraft"></div>
+      <div class="sec"><h3>목표 · 네 마을을 하나의 철도망으로</h3><div class="goal" id="goal"></div></div>
+      <div class="sec"><h3>개통 노선</h3><ul class="list" id="lines"></ul></div>
+      <div class="sec"><h3>마을</h3><div id="towns"></div></div>
+      <div class="sec"><h3>기록</h3><ul class="log" id="log"></ul></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+// ---------- world constants (1 world unit = 10 m) ----------
+const W=1800,H=1100,STEP=6,NX=Math.floor(W/STEP)+1,NY=Math.floor(H/STEP)+1;
+const DS=5,DSM=50,VMAX=160,GMAX=0.03,RIVER_W=22,MONTH_MS=2500;
+const COST={base:22,earth:0.9,tunnel:230,bridge:150,land:90,station:15};
+const OPEX=0.09,DEMAND=0.0265;
+const TOWNS=[
+  {name:'솔내',x:330,y:560,r:110,pop:42000,ang:0.35},
+  {name:'가람',x:770,y:905,r:82,pop:26000,ang:-0.5},
+  {name:'새터',x:1020,y:250,r:52,pop:9000,ang:0.9},
+  {name:'한골',x:1500,y:390,r:74,pop:18000,ang:-0.2},
+];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+const gauss=(x,y,cx,cy,sx,sy)=>Math.exp(-(((x-cx)**2)/(2*sx*sx)+((y-cy)**2)/(2*sy*sy)));
+function hash(x,y){let h=(Math.imul(x,374761393)+Math.imul(y,668265263))|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+function fbm(x,y){let s=0,a=0.5,f=1,n=0;for(let o=0;o<4;o++){s+=a*vnoise(x*f,y*f);n+=a;a*=0.5;f*=2.03}return s/n}
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// ---------- centripetal Catmull-Rom ----------
+function crPoint(p0,p1,p2,p3,t){
+  const d=(p,q)=>Math.max(1e-4,Math.sqrt(Math.hypot(q.x-p.x,q.y-p.y)));
+  const t0=0,t1=t0+d(p0,p1),t2=t1+d(p1,p2),t3=t2+d(p2,p3),tt=t1+(t2-t1)*t;
+  const L=(a,b,ta,tb)=>{const w=(tt-ta)/(tb-ta);return{x:a.x+(b.x-a.x)*w,y:a.y+(b.y-a.y)*w}};
+  const A1=L(p0,p1,t0,t1),A2=L(p1,p2,t1,t2),A3=L(p2,p3,t2,t3),B1=L(A1,A2,t0,t2),B2=L(A2,A3,t1,t3);
+  return L(B1,B2,t1,t2);
+}
+function splineDense(pts){
+  if(pts.length<2)return pts.map(p=>({x:p.x,y:p.y,seg:0}));
+  const n=pts.length,ext=[{x:2*pts[0].x-pts[1].x,y:2*pts[0].y-pts[1].y},...pts,{x:2*pts[n-1].x-pts[n-2].x,y:2*pts[n-1].y-pts[n-2].y}];
+  const out=[];
+  for(let i=0;i<n-1;i++){
+    const p0=ext[i],p1=ext[i+1],p2=ext[i+2],p3=ext[i+3];
+    const m=Math.max(6,Math.ceil(Math.hypot(p2.x-p1.x,p2.y-p1.y)/2));
+    for(let k=(i===0?0:1);k<=m;k++){const q=crPoint(p0,p1,p2,p3,k/m);out.push({x:q.x,y:q.y,seg:i})}
+  }
+  return out;
+}
+function resample(dense,ds){
+  const out=[{x:dense[0].x,y:dense[0].y,seg:dense[0].seg}];let acc=0;
+  for(let i=1;i<dense.length;i++){
+    const a=dense[i-1],b=dense[i],L=Math.hypot(b.x-a.x,b.y-a.y);let start=0;
+    while(L>0&&acc+(L-start)>=ds){start+=ds-acc;const t=start/L;out.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,seg:b.seg});acc=0}
+    acc+=L-start;
+  }
+  const last=dense[dense.length-1];
+  if(out.length===1||acc>ds*0.3)out.push({x:last.x,y:last.y,seg:last.seg});
+  else{out[out.length-1].x=last.x;out[out.length-1].y=last.y}
+  return out;
+}
+
+// ---------- terrain ----------
+const RIVER=splineDense([[990,-30],[930,170],[860,330],[765,480],[690,615],[600,755],[520,880],[468,1000],[440,1140]].map(([x,y])=>({x,y})));
+const RIVER_C=resample(RIVER,12);
+function riverDist(x,y){let m=1e12;for(let i=1;i<RIVER_C.length;i++){const a=RIVER_C[i-1],b=RIVER_C[i],dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy||1;const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/L2,0,1);const ex=a.x+dx*t-x,ey=a.y+dy*t-y,d=ex*ex+ey*ey;if(d<m)m=d}return Math.sqrt(m)}
+function baseH(x,y){
+  let h=38+30*fbm(x/320,y/320);
+  h+=85*sstep(1050,1650,x);
+  h+=440*gauss(x,y,1140,560,200,250)*(0.7+0.6*fbm(x/140+7.3,y/140+2.1));
+  h+=170*gauss(x,y,960,320,150,110);
+  h+=150*gauss(x,y,1320,870,170,115);
+  h+=160*gauss(x,y,610,270,120,100);
+  h+=55*(fbm(x/80+13,y/80+5)-0.5)*sstep(90,300,h);
+  const d=riverDist(x,y),v=Math.exp(-(d*d)/(2*75*75));
+  h=h+(14-h)*v*0.92;
+  return Math.max(4,h);
+}
+for(const t of TOWNS)t.base=baseH(t.x,t.y);
+function terrainH(x,y){let h=baseH(x,y);for(const t of TOWNS){const d=Math.hypot(x-t.x,y-t.y),w=1-sstep(t.r*0.7,t.r*1.7,d);if(w>0)h+=(t.base-h)*w}return h}
+const HG=new Float32Array(NX*NY);
+for(let j=0;j<NY;j++)for(let i=0;i<NX;i++)HG[j*NX+i]=terrainH(i*STEP,j*STEP);
+const Hg=(i,j)=>HG[clamp(j,0,NY-1)*NX+clamp(i,0,NX-1)];
+function getH(x,y){const fx=clamp(x/STEP,0,NX-1.001),fy=clamp(y/STEP,0,NY-1.001),i=Math.floor(fx),j=Math.floor(fy),u=fx-i,v=fy-j;const a=Hg(i,j),b=Hg(i+1,j),c=Hg(i,j+1),d=Hg(i+1,j+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+let PEAK={x:0,y:0,h:0};
+for(let k=0;k<HG.length;k++)if(HG[k]>PEAK.h)PEAK={x:(k%NX)*STEP,y:Math.floor(k/NX)*STEP,h:HG[k]};
+
+function makeShade(mode){
+  const c=document.createElement('canvas');c.width=NX;c.height=NY;const g=c.getContext('2d'),img=g.createImageData(NX,NY);
+  const stops=[[0,[214,226,196]],[80,[226,228,196]],[160,[232,222,186]],[260,[226,204,164]],[380,[210,184,148]],[500,[196,168,138]],[640,[228,218,206]]];
+  for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){
+    const h=Hg(i,j),dx=(Hg(i+1,j)-Hg(i-1,j))/(2*STEP*10),dy=(Hg(i,j+1)-Hg(i,j-1))/(2*STEP*10);
+    const s=clamp((dx+dy)*2.6,-1,1);let col;
+    if(mode==='terrain'){
+      let k=0;while(k<stops.length-2&&h>stops[k+1][0])k++;
+      const [h0,c0]=stops[k],[h1,c1]=stops[k+1],t=clamp((h-h0)/(h1-h0),0,1);
+      col=c0.map((v,q)=>v+(c1[q]-v)*t);const m=1+0.16*s;col=col.map(v=>v*m);
+    }else{
+      const f=sstep(160,340,h);col=[234+(216-234)*f,225+(223-225)*f,206+(192-206)*f];const m=1+0.06*s;col=col.map(v=>v*m);
+    }
+    const o=(j*NX+i)*4;img.data[o]=clamp(col[0],0,255);img.data[o+1]=clamp(col[1],0,255);img.data[o+2]=clamp(col[2],0,255);img.data[o+3]=255;
+  }
+  g.putImageData(img,0,0);return c;
+}
+const SHADE={normal:makeShade('normal'),terrain:makeShade('terrain')};
+
+function contourPath(levels){
+  const p=new Path2D();
+  for(const L of levels){
+    for(let j=0;j<NY-1;j++)for(let i=0;i<NX-1;i++){
+      const a=Hg(i,j),b=Hg(i+1,j),c=Hg(i+1,j+1),d=Hg(i,j+1);
+      const idx=(a>L?8:0)|(b>L?4:0)|(c>L?2:0)|(d>L?1:0);
+      if(idx===0||idx===15)continue;
+      const x=i*STEP,y=j*STEP;
+      const T=()=>[x+STEP*(L-a)/(b-a),y],R=()=>[x+STEP,y+STEP*(L-b)/(c-b)],B=()=>[x+STEP*(L-d)/(c-d),y+STEP],Lf=()=>[x,y+STEP*(L-a)/(d-a)];
+      const seg=(u,v)=>{const P=u(),Q=v();p.moveTo(P[0],P[1]);p.lineTo(Q[0],Q[1])};
+      switch(idx){
+        case 1:case 14:seg(Lf,B);break;
+        case 2:case 13:seg(B,R);break;
+        case 3:case 12:seg(Lf,R);break;
+        case 4:case 11:seg(T,R);break;
+        case 6:case 9:seg(T,B);break;
+        case 7:case 8:seg(Lf,T);break;
+        case 5:seg(Lf,T);seg(B,R);break;
+        case 10:seg(Lf,B);seg(T,R);break;
+      }
+    }
+  }
+  return p;
+}
+const lv100=[],lv25=[];for(let h=25;h<PEAK.h;h+=25)(h%100===0?lv100:lv25).push(h);
+const CONT100=contourPath(lv100),CONT25=contourPath(lv25);
+
+// towns, fields, roads as vector paths
+const P_BLOCK=new Path2D(),P_BLD=new Path2D(),P_FIELD=new Path2D(),P_FLINE=new Path2D(),P_ROAD=new Path2D(),P_RIVER=new Path2D();
+(function buildVectors(){
+  const rnd=mulberry(11);
+  const quad=(path,cx,cy,ca,sa,lx,ly,w,h)=>{const P=[[lx,ly],[lx+w,ly],[lx+w,ly+h],[lx,ly+h]].map(([u,v])=>[cx+u*ca-v*sa,cy+u*sa+v*ca]);path.moveTo(P[0][0],P[0][1]);for(let k=1;k<4;k++)path.lineTo(P[k][0],P[k][1]);path.closePath()};
+  for(const t of TOWNS){
+    const ca=Math.cos(t.ang),sa=Math.sin(t.ang),bw=22,bh=17,g=5,n=Math.ceil(t.r/(bw+g))+1;
+    for(let i=-n;i<=n;i++)for(let j=-n;j<=n;j++){
+      if(i%4===0&&rnd()<0.6)continue;
+      const lx=i*(bw+g)-bw/2,ly=j*(bh+g)-bh/2,cx=lx+bw/2,cy=ly+bh/2;
+      if(Math.hypot(cx,cy)>t.r*(0.72+0.35*rnd())||rnd()<0.07)continue;
+      const wx=t.x+cx*ca-cy*sa,wy=t.y+cx*sa+cy*ca;if(riverDist(wx,wy)<RIVER_W)continue;
+      quad(P_BLOCK,t.x,t.y,ca,sa,lx,ly,bw,bh);
+      const k=Math.floor(rnd()*3);
+      if(k===0){quad(P_BLD,t.x,t.y,ca,sa,lx+2,ly+2,bw*0.42,bh-4);quad(P_BLD,t.x,t.y,ca,sa,lx+bw*0.52,ly+2,bw*0.44,bh*0.45)}
+      else if(k===1){quad(P_BLD,t.x,t.y,ca,sa,lx+2,ly+2,bw-4,bh*0.38);quad(P_BLD,t.x,t.y,ca,sa,lx+2,ly+bh*0.55,bw*0.55,bh*0.38)}
+      else{quad(P_BLD,t.x,t.y,ca,sa,lx+2,ly+2,bw*0.3,bh-4);quad(P_BLD,t.x,t.y,ca,sa,lx+bw*0.38,ly+2,bw*0.58,bh*0.3);quad(P_BLD,t.x,t.y,ca,sa,lx+bw*0.38,ly+bh*0.62,bw*0.58,bh*0.3)}
+    }
+  }
+  let placed=0;
+  for(let a=0;a<900&&placed<60;a++){
+    const x=40+rnd()*(W-80),y=40+rnd()*(H-80);
+    if(getH(x,y)>110||riverDist(x,y)<40)continue;
+    if(TOWNS.some(t=>Math.hypot(x-t.x,y-t.y)<t.r*1.25))continue;
+    const ang=-0.4+rnd()*0.9,ca=Math.cos(ang),sa=Math.sin(ang),w=28+rnd()*34,h=18+rnd()*24;
+    quad(P_FIELD,x,y,ca,sa,-w/2,-h/2,w,h);
+    for(let s=1;s<3;s++){const u=-w/2+w*s/3;P_FLINE.moveTo(x+u*ca+h/2*sa,y+u*sa-h/2*ca);P_FLINE.lineTo(x+u*ca-h/2*sa,y+u*sa+h/2*ca)}
+    placed++;
+  }
+  const roads=[[[330,560],[460,690],[610,790],[770,905]],[[330,560],[520,430],[760,340],[900,285],[1020,250]],[[1020,250],[1160,200],[1320,270],[1500,390]],[[770,905],[1040,1000],[1380,1010],[1610,830],[1590,570],[1500,390]],[[330,560],[150,640],[-20,700]],[[330,560],[200,380],[120,-20]],[[1500,390],[1660,330],[1830,300]]];
+  for(const r of roads){const d=splineDense(r.map(([x,y])=>({x,y})));P_ROAD.moveTo(d[0].x,d[0].y);for(const q of d)P_ROAD.lineTo(q.x,q.y)}
+  P_RIVER.moveTo(RIVER[0].x,RIVER[0].y);for(const q of RIVER)P_RIVER.lineTo(q.x,q.y);
+})();
+const RIVER_LABEL=RIVER.reduce((b,q)=>Math.hypot(q.x-650,q.y-690)<Math.hypot(b.x-650,b.y-690)?q:b,RIVER[0]);
+
+// ---------- game state ----------
+let money=1200,month=0,speed=1,lines=[],log=[],layer='normal';
+let mode='complete',draft=null,selHandle=-1,selLine=null,flash='',goalDone=false,brokeWarned=false;
+let rev=0,op=0,yearRev=0,yearOp=0;
+const callouts=[];
+const dateStr=m=>`${1962+Math.floor((2+m)/12)}년 ${((2+m)%12)+1}월`;
+const fmt=v=>`₩ ${Math.round(v).toLocaleString('ko-KR')}억`;
+const fmt1=v=>`${v<0?'−':v>0?'+':''}${Math.abs(v).toFixed(1)}억`;
+const popStr=p=>p>=10000?`${(p/10000).toFixed(1)}만`:`${Math.round(p).toLocaleString('ko-KR')}명`;
+const hasStation=ti=>lines.some(l=>l.a===ti||l.b===ti);
+const townPt=ti=>({x:TOWNS[ti].x,y:TOWNS[ti].y});
+
+// ---------- route analysis ----------
+function analyze(pts,a,b){
+  const S=resample(splineDense(pts),DS),n=S.length;if(n<4)return null;
+  const t=new Float32Array(n),z=new Float32Array(n),riv=new Uint8Array(n);
+  for(let i=0;i<n;i++){t[i]=getH(S[i].x,S[i].y);riv[i]=riverDist(S[i].x,S[i].y)<RIVER_W*0.5+3?1:0}
+  const k=18,pre=new Float64Array(n+1);for(let i=0;i<n;i++)pre[i+1]=pre[i]+t[i];
+  for(let i=0;i<n;i++){const lo=Math.max(0,i-k),hi=Math.min(n-1,i+k);z[i]=(pre[hi+1]-pre[lo])/(hi-lo+1)}
+  for(let i=0;i<Math.min(k,n);i++){const w=i/k,j=n-1-i;z[i]=t[0]*(1-w)+z[i]*w;z[j]=t[n-1]*(1-w)+z[j]*w}
+  const dz=GMAX*DSM;
+  for(let it=0;it<4;it++){z[0]=t[0];for(let i=1;i<n;i++)z[i]=clamp(z[i],z[i-1]-dz,z[i-1]+dz);z[n-1]=t[n-1];for(let i=n-2;i>=0;i--)z[i]=clamp(z[i],z[i+1]-dz,z[i+1]+dz)}
+  const type=new Array(n);
+  for(let i=0;i<n;i++){const cut=t[i]-z[i];type[i]=cut>14?'tunnel':(riv[i]||cut<-10)?'bridge':'ground'}
+  for(let i=0;i<n;){if(type[i]!=='tunnel'){i++;continue}let j=i;while(j<n&&type[j]==='tunnel')j++;if(j-i<4)for(let q=i;q<j;q++)type[q]='ground';i=j}
+  const town=new Int8Array(n).fill(-1);
+  for(let i=0;i<n;i++)for(let ti=0;ti<TOWNS.length;ti++){if(ti===a||ti===b)continue;const T=TOWNS[ti];if(Math.hypot(S[i].x-T.x,S[i].y-T.y)<T.r*0.85){town[i]=ti;break}}
+  const hd=new Float32Array(n),R=new Float32Array(n).fill(6000),w=3;
+  for(let i=0;i<n;i++){const p=S[Math.max(0,i-1)],q=S[Math.min(n-1,i+1)];hd[i]=Math.atan2(q.y-p.y,q.x-p.x)}
+  let minR=6000;
+  for(let i=w;i<n-w;i++){let d=hd[i+w]-hd[i-w];d=Math.atan2(Math.sin(d),Math.cos(d));R[i]=Math.min(6000,(2*w*DSM)/Math.max(1e-6,Math.abs(d)));if(R[i]<minR)minR=R[i]}
+  const gl=new Float32Array(n);let maxGrade=0;
+  for(let i=1;i<n-1;i++){gl[i]=Math.abs(z[i+1]-z[i-1])/(2*DSM);if(gl[i]>maxGrade)maxGrade=gl[i]}
+  const v=new Float32Array(n);
+  for(let i=0;i<n;i++){let s=Math.min(VMAX,4*Math.sqrt(R[i]));if(gl[i]>0.015)s*=Math.max(0.6,1-(gl[i]-0.015)*12);const dEnd=Math.min(i,n-1-i)*DSM;v[i]=Math.min(s,3.6*Math.sqrt(1.2*dEnd)+12)}
+  const v2=new Float32Array(n);let vTop=0;
+  for(let i=0;i<n;i++){let m=v[i];for(let j=Math.max(0,i-3);j<=Math.min(n-1,i+3);j++)if(v[j]<m)m=v[j];v2[i]=m;if(m>vTop)vTop=m}
+  const tCum=new Float32Array(n);for(let i=1;i<n;i++)tCum[i]=tCum[i-1]+DSM/(((v2[i]+v2[i-1])/2)/3.6);
+  const dsKm=DSM/1000;let tKm=0,bKm=0,landKm=0,earth=0;const landBy={};
+  for(let i=0;i<n-1;i++){
+    if(type[i]==='tunnel')tKm+=dsKm;else if(type[i]==='bridge')bKm+=dsKm;else earth+=Math.min(Math.abs(t[i]-z[i]),14)*COST.earth*dsKm;
+    if(town[i]>=0){landKm+=dsKm;landBy[town[i]]=(landBy[town[i]]||0)+dsKm}
+  }
+  const len=(n-1)*dsKm;
+  const newSt=[a,b].filter(x=>x!=null&&!hasStation(x)).length;
+  const cost={base:COST.base*len,earth,tunnel:COST.tunnel*tKm,bridge:COST.bridge*bKm,land:COST.land*landKm,station:COST.station*newSt};
+  const total=Object.values(cost).reduce((s,x)=>s+x,0);
+  for(let i=0;i<n;i++)S[i].ty=type[i];
+  return{S,t,z,riv,type,tCum,T:tCum[n-1]+60,len,maxGrade:maxGrade*1000,minR,vTop,timeMin:(tCum[n-1]+60)/60,tKm,bKm,landKm,landBy,cost,total,riverCross:riv.some(x=>x)};
+}
+
+// ---------- economy ----------
+function edges(extra){const e=lines.map(l=>({a:l.a,b:l.b,t:l.an.timeMin}));if(extra)e.push(extra);return e}
+function netRevenue(e){
+  const n=TOWNS.length,D=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?0:Infinity));
+  for(const x of e)if(x.t<D[x.a][x.b])D[x.a][x.b]=D[x.b][x.a]=x.t;
+  for(let k=0;k<n;k++)for(let i=0;i<n;i++)for(let j=0;j<n;j++)if(D[i][k]+D[k][j]<D[i][j])D[i][j]=D[i][k]+D[k][j];
+  let r=0;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(isFinite(D[i][j]))r+=DEMAND*(TOWNS[i].pop/1000)*(TOWNS[j].pop/1000)/Math.pow(Math.max(D[i][j],3),0.8);
+  return r;
+}
+const totalKm=()=>lines.reduce((s,l)=>s+l.an.len,0);
+function recalc(){rev=netRevenue(edges());op=OPEX*totalKm()}
+function draftEcon(){
+  if(!draft||!draft.an||mode!=='complete')return null;
+  const dRev=netRevenue(edges({a:draft.a,b:draft.b,t:draft.an.timeMin}))-rev,dOp=OPEX*draft.an.len,net=dRev-dOp;
+  return{dRev,dOp,net,payback:net>0?draft.an.total/net:Infinity};
+}
+function components(){
+  const p=TOWNS.map((_,i)=>i),f=x=>p[x]===x?x:(p[x]=f(p[x]));
+  for(const l of lines)p[f(l.a)]=f(l.b);
+  return TOWNS.map((_,i)=>f(i));
+}
+
+// ---------- canvas + view ----------
+const wrap=$('#mapwrap'),mapEl=$('#map'),ctx=mapEl.getContext('2d'),stat=document.createElement('canvas'),sctx=stat.getContext('2d');
+let cw=1,ch=1,dpr=1,minS=0.3;const view={x:0,y:0,s:0.4};
+let staticDirty=true,panelDirty=true,profileDirty=true,hover=null;
+function resize(){
+  const r=wrap.getBoundingClientRect();cw=Math.max(1,r.width);ch=Math.max(1,r.height);dpr=Math.min(2,window.devicePixelRatio||1);
+  for(const c of [mapEl,stat]){c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr)}
+  fit();profileDirty=true;
+}
+function fit(){const s=Math.min(cw/W,ch/H)*0.98;view.s=s;minS=s*0.9;view.x=(W-cw/s)/2;view.y=(H-ch/s)/2;staticDirty=true;updScale()}
+function clampView(){const vw=cw/view.s,vh=ch/view.s;view.x=vw>=W?(W-vw)/2:clamp(view.x,-vw*0.15,W-vw*0.85);view.y=vh>=H?(H-vh)/2:clamp(view.y,-vh*0.15,H-vh*0.85)}
+function zoomAt(p,f){const w=toWorld(p);view.s=clamp(view.s*f,minS,minS*7);view.x=w.x-p.x/view.s;view.y=w.y-p.y/view.s;clampView();staticDirty=true;updScale()}
+const toWorld=p=>({x:view.x+p.x/view.s,y:view.y+p.y/view.s});
+const toScr=(x,y)=>({x:(x-view.x)*view.s,y:(y-view.y)*view.s});
+function updScale(){
+  for(const km of [0.5,1,2,5,10]){const px=km*100*view.s;if(px>=56||km===10){$('#scalebar').style.width=Math.round(px)+'px';$('#scaleLabel').textContent=`${km} km`;break}}
+}
+
+function drawStatic(){
+  sctx.setTransform(1,0,0,1,0,0);sctx.fillStyle='#D8CDB5';sctx.fillRect(0,0,stat.width,stat.height);
+  const k=dpr*view.s,px=1/view.s;
+  sctx.setTransform(k,0,0,k,-view.x*k,-view.y*k);
+  sctx.save();sctx.beginPath();sctx.rect(0,0,W,H);sctx.clip();
+  sctx.imageSmoothingEnabled=true;sctx.imageSmoothingQuality='high';
+  sctx.drawImage(SHADE[layer],-STEP/2,-STEP/2,NX*STEP,NY*STEP);
+  sctx.fillStyle='#D3DFB6';sctx.fill(P_FIELD);sctx.strokeStyle='#BFD09C';sctx.lineWidth=px;sctx.stroke(P_FIELD);
+  sctx.strokeStyle='#E6EDD2';sctx.lineWidth=1.2*px;sctx.stroke(P_FLINE);
+  if(layer==='terrain'){sctx.strokeStyle='rgba(120,92,58,.28)';sctx.lineWidth=0.8*px;sctx.stroke(CONT25);sctx.strokeStyle='rgba(105,80,48,.55)';sctx.lineWidth=1.3*px;sctx.stroke(CONT100)}
+  else{sctx.strokeStyle='rgba(140,118,86,.22)';sctx.lineWidth=0.9*px;sctx.stroke(CONT100)}
+  sctx.lineJoin='round';sctx.lineCap='round';
+  sctx.strokeStyle='#A3B8C9';sctx.lineWidth=RIVER_W+3;sctx.stroke(P_RIVER);sctx.strokeStyle='#B8CBDA';sctx.lineWidth=RIVER_W;sctx.stroke(P_RIVER);
+  sctx.strokeStyle='#D2C4A8';sctx.lineWidth=Math.max(10,3*px);sctx.stroke(P_ROAD);sctx.strokeStyle='#F6F0E3';sctx.lineWidth=Math.max(7.5,1.8*px);sctx.stroke(P_ROAD);
+  sctx.fillStyle='#E1D5BD';sctx.fill(P_BLOCK);sctx.strokeStyle='#CFC1A3';sctx.lineWidth=0.9*px;sctx.stroke(P_BLOCK);
+  sctx.fillStyle='#EBE3D2';sctx.fill(P_BLD);
+  sctx.restore();
+  sctx.setTransform(dpr,0,0,dpr,0,0);
+  const pk=toScr(PEAK.x,PEAK.y);
+  sctx.font='600 12px "IBM Plex Sans KR",sans-serif';sctx.fillStyle='#6E6250';sctx.textAlign='center';
+  sctx.fillText(`▲ 봉우리산 ${Math.round(PEAK.h)}m`,pk.x,pk.y-6);
+  const rl=toScr(RIVER_LABEL.x,RIVER_LABEL.y);sctx.font='italic 500 12px "IBM Plex Sans KR",sans-serif';sctx.fillStyle='#55748F';sctx.textAlign='left';sctx.fillText('금빛강',rl.x+18,rl.y);
+  staticDirty=false;
+}
+
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.lineTo(x+w-r,y);g.quadraticCurveTo(x+w,y,x+w,y+r);g.lineTo(x+w,y+h-r);g.quadraticCurveTo(x+w,y+h,x+w-r,y+h);g.lineTo(x+r,y+h);g.quadraticCurveTo(x,y+h,x,y+h-r);g.lineTo(x,y+r);g.quadraticCurveTo(x,y,x+r,y);g.closePath()}
+function runs(S,pred){const out=[];let cur=null;for(let i=0;i<S.length;i++){if(pred(S[i])){if(!cur){cur=[];if(i>0)cur.push(i-1)}cur.push(i)}else if(cur){cur.push(i);out.push(cur);cur=null}}if(cur)out.push(cur);return out}
+function scrArr(S){const xs=new Float32Array(S.length),ys=new Float32Array(S.length);for(let i=0;i<S.length;i++){xs[i]=(S[i].x-view.x)*view.s;ys[i]=(S[i].y-view.y)*view.s}return[xs,ys]}
+function strokeRuns(R,xs,ys){for(const r of R){ctx.beginPath();ctx.moveTo(xs[r[0]],ys[r[0]]);for(let k=1;k<r.length;k++)ctx.lineTo(xs[r[k]],ys[r[k]]);ctx.stroke()}}
+function drawRoute(an,o){
+  const S=an.S,[xs,ys]=scrArr(S),n=S.length;
+  const nonT=runs(S,s=>s.ty!=='tunnel'),tun=runs(S,s=>s.ty==='tunnel'),br=runs(S,s=>s.ty==='bridge');
+  ctx.lineJoin='round';ctx.lineCap='round';
+  if(o.selected){ctx.strokeStyle='rgba(242,194,48,.45)';ctx.lineWidth=17;strokeRuns(nonT,xs,ys);strokeRuns(tun,xs,ys)}
+  ctx.lineCap='butt';ctx.strokeStyle='#8FA6BB';ctx.lineWidth=14;strokeRuns(br,xs,ys);ctx.strokeStyle='#C6D4E0';ctx.lineWidth=10.5;strokeRuns(br,xs,ys);ctx.lineCap='round';
+  if(o.draft){
+    ctx.strokeStyle='#FFFFFF';ctx.lineWidth=8;strokeRuns(nonT,xs,ys);
+    ctx.strokeStyle='#C9772F';ctx.lineWidth=4;strokeRuns(nonT,xs,ys);
+    ctx.setLineDash([6,5]);ctx.lineWidth=3;strokeRuns(tun,xs,ys);ctx.setLineDash([]);
+  }else{
+    ctx.strokeStyle='#D8C9AA';ctx.lineWidth=9;strokeRuns(nonT,xs,ys);
+    ctx.strokeStyle='#3E4651';ctx.lineWidth=4.6;strokeRuns(nonT,xs,ys);
+    ctx.strokeStyle='#D8C9AA';ctx.lineWidth=1.6;strokeRuns(nonT,xs,ys);
+    ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(62,70,81,.6)';ctx.lineWidth=2;strokeRuns(tun,xs,ys);ctx.setLineDash([]);
+  }
+  ctx.strokeStyle='#A8723F';ctx.lineWidth=3;ctx.lineCap='butt';
+  for(const r of tun)for(const i of [r[0],r[r.length-1]]){
+    if(i<=0||i>=n-1)continue;const dx=xs[i+1]-xs[i-1],dy=ys[i+1]-ys[i-1],L=Math.hypot(dx,dy)||1,nx=-dy/L*7,ny=dx/L*7;
+    ctx.beginPath();ctx.moveTo(xs[i]-nx,ys[i]-ny);ctx.lineTo(xs[i]+nx,ys[i]+ny);ctx.stroke();
+  }
+  ctx.lineCap='round';
+}
+function stationAngle(ti){
+  for(const l of lines){const S=l.an.S;if(l.a===ti)return Math.atan2(S[3].y-S[0].y,S[3].x-S[0].x);if(l.b===ti){const n=S.length;return Math.atan2(S[n-1].y-S[n-4].y,S[n-1].x-S[n-4].x)}}
+  return 0;
+}
+function drawStations(){
+  TOWNS.forEach((t,ti)=>{
+    if(!hasStation(ti))return;const p=toScr(t.x,t.y);
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(stationAngle(ti));
+    ctx.fillStyle='#D9B88E';ctx.strokeStyle='#A8723F';ctx.lineWidth=1.2;ctx.fillRect(-15,-12,30,6);ctx.strokeRect(-15,-12,30,6);
+    ctx.fillStyle='#A7BED4';ctx.strokeStyle='#1F3A55';ctx.fillRect(-15,-4,30,8);ctx.strokeRect(-15,-4,30,8);
+    ctx.strokeStyle='#FFFFFF';ctx.lineWidth=1;ctx.setLineDash([3,2]);ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(13,0);ctx.stroke();ctx.setLineDash([]);
+    ctx.restore();
+  });
+}
+function drawTownLabels(){
+  TOWNS.forEach((t,ti)=>{
+    const p=toScr(t.x,t.y),name=t.name,pop=popStr(t.pop);
+    ctx.font='700 13px "Gothic A1","IBM Plex Sans KR",sans-serif';const w1=ctx.measureText(name).width;
+    ctx.font='500 11px "IBM Plex Mono",monospace';const w2=ctx.measureText(pop).width;
+    const w=w1+w2+24,h=24,x=p.x-w/2,y=p.y-24-h;
+    ctx.fillStyle='#FFFFFF';ctx.strokeStyle='#1F3A55';ctx.lineWidth=1.5;rr(ctx,x,y,w,h,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1F3A55';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='700 13px "Gothic A1","IBM Plex Sans KR",sans-serif';ctx.fillText(name,x+9,y+h/2+1);
+    ctx.fillStyle='#6A7887';ctx.font='500 11px "IBM Plex Mono",monospace';ctx.fillText(pop,x+15+w1,y+h/2+1);
+    ctx.textBaseline='alphabetic';
+    const hot=(mode==='idle'||mode==='drawing')&&hover&&hitTown(hover)===ti;
+    const isStart=draft&&mode==='drawing'&&draft.a===ti;
+    if(hot||isStart){ctx.setLineDash([4,3]);ctx.strokeStyle='#1F3A55';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(18,t.r*0.55*view.s),0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+    if(isStart){ctx.fillStyle='#F2C230';ctx.strokeStyle='#1F3A55';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.stroke()}
+  });
+}
+function sampleAt(an,sec){
+  const tc=an.tCum,n=tc.length;if(sec<=0)return 0;if(sec>=tc[n-1])return n-1;
+  let lo=0,hi=n-1;while(hi-lo>1){const m=(lo+hi)>>1;if(tc[m]<=sec)lo=m;else hi=m}
+  return lo+(sec-tc[lo])/(tc[hi]-tc[lo]);
+}
+let animClock=0;
+function drawTrains(){
+  for(const l of lines){
+    const an=l.an,S=an.S,n=S.length,count=clamp(Math.round(an.len/5),1,4),Dv=clamp(an.timeMin*1.4,4,24),dwell=0.9,period=2*(Dv+dwell);
+    for(let k=0;k<count;k++){
+      const tt=((animClock/1000)+k*period/count)%period;let frac;
+      if(tt<Dv)frac=tt/Dv;else if(tt<Dv+dwell)frac=1;else if(tt<2*Dv+dwell)frac=1-(tt-Dv-dwell)/Dv;else frac=0;
+      const f=sampleAt(an,frac*(an.tCum[n-1])),i=Math.min(n-2,Math.floor(f)),u=f-i;
+      const x=S[i].x+(S[i+1].x-S[i].x)*u,y=S[i].y+(S[i+1].y-S[i].y)*u,p=toScr(x,y);
+      let ang=Math.atan2(S[i+1].y-S[i].y,S[i+1].x-S[i].x);const back=tt>=Dv+dwell&&tt<2*Dv+dwell;if(back)ang+=Math.PI;
+      ctx.save();ctx.globalAlpha=S[i].ty==='tunnel'?0.35:1;ctx.translate(p.x,p.y);ctx.rotate(ang);
+      ctx.fillStyle='#1F3A55';rr(ctx,-9,-3.2,18,6.4,2);ctx.fill();ctx.fillStyle='#F2C230';ctx.fillRect(6,-2.2,2.4,4.4);
+      ctx.restore();
+    }
+  }
+}
+function drawCallouts(now){
+  for(let i=callouts.length-1;i>=0;i--)if(now>callouts[i].until)callouts.splice(i,1);
+  for(const c of callouts){
+    const p=toScr(c.x,c.y),lx=p.x+30,ly=p.y-38;
+    ctx.strokeStyle='#1F3A55';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(lx,ly);ctx.stroke();
+    ctx.font='700 13px "Gothic A1","IBM Plex Sans KR",sans-serif';const w=ctx.measureText(c.text).width+22;
+    ctx.fillStyle='#FFFFFF';rr(ctx,lx,ly-13,w,26,6);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#1F3A55';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(c.text,lx+11,ly+1);ctx.textBaseline='alphabetic';
+    ctx.fillStyle='#F2C230';ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.stroke();
+  }
+}
+function drawFrame(now){
+  if(staticDirty)drawStatic();
+  ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(stat,0,0);ctx.setTransform(dpr,0,0,dpr,0,0);
+  for(const l of lines)drawRoute(l.an,{selected:l.id===selLine&&!draft});
+  if(draft&&draft.an)drawRoute(draft.an,{draft:true});
+  drawStations();
+  if(draft){
+    if(mode==='drawing'&&hover&&draft.pts.length&&lastPointerType!=='touch'){
+      const a=draft.pts[draft.pts.length-1],p=toScr(a.x,a.y);ctx.setLineDash([5,5]);ctx.strokeStyle='#1F3A55';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(hover.x,hover.y);ctx.stroke();ctx.setLineDash([]);
+    }
+    const last=mode==='complete'?draft.pts.length-1:draft.pts.length;
+    for(let i=1;i<last;i++){const p=toScr(draft.pts[i].x,draft.pts[i].y);ctx.fillStyle=i===selHandle?'#C9772F':'#FFFFFF';ctx.strokeStyle='#C9772F';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(p.x,p.y,6.5,0,Math.PI*2);ctx.fill();ctx.stroke()}
+  }
+  drawTownLabels();
+  drawTrains();
+  drawCallouts(now);
+}
+
+// ---------- profile ----------
+const profEl=$('#profile');
+function currentProfile(){
+  if(draft&&draft.an)return{an:draft.an,title:`${TOWNS[draft.a].name} → ${draft.b!=null?TOWNS[draft.b].name:'…'} · ${draft.an.len.toFixed(1)}km (설계 중)`};
+  const l=lines.find(x=>x.id===selLine);if(l)return{an:l.an,title:`${l.name} · ${l.an.len.toFixed(1)}km`};
+  return null;
+}
+function drawProfile(){
+  const r=profEl.getBoundingClientRect(),w=Math.max(10,r.width),h=Math.max(10,r.height);
+  profEl.width=Math.round(w*dpr);profEl.height=Math.round(h*dpr);
+  const g=profEl.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const cp=currentProfile();$('#ptitle').textContent=cp?cp.title:'';
+  if(!cp){g.fillStyle='#847E71';g.font='500 13px "IBM Plex Sans KR",sans-serif';g.textAlign='center';g.fillText('노선을 그리면 지형과 선로 높이가 여기에 나와요',w/2,h/2);return}
+  const an=cp.an,n=an.S.length,L=an.len;
+  let lo=Infinity,hi=-Infinity;for(let i=0;i<n;i++){lo=Math.min(lo,an.t[i],an.z[i]);hi=Math.max(hi,an.t[i],an.z[i])}
+  lo=Math.max(0,Math.floor((lo-20)/50)*50);hi=Math.ceil((hi+30)/50)*50;if(hi-lo<150)hi=lo+150;
+  const pl=44,pr=10,pt=8,pb=20,X=i=>pl+(i/(n-1))*(w-pl-pr),Y=v=>pt+(1-(v-lo)/(hi-lo))*(h-pt-pb);
+  g.font='500 10px "IBM Plex Mono",monospace';g.textAlign='right';g.fillStyle='#847E71';
+  const ystep=(hi-lo)>400?100:50;
+  for(let v=lo;v<=hi;v+=ystep){g.strokeStyle='rgba(31,58,85,.08)';g.lineWidth=1;g.beginPath();g.moveTo(pl,Y(v));g.lineTo(w-pr,Y(v));g.stroke();g.fillText(`${v}m`,pl-6,Y(v)+3)}
+  const xstep=L>14?2:L>6?1:0.5;g.textAlign='center';
+  for(let k=0;k<=L+1e-6;k+=xstep){const x=pl+(k/L)*(w-pl-pr);g.fillText(`${k}km`,x,h-5)}
+  for(const rn of runs(an.S,s=>s.ty==='tunnel')){const x0=X(rn[0]),x1=X(rn[rn.length-1]);g.fillStyle='rgba(201,119,47,.12)';g.fillRect(x0,pt,x1-x0,h-pt-pb);
+    if(x1-x0>60){g.fillStyle='#8C4E17';g.font='600 10px "IBM Plex Sans KR",sans-serif';g.fillText(`터널 ${((rn.length-1)*DSM/1000).toFixed(1)}km`,(x0+x1)/2,pt+12)}}
+  g.beginPath();g.moveTo(X(0),Y(lo));for(let i=0;i<n;i++)g.lineTo(X(i),Y(an.t[i]));g.lineTo(X(n-1),Y(lo));g.closePath();g.fillStyle='#E6D9BE';g.fill();
+  g.beginPath();for(let i=0;i<n;i++){i?g.lineTo(X(i),Y(an.t[i])):g.moveTo(X(i),Y(an.t[i]))}g.strokeStyle='#B9A47E';g.lineWidth=1.3;g.stroke();
+  g.fillStyle='#B7CAD9';for(let i=0;i<n;i++)if(an.riv[i])g.fillRect(X(i)-1,Y(an.t[i]),Math.max(2,X(1)-X(0)+1),4);
+  g.strokeStyle='#8FA6BB';g.lineWidth=1.5;for(let i=0;i<n;i+=2)if(an.S[i].ty==='bridge'){g.beginPath();g.moveTo(X(i),Y(an.z[i]));g.lineTo(X(i),Y(an.t[i]));g.stroke()}
+  g.lineJoin='round';
+  for(const rn of runs(an.S,s=>s.ty!=='tunnel')){g.beginPath();rn.forEach((i,k)=>k?g.lineTo(X(i),Y(an.z[i])):g.moveTo(X(i),Y(an.z[i])));g.strokeStyle='#1F3A55';g.lineWidth=2.2;g.stroke()}
+  g.setLineDash([5,4]);for(const rn of runs(an.S,s=>s.ty==='tunnel')){g.beginPath();rn.forEach((i,k)=>k?g.lineTo(X(i),Y(an.z[i])):g.moveTo(X(i),Y(an.z[i])));g.strokeStyle='#C9772F';g.lineWidth=2.2;g.stroke()}g.setLineDash([]);
+}
+
+// ---------- panel ----------
+function paybackStr(m){if(!isFinite(m))return'회수 불가';const y=Math.floor(m/12),mo=Math.round(m%12);return y?`${y}년 ${mo}개월`:`${mo}개월`}
+function warnings(an,econ){
+  const w=[];
+  if(an.minR<300)w.push(['bad',`급곡선 R ${Math.round(an.minR)}m · 그 구간은 ${Math.round(4*Math.sqrt(an.minR))}km/h까지만`]);
+  else if(an.minR<900)w.push(['warn',`곡선반경 ${Math.round(an.minR).toLocaleString('ko-KR')}m · 최고속도가 ${Math.round(4*Math.sqrt(an.minR))}km/h로 묶여요`]);
+  if(an.maxGrade>24)w.push(['warn',`기울기 ${an.maxGrade.toFixed(0)}‰ · 오르막에서 감속해요`]);
+  if(an.tKm>0.05)w.push(['info',`터널 ${an.tKm.toFixed(1)}km · km당 ₩230억`]);
+  if(an.riverCross)w.push(['info','금빛강을 건너는 교량이 들어가요']);
+  for(const [ti,km] of Object.entries(an.landBy))w.push(['warn',`${TOWNS[ti].name} 시가지 통과 ${km.toFixed(1)}km · 보상비 ${fmt(km*COST.land)}`]);
+  if(draft&&draft.b!=null&&lines.some(l=>(l.a===draft.a&&l.b===draft.b)||(l.a===draft.b&&l.b===draft.a)))w.push(['info','이미 이어진 구간이에요. 더 빠른 노선으로 승객이 몰려요']);
+  if(econ){if(econ.net<=0)w.push(['bad','운영비보다 늘어나는 수입이 적어요']);else if(econ.payback>180)w.push(['warn',`공사비를 회수하는 데 ${Math.round(econ.payback/12)}년 걸려요`])}
+  return w;
+}
+function statsHTML(an){
+  const rc=an.minR<300?'bad':an.minR<900?'warn':'',gc=an.maxGrade>24?'warn':'';
+  return `<div class="stats">
+    <div class="stat"><span>연장</span><b>${an.len.toFixed(1)} km</b></div>
+    <div class="stat"><span>소요 시간</span><b>${an.timeMin.toFixed(1)} 분</b></div>
+    <div class="stat"><span>최고 속도</span><b>${Math.round(an.vTop)} km/h</b></div>
+    <div class="stat"><span>최대 기울기</span><b class="${gc}">${an.maxGrade.toFixed(1)} ‰</b></div>
+    <div class="stat"><span>최소 곡선반경</span><b class="${rc}">${an.minR>=6000?'직선':Math.round(an.minR).toLocaleString('ko-KR')+' m'}</b></div>
+    <div class="stat"><span>터널 · 교량</span><b>${an.tKm.toFixed(1)} · ${an.bKm.toFixed(1)} km</b></div>
+  </div>`;
+}
+function renderDraft(){
+  const el=$('#secDraft');
+  if(mode==='idle'||!draft){
+    el.innerHTML=`<h3>노선 설계</h3><div class="dtitle">새 노선 긋기</div>
+      <ol class="steps"><li>출발 마을을 누르세요</li><li>지도를 눌러 경유점을 찍으세요</li><li>도착 마을을 누르면 설계가 끝나요</li><li>주황 점을 끌거나 선을 끌어 점을 늘리며 다듬으세요</li></ol>
+      <p class="sub">지형 레이어를 켜면 등고선이 보여요. 산을 정면으로 뚫으면 빠르지만 터널값이 비싸고, 돌아가면 싸지만 느려요.</p>`;
+    return;
+  }
+  const an=draft.an,A=TOWNS[draft.a].name;
+  if(mode==='drawing'){
+    el.innerHTML=`<h3>노선 설계</h3><div class="dhead"><div class="dtitle">${A} → …</div><span class="tag">그리는 중</span></div>
+      <p class="sub">경유점 ${draft.pts.length-1}개. 도착 마을을 누르면 설계가 끝나요.</p>
+      ${an?statsHTML(an):''}
+      <div class="actions">${draft.pts.length>1?'<button class="btn small" data-act="undo">마지막 점 취소</button>':''}<button class="btn small" data-act="cancel">그리기 취소</button></div>`;
+    return;
+  }
+  if(!an){el.innerHTML='<p class="empty">노선이 너무 짧아요.</p>';return}
+  const econ=draftEcon(),B=TOWNS[draft.b].name,c=an.cost,tot=an.total||1;
+  const rows=[['기본 공사',c.base,'#4A5B6C'],['토공',c.earth,'#9C8A66'],['터널',c.tunnel,'#C9772F'],['교량',c.bridge,'#7F98B0'],['용지 보상',c.land,'#A8402B'],['역 신설',c.station,'#2E7350']].filter(r=>r[1]>0.5);
+  const warn=warnings(an,econ);
+  el.innerHTML=`<h3>노선 설계</h3>
+    <div class="dhead"><div class="dtitle">${A} → ${B}</div><span class="tag ${draft.example?'ex':''}">${draft.example?'예시 노선':'설계 중'}</span></div>
+    <p class="sub">주황 점을 끌거나 선을 끌어 점을 추가해 보세요. 숫자가 바로 바뀌어요.</p>
+    ${statsHTML(an)}
+    <div class="costs">${rows.map(r=>`<div class="crow"><span>${r[0]}</span><i style="--w:${Math.max(2,r[1]/tot*100).toFixed(1)}%;--c:${r[2]}"></i><b>${fmt(r[1])}</b></div>`).join('')}</div>
+    <div class="total"><span>총 공사비</span><b>${fmt(an.total)}</b></div>
+    <div class="econ"><div>늘어나는 월 수입<b class="pos">${fmt1(econ.dRev)}</b></div><div>월 운영비<b class="neg">${fmt1(-econ.dOp)}</b></div><div>회수 기간<b>${paybackStr(econ.payback)}</b></div></div>
+    ${warn.length?`<ul class="warns">${warn.map(([k,t])=>`<li class="${k}">${t}</li>`).join('')}</ul>`:''}
+    ${flash?`<p class="flash">${flash}</p>`:''}
+    <div class="actions"><button class="btn primary" data-act="build">건설하기 · ${fmt(an.total)}</button><button class="btn" data-act="redraw">다시 그리기</button>${selHandle>0?'<button class="btn small" data-act="delpt">선택한 점 지우기</button>':''}</div>`;
+}
+function renderPanel(){
+  renderDraft();
+  const comp=components(),sizes={};comp.forEach(c=>sizes[c]=(sizes[c]||0)+1);
+  const best=Object.keys(sizes).reduce((a,b)=>sizes[b]>sizes[a]?b:a,comp[0]);
+  $('#goal').innerHTML=TOWNS.map((t,i)=>`<span class="chip ${sizes[comp[i]]>1&&String(comp[i])===String(best)?'on':''}">${t.name}</span>`).join('')+`<span class="chip">${goalDone?'달성':'연결 '+(sizes[best]>1?sizes[best]:0)+' / 4'}</span>`;
+  $('#lines').innerHTML=lines.length?lines.map(l=>`<li><button class="lrow ${l.id===selLine?'on':''}" data-act="line" data-id="${l.id}"><span>${l.name}</span><small>${l.an.len.toFixed(1)}km · ${l.an.timeMin.toFixed(0)}분</small></button></li>`).join(''):'<li><p class="empty">아직 개통한 노선이 없어요.</p></li>';
+  $('#towns').innerHTML=TOWNS.map((t,i)=>`<div class="trow"><span>${t.name}</span><span class="pop">${popStr(t.pop)}</span><span class="chip ${hasStation(i)?'on':''}">${hasStation(i)?'역 있음':'미연결'}</span></div>`).join('');
+  $('#log').innerHTML=log.slice(-7).reverse().map(e=>`<li class="${e.k||''}"><time>${e.d}</time>${e.t}</li>`).join('');
+}
+function updHeader(){
+  const m=$('#money');m.textContent=fmt(money);m.className=money<0?'neg':'';
+  const net=rev-op,n=$('#net');n.textContent=fmt1(net);n.className=net>0.05?'pos':net<-0.05?'neg':'';
+  $('#date').textContent=dateStr(month);$('#badge').textContent=`${dateStr(month)} · 솔내 지방`;
+}
+let hintTimer=0;
+function setHint(t,ms){const h=$('#hint');h.textContent=t;h.classList.remove('off');clearTimeout(hintTimer);if(ms)hintTimer=setTimeout(()=>h.classList.add('off'),ms)}
+function addLog(t,k){log.push({d:dateStr(month),t,k});if(log.length>60)log.shift()}
+
+// ---------- actions ----------
+function reanalyze(){
+  if(!draft)return;
+  draft.an=draft.pts.length>=2?analyze(draft.pts,draft.a,mode==='complete'?draft.b:null):null;
+  panelDirty=true;profileDirty=true;
+}
+function startDraft(ti){mode='drawing';draft={pts:[townPt(ti)],a:ti,b:null,an:null,example:false};selHandle=-1;flash='';setHint('지도를 눌러 경유점을 찍고, 도착 마을을 누르세요');panelDirty=profileDirty=true}
+function cancelDraft(){mode='idle';draft=null;selHandle=-1;flash='';setHint('마을을 눌러 새 노선을 시작하세요',4000);panelDirty=profileDirty=true}
+function build(){
+  const an=draft&&draft.an;if(!an)return;
+  if(money<an.total){flash=`자금이 ${fmt(an.total-money)} 부족해요. 시간을 흘려 수입을 모으거나, 노선을 다듬어 공사비를 줄여보세요.`;panelDirty=true;return}
+  money-=an.total;
+  const A=TOWNS[draft.a].name,B=TOWNS[draft.b].name,dup=lines.filter(l=>(l.a===draft.a&&l.b===draft.b)||(l.a===draft.b&&l.b===draft.a)).length;
+  const name=`${A}–${B}선${dup?' '+(dup+1):''}`,id='L'+Date.now().toString(36);
+  lines.push({id,name,a:draft.a,b:draft.b,pts:draft.pts.map(p=>({x:p.x,y:p.y})),an});
+  const mid=an.S[Math.floor(an.S.length/2)];callouts.push({x:mid.x,y:mid.y,text:`${name} 개통`,until:performance.now()+5000});
+  addLog(`${name} 개통 · ${an.len.toFixed(1)}km, ${fmt(an.total)}`,'good');
+  mode='idle';draft=null;selHandle=-1;flash='';selLine=id;recalc();
+  const comp=components();if(!goalDone&&comp.every(c=>c===comp[0])){goalDone=true;addLog('네 마을이 하나의 철도망으로 이어졌어요','good');const t=TOWNS[3];callouts.push({x:t.x,y:t.y,text:'목표 달성 · 철도망 완성',until:performance.now()+6000})}
+  setHint('다음 노선은 마을을 눌러 시작하세요',4500);updHeader();panelDirty=profileDirty=true;
+}
+$('#ledger').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='build')build();
+  else if(a==='redraw'){const ti=draft.a;startDraft(ti)}
+  else if(a==='cancel')cancelDraft();
+  else if(a==='undo'){if(draft.pts.length>1){draft.pts.pop();reanalyze()}}
+  else if(a==='delpt'){if(selHandle>0&&selHandle<draft.pts.length-1){draft.pts.splice(selHandle,1);selHandle=-1;draft.example=false;reanalyze()}}
+  else if(a==='line'){selLine=b.dataset.id;if(mode==='idle')profileDirty=true;panelDirty=true}
+});
+document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))}));
+document.querySelectorAll('[data-ly]').forEach(b=>b.addEventListener('click',()=>{layer=b.dataset.ly;staticDirty=true;document.querySelectorAll('[data-ly]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))}));
+$('#zin').addEventListener('click',()=>zoomAt({x:cw/2,y:ch/2},1.35));
+$('#zout').addEventListener('click',()=>zoomAt({x:cw/2,y:ch/2},1/1.35));
+$('#zfit').addEventListener('click',fit);
+document.addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input,textarea'))return;
+  if(e.key==='Escape'&&draft)cancelDraft();
+  else if((e.key==='Backspace'||e.key==='Delete')&&draft){
+    if(mode==='drawing'&&draft.pts.length>1){draft.pts.pop();reanalyze();e.preventDefault()}
+    else if(mode==='complete'&&selHandle>0){draft.pts.splice(selHandle,1);selHandle=-1;reanalyze();e.preventDefault()}
+  }
+});
+
+// ---------- pointer input ----------
+const pointers=new Map();let drag=null,lastPointerType='mouse';
+const local=e=>{const r=mapEl.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function hitTown(p){let best=-1,bd=1e9;TOWNS.forEach((t,i)=>{const s=toScr(t.x,t.y),d=dist(s,p);if(d<Math.max(22,t.r*0.55*view.s)&&d<bd){bd=d;best=i}});return best}
+function hitHandle(p,tol){if(!draft)return -1;const last=mode==='complete'?draft.pts.length-1:draft.pts.length;for(let i=last-1;i>=1;i--){const s=toScr(draft.pts[i].x,draft.pts[i].y);if(dist(s,p)<tol)return i}return -1}
+function hitCurve(p,tol){if(!draft||!draft.an)return -1;let best=-1,bd=tol;const S=draft.an.S;for(let i=2;i<S.length-2;i++){const s=toScr(S[i].x,S[i].y),d=dist(s,p);if(d<bd){bd=d;best=i}}return best}
+mapEl.addEventListener('pointerdown',e=>{
+  lastPointerType=e.pointerType;mapEl.setPointerCapture(e.pointerId);const p=local(e);pointers.set(e.pointerId,p);
+  if(pointers.size===2){const [a,b]=[...pointers.values()];drag={type:'pinch',d:dist(a,b),s:view.s,w:toWorld({x:(a.x+b.x)/2,y:(a.y+b.y)/2})};return}
+  const tol=e.pointerType==='touch'?22:12;
+  if(draft&&(mode==='complete'||mode==='drawing')){
+    const hi=hitHandle(p,tol);if(hi>0){drag={type:'handle',idx:hi,start:p,moved:false};return}
+    if(mode==='complete'){const si=hitCurve(p,tol*0.8);if(si>=0){const w=toWorld(p),seg=draft.an.S[si].seg;draft.pts.splice(seg+1,0,{x:w.x,y:w.y});selHandle=seg+1;draft.example=false;flash='';drag={type:'handle',idx:seg+1,start:p,moved:true};reanalyze();return}}
+  }
+  drag={type:'pan',start:p,vx:view.x,vy:view.y,moved:false};
+});
+mapEl.addEventListener('pointermove',e=>{
+  const p=local(e);hover=p;if(pointers.has(e.pointerId))pointers.set(e.pointerId,p);
+  const w=toWorld(p);$('#elev').textContent=(w.x>=0&&w.y>=0&&w.x<=W&&w.y<=H)?`표고 ${Math.round(getH(w.x,w.y))}m`:'표고 —';
+  mapEl.style.cursor=drag&&drag.type==='pan'&&drag.moved?'grabbing':(hitTown(p)>=0&&mode!=='complete')||hitHandle(p,12)>0?'pointer':'crosshair';
+  if(!drag)return;
+  if(drag.type==='pinch'&&pointers.size===2){const [a,b]=[...pointers.values()],m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};view.s=clamp(drag.s*dist(a,b)/drag.d,minS,minS*7);view.x=drag.w.x-m.x/view.s;view.y=drag.w.y-m.y/view.s;clampView();staticDirty=true;updScale()}
+  else if(drag.type==='handle'){if(dist(p,drag.start)>3)drag.moved=true;if(drag.moved){draft.pts[drag.idx]={x:clamp(w.x,0,W),y:clamp(w.y,0,H)};draft.example=false;flash='';reanalyze()}}
+  else if(drag.type==='pan'){if(dist(p,drag.start)>6)drag.moved=true;if(drag.moved){view.x=drag.vx-(p.x-drag.start.x)/view.s;view.y=drag.vy-(p.y-drag.start.y)/view.s;clampView();staticDirty=true}}
+});
+function endPointer(e,cancel){
+  pointers.delete(e.pointerId);if(!drag)return;
+  if(drag.type==='pinch'){if(pointers.size===0)drag=null;else drag={type:'pan',start:[...pointers.values()][0],vx:view.x,vy:view.y,moved:true};return}
+  if(!cancel){
+    if(drag.type==='handle'&&!drag.moved){selHandle=selHandle===drag.idx?-1:drag.idx;panelDirty=true}
+    else if(drag.type==='pan'&&!drag.moved)onClick(local(e));
+  }
+  drag=null;
+}
+mapEl.addEventListener('pointerup',e=>endPointer(e,false));
+mapEl.addEventListener('pointercancel',e=>endPointer(e,true));
+mapEl.addEventListener('pointerleave',()=>{if(!drag){hover=null;$('#elev').textContent='표고 —'}});
+mapEl.addEventListener('wheel',e=>{e.preventDefault();zoomAt(local(e),Math.exp(-e.deltaY*0.0015))},{passive:false});
+function onClick(p){
+  const ti=hitTown(p),w=toWorld(p);
+  if(mode==='idle'){if(ti>=0)startDraft(ti);else setHint('마을을 눌러야 노선을 시작할 수 있어요',3000);return}
+  if(mode==='drawing'){
+    if(ti>=0&&ti!==draft.a){draft.pts.push(townPt(ti));draft.b=ti;mode='complete';reanalyze();setHint('주황 점을 끌어 다듬은 뒤 건설하세요',5000)}
+    else if(ti<0){draft.pts.push({x:clamp(w.x,0,W),y:clamp(w.y,0,H)});reanalyze()}
+    return;
+  }
+  if(mode==='complete'&&selHandle!==-1){selHandle=-1;panelDirty=true}
+}
+
+// ---------- loop ----------
+let last=performance.now(),monthAcc=0;
+function tickMonth(){
+  month++;money+=rev-op;yearRev+=rev;yearOp+=op;
+  const comp=components();
+  TOWNS.forEach((t,i)=>{const deg=lines.filter(l=>l.a===i||l.b===i).length;t.pop*=deg?1.003+0.0008*(deg-1):1.0003});
+  recalc();
+  if((2+month)%12===0&&(yearRev>0||lines.length)){addLog(`${1962+Math.floor((2+month)/12)-1}년 결산 · 수입 ${fmt(yearRev)}, 운영비 ${fmt(yearOp)}`);yearRev=yearOp=0}
+  if(money<0&&!brokeWarned){brokeWarned=true;addLog('자금이 바닥났어요. 운영비가 수입보다 많아요','bad')}
+  if(money>=0)brokeWarned=false;
+  updHeader();if(!drag||drag.type!=='handle')panelDirty=true;
+}
+function loop(now){
+  const dt=Math.min(100,now-last);last=now;
+  if(speed>0){animClock+=dt*(speed===3?2:1);monthAcc+=dt*speed;while(monthAcc>=MONTH_MS){monthAcc-=MONTH_MS;tickMonth()}}
+  if(panelDirty){renderPanel();panelDirty=false}
+  if(profileDirty){drawProfile();profileDirty=false}
+  drawFrame(now);
+  requestAnimationFrame(loop);
+}
+
+// ---------- boot ----------
+function start(data){
+  data=data||{};
+  if(Array.isArray(data.lines)&&data.lines.length){
+    money=data.money;month=data.month;speed=data.speed??1;log=data.log||[];layer=data.layer||'normal';goalDone=!!data.goalDone;
+    (data.pops||[]).forEach((p,i)=>{if(TOWNS[i])TOWNS[i].pop=p});
+    for(const l of data.lines){const an=analyze(l.pts,l.a,l.b);if(an)lines.push({...l,an})}
+    selLine=lines.length?lines[lines.length-1].id:null;mode='idle';draft=null;setHint('마을을 눌러 새 노선을 시작하세요',4000);
+  }else{
+    draft={pts:[townPt(0),{x:540,y:705},townPt(1)],a:0,b:1,an:null,example:true};mode='complete';
+    addLog('솔내 지방 철도 사업을 시작했어요. 자금 ₩ 1,200억');
+  }
+  document.querySelectorAll('[data-sp]').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.sp===speed)));
+  document.querySelectorAll('[data-ly]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ly===layer)));
+  recalc();reanalyze();updHeader();resize();
+  new ResizeObserver(()=>resize()).observe(wrap);
+  new ResizeObserver(()=>{profileDirty=true}).observe(profEl);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{staticDirty=true;profileDirty=true});
+  window.claude?.hot?.snapshot?.(()=>({money,month,speed,layer,goalDone,log,pops:TOWNS.map(t=>t.pop),lines:lines.map(l=>({id:l.id,name:l.name,a:l.a,b:l.b,pts:l.pts}))}));
+  requestAnimationFrame(t=>{last=t;loop(t)});
+}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+})();
+</script>
