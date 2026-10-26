@@ -499,6 +499,10 @@ body {
   background: #ffffff;
 }
 
+.congestion[hidden] {
+  display: none;
+}
+
 .congestion-button {
   padding: 4px 10px;
   border: none;
@@ -777,6 +781,37 @@ body {
 }
 
 /* ── 왼쪽 아래 파일 버튼 (내보내기 · 불러오기 · 새로 시작) ── */
+/* ── 화면 아래 종단면도 (땅 높이가 있는 가상 지도) ──
+   왼쪽 아래 파일 버튼 오른쪽부터 오른쪽 패널 왼쪽까지 (지도를 덜 가리게 낮게) */
+.profile-panel {
+  position: fixed;
+  left: 352px;
+  right: 292px;
+  bottom: 16px;
+  z-index: 1;
+  max-width: 760px;
+  padding: 8px 10px 4px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.profile-panel[hidden] {
+  display: none;
+}
+
+.profile-title {
+  color: #1f3a55;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-canvas {
+  display: block;
+  width: 100%;
+  height: 110px;
+}
+
 .file-menu {
   position: fixed;
   left: 16px;

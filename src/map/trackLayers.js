@@ -2,6 +2,8 @@
 // 화면은 상태를 읽어서 그리기만 한다.
 
 const TRACK_SOURCE = 'tracks';
+// 터널 구간 (땅 높이가 있는 가상 지도만): 선로 몸통 위에 땅 색 점선을 그어 속이 빈 점선처럼 보이게 한다
+const TUNNEL_SOURCE = 'track-tunnels';
 const TRACK_SELECTED_LAYER = 'track-selected';
 const TRACK_CASING_LAYER = 'track-casing';
 const TRACK_BODY_LAYER = 'track-body';
@@ -77,6 +79,17 @@ export function addTrackLayers(map) {
     layout: ROUND_LINE,
     paint: { 'line-color': TRACK_COLORS.body, 'line-width': TRACK_BODY_WIDTH },
   });
+  map.addSource(TUNNEL_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'track-tunnel',
+    type: 'line',
+    source: TUNNEL_SOURCE,
+    paint: {
+      'line-color': '#EFE7D6',
+      'line-width': zoomWidth(1.2, 3.5, 10),
+      'line-dasharray': [1.5, 1.5],
+    },
+  });
   map.addLayer({
     id: TRACK_CENTER_LAYER,
     type: 'line',
@@ -108,7 +121,8 @@ export function addTrackLayers(map) {
 
 // 선로 전체를 다시 그린다
 // lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null,
-//            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null }]
+//            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null,
+//            tunnels: 터널 구간들 [[[경도, 위도], …], …] (없으면 빈 목록) }]
 // selectedIds = 노란색으로 강조할 선로 id들 (Set)
 export function updateTracks(map, lines, selectedIds) {
   map.getSource(TRACK_SOURCE).setData({
@@ -123,6 +137,16 @@ export function updateTracks(map, lines, selectedIds) {
         removing: line.removing ?? null,
       },
     })),
+  });
+  map.getSource(TUNNEL_SOURCE).setData({
+    type: 'FeatureCollection',
+    features: lines
+      .filter((line) => line.tunnels?.length)
+      .map((line) => ({
+        type: 'Feature',
+        geometry: { type: 'MultiLineString', coordinates: line.tunnels },
+        properties: { id: line.id },
+      })),
   });
 }
 

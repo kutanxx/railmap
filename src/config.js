@@ -154,8 +154,26 @@ export const TRAIN_MIN_SCREEN_PX = 24;
 // 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
 // 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값
 export const TRACK_COST_PER_KM = 60;
-// 물(한강·호수 등) 위를 지나는 구간은 교량이라 km당 이만큼 든다 (보통 선로의 2.5배)
+// 물(한강·호수 등) 위나 높은 고가 구간은 교량이라 km당 이만큼 든다 (보통 선로의 2.5배)
 export const BRIDGE_COST_PER_KM = 150;
+// 터널 구간은 km당 이만큼 든다 (가상 지도처럼 땅 높이가 있을 때만 생긴다)
+export const TUNNEL_COST_PER_KM = 230;
+
+// ── 지형 (땅 높이가 있는 가상 지도만) ───────
+// 선로를 이만큼(미터)마다 짚어 땅 높이를 잰다
+export const PROFILE_STEP_M = 25;
+// 선로 높이를 정할 때 땅 높이를 앞뒤 이만큼(미터) 범위로 고르게 편다 (클수록 선로가 평평해진다)
+export const PROFILE_SMOOTH_M = 900;
+// 선로가 오르내릴 수 있는 가장 가파른 경사 (0.03 = 100m 가서 3m 오르내림)
+export const MAX_GRADE = 0.03;
+// 땅이 선로보다 이만큼(미터) 넘게 높으면 터널, 선로가 땅보다 이만큼 넘게 높으면 고가(교량)
+export const TUNNEL_DEPTH_M = 14;
+export const VIADUCT_HEIGHT_M = 10;
+// 이보다 짧은 터널은 땅을 깎아 지나가는 것으로 친다 (미터)
+export const MIN_TUNNEL_M = 100;
+// 열차는 경사가 이만큼을 넘으면 느려지기 시작해서, 가장 가파른 경사(MAX_GRADE)에서는 최고 속도의 이 비율로 달린다
+export const GRADE_SLOW_START = 0.015;
+export const SPEED_RATIO_AT_MAX_GRADE = 0.75;
 export const STATION_COST = 40;
 // 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
 export const STATION_MOVE_COST_RATIO = 0.25;

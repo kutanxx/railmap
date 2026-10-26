@@ -1,8 +1,8 @@
 // 공사비와 운영비 계산 (단위: 억 원). 숫자는 모두 config.js에서 가져온다.
-import { length, lineString } from '@turf/turf';
 import {
   TRACK_COST_PER_KM,
   BRIDGE_COST_PER_KM,
+  TUNNEL_COST_PER_KM,
   STATION_COST,
   STATION_MOVE_COST_RATIO,
   OPEX_PER_TRACK_KM,
@@ -16,6 +16,7 @@ import {
   FARE_LONG_STEP_KM,
 } from '../config.js';
 import { getRegion } from './region.js';
+import { trackProfile } from './trackProfile.js';
 
 // 역 하나 공사비
 export function stationCost() {
@@ -27,20 +28,13 @@ export function stationMoveFee() {
   return STATION_COST * STATION_MOVE_COST_RATIO;
 }
 
-// 선로가 물 위를 지나는 길이(km)를 재는 함수. 게임 규칙 코드는 지도를 직접 읽지 않으므로
-// 지도를 가진 화면 쪽(ui/app.js → map/water.js)이 setWaterMeasure로 정해 준다. 정해 주기 전에는 0
-let measureWaterKm = () => 0;
-export function setWaterMeasure(measure) {
-  measureWaterKm = measure;
-}
-
-// 좌표들을 잇는 선로의 길이(km), 그중 물 위(교량) 길이(km), 공사비
-// 공사비 = ((길이 − 교량) × TRACK_COST_PER_KM + 교량 × BRIDGE_COST_PER_KM) × 지도의 선로 공사비 배율
+// 좌표들을 잇는 선로의 길이(km), 그중 교량·터널 길이(km), 공사비 (교량·터널 판정은 trackProfile.js)
+// 공사비 = (땅 위 × TRACK_COST_PER_KM + 교량 × BRIDGE_COST_PER_KM + 터널 × TUNNEL_COST_PER_KM) × 지도의 선로 공사비 배율
 export function trackCostForCoords(coords) {
-  const km = coords.length >= 2 ? length(lineString(coords), { units: 'kilometers' }) : 0;
-  const bridgeKm = km > 0 ? Math.min(km, measureWaterKm(coords)) : 0;
-  const base = (km - bridgeKm) * TRACK_COST_PER_KM + bridgeKm * BRIDGE_COST_PER_KM;
-  return { km, bridgeKm, cost: base * getRegion().trackCostScale };
+  const { km, groundKm, bridgeKm, tunnelKm } = trackProfile(coords);
+  const base =
+    groundKm * TRACK_COST_PER_KM + bridgeKm * BRIDGE_COST_PER_KM + tunnelKm * TUNNEL_COST_PER_KM;
+  return { km, bridgeKm, tunnelKm, cost: base * getRegion().trackCostScale };
 }
 
 // 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 × 지도의 선로 공사비 배율 + 열차 대수 × 열차당 운영비

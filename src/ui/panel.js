@@ -124,13 +124,16 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }
 
-  // info = { id, lengthKm, bridgeKm: 물 위 교량 길이, fromName, toName, waypointCount }, removal: 지우면 사라지는 것
+  // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount }, removal: 지우면 사라지는 것
   function showTrack(info, removal) {
     track = { id: info.id };
     trackRemoval.textContent = removal;
-    // 물 위를 지나는 구간이 있으면 교량 길이도 함께 적는다
-    const bridge = info.bridgeKm >= 0.01 ? ` (교량 ${info.bridgeKm.toFixed(2)} km)` : '';
-    lengthText.textContent = `${info.lengthKm.toFixed(2)} km${bridge}`;
+    // 교량·터널 구간이 있으면 그 길이도 함께 적는다
+    const structures = [];
+    if (info.bridgeKm >= 0.01) structures.push(`교량 ${info.bridgeKm.toFixed(2)} km`);
+    if (info.tunnelKm >= 0.01) structures.push(`터널 ${info.tunnelKm.toFixed(2)} km`);
+    const detail = structures.length ? ` (${structures.join(' · ')})` : '';
+    lengthText.textContent = `${info.lengthKm.toFixed(2)} km${detail}`;
     endsText.textContent = `${info.fromName} ↔ ${info.toName}`;
     waypointsText.textContent = `${info.waypointCount}개`;
   }

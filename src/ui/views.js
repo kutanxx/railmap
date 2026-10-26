@@ -12,9 +12,11 @@ import {
 import { getEconomy } from '../game/demand.js';
 import { removalPreview } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
+import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
+const pick = (object, keys) => Object.fromEntries(keys.map((key) => [key, object[key]]));
 
 // 오른쪽 위 패널 (고른 역 또는 선로). 고른 게 없거나 지워졌으면 null
 // shapes: stationShapes()의 결과 (화면에 보이는 승강장 방향, 선로를 따르는지)
@@ -44,7 +46,7 @@ export function infoPanelView(selected, shapes) {
       track: {
         id: track.id,
         lengthKm: trackLengthKm(track),
-        bridgeKm: trackCostForCoords(trackCoords(track)).bridgeKm,
+        ...pick(trackCostForCoords(trackCoords(track)), ['bridgeKm', 'tunnelKm']),
         fromName: findStation(track.from).name,
         toName: findStation(track.to).name,
         waypointCount: track.waypoints.length,
@@ -63,6 +65,29 @@ function removalText(selected) {
   if (routes.length > 0) lost.push(`노선 ${routes.length}개(${routes.map((r) => r.name).join(', ')})`);
   if (lost.length === 0) return '지워도 다른 것은 그대로예요.';
   return `지우면 ${lost.join('와 ')}도 함께 사라져요. 버튼에 마우스를 올리면 지도에 빨갛게 보여요.`;
+}
+
+// 화면 아래 종단면도 (ui/profilePanel.js): 고른 선로나 노선의 높이 분석. 고른 게 없으면 null
+export function profilePanelView(selected) {
+  if (selected?.type === 'track') {
+    const track = findTrack(selected.id);
+    if (!track) return null;
+    return {
+      title: `${findStation(track.from).name} ↔ ${findStation(track.to).name}`,
+      parts: [trackProfile(trackCoords(track))],
+    };
+  }
+  if (selected?.type === 'route') {
+    const route = findRoute(selected.id);
+    if (!route) return null;
+    // 노선을 따라 역 순서대로: 선로가 반대 방향으로 놓였으면 뒤집어서 잇는다
+    const parts = routeTracks(route).map((track, i) => {
+      const coords = trackCoords(track);
+      return trackProfile(track.from === route.stations[i] ? coords : [...coords].reverse());
+    });
+    return { title: route.name, parts };
+  }
+  return null;
 }
 
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)

@@ -1,4 +1,5 @@
-// 가상 지도 "솔내 지방"의 GeoJSON을 만든다: node tools/make-sollae.mjs → src/data/sollae.json
+// 가상 지도 "솔내 지방"의 자료를 만든다: node tools/make-sollae.mjs
+// → src/data/sollae.json (마을·강·산·도로 GeoJSON), src/data/sollae-height.json (땅 높이 격자)
 // 배치(마을 4개, 강, 산, 도로)와 계산 방식은 reference/prototype-sollae.html을 그대로 옮겼다.
 // 프로토타입은 1단위 = 10m인 평면 좌표(오른쪽 x, 아래쪽 y)를 쓰므로, 끝에 [경도, 위도]로 바꾼다.
 // 무작위도 정해진 씨앗으로 만들어서 언제 돌려도 같은 지도가 나온다. 게임은 만들어 둔 sollae.json만 읽는다.
@@ -266,6 +267,26 @@ for (const t of TOWNS) point([t.x, t.y], { layer: 'place', kind: 'town', name: t
 point([peak.x, peak.y], { layer: 'place', kind: 'peak', name: `봉우리산 ${Math.round(peak.h)}m` });
 const riverLabel = RIVER.reduce((b, q) => (Math.hypot(q.x - 650, q.y - 690) < Math.hypot(b.x - 650, b.y - 690) ? q : b));
 point([riverLabel.x + 30, riverLabel.y], { layer: 'place', kind: 'water', name: '금빛강' });
+
+// ── 땅 높이 격자: HEIGHT_STEP단위(60m)마다 높이(m). 터널·교량 판정과 등고선에 쓴다 (game/terrain.js) ──
+const HEIGHT_STEP = 6;
+const nx = Math.floor(W / HEIGHT_STEP) + 1;
+const ny = Math.floor(H / HEIGHT_STEP) + 1;
+const heights = [];
+for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) heights.push(Math.round(terrainH(i * HEIGHT_STEP, j * HEIGHT_STEP)));
+const [gridWest, gridNorth] = toLngLat([0, 0]);
+writeFileSync(
+  new URL('../src/data/sollae-height.json', import.meta.url),
+  JSON.stringify({
+    west: gridWest,
+    north: gridNorth,
+    stepLng: (HEIGHT_STEP * UNIT_M) / M_PER_LNG,
+    stepLat: (HEIGHT_STEP * UNIT_M) / M_PER_LAT,
+    nx,
+    ny,
+    heights,
+  }),
+);
 
 const [west, north] = toLngLat([0, 0]);
 const [east, south] = toLngLat([W, H]);

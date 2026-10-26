@@ -32,8 +32,9 @@ import {
 } from '../game/build.js';
 import { addRoute, removeRoute, newRouteCost } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
-import { trackCostForCoords, setWaterMeasure } from '../game/economy.js';
-import { waterKm } from '../map/water.js';
+import { trackCostForCoords } from '../game/economy.js';
+import { setWaterTest } from '../game/trackProfile.js';
+import { waterAt } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
@@ -43,7 +44,7 @@ import { createTrackTool } from './trackTool.js';
 import { createRouteTool } from './routeTool.js';
 import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
-import { infoPanelView, routePanelView, routeColors } from './views.js';
+import { infoPanelView, routePanelView, profilePanelView, routeColors } from './views.js';
 import { createStatus } from './status.js';
 import { createCursorTip } from './cursorTip.js';
 import { showCallout } from './callouts.js';
@@ -59,6 +60,11 @@ import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
 import { createCongestionToggle } from './congestionToggle.js';
+import { createTerrainToggle } from './terrainToggle.js';
+import { hasTerrain, terrainGrid } from '../game/terrain.js';
+import { addContourLayers, setContoursVisible } from '../map/contours.js';
+import { createProfilePanel } from './profilePanel.js';
+import { trackProfile } from '../game/trackProfile.js';
 
 export function startApp(map, loadMessage) {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구, 선택한 것, 진행 중인 편집
@@ -72,10 +78,11 @@ export function startApp(map, loadMessage) {
     hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
     removing: null, // 삭제 버튼에 마우스를 올려서 지도에 미리 보여줄 것 { type, id } 또는 null
     congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
+    terrain: false, // 지형 보기: 켜면 등고선이 보인다 (땅 높이가 있는 가상 지도만)
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
-  setWaterMeasure((coords) => waterKm(map, coords));
+  setWaterTest((points) => waterAt(map, points));
 
   // 화면 가운데 말풍선 알림
   const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);
@@ -129,7 +136,23 @@ export function startApp(map, loadMessage) {
     render();
   };
   const congestionToggle = createCongestionToggle(document.getElementById('congestion'), toggleCongestion);
+  // 지형 보기 켜고 끄기 (버튼, T 키). 땅 높이가 없는 지도(서울)에서는 버튼을 숨기고 아무것도 하지 않는다
+  const toggleTerrain = () => {
+    if (!hasTerrain()) return;
+    ui.terrain = !ui.terrain;
+    setContoursVisible(map, ui.terrain);
+    render();
+  };
+  const terrainElement = document.getElementById('terrain');
+  terrainElement.hidden = !hasTerrain();
+  const terrainToggle = createTerrainToggle(terrainElement, toggleTerrain);
   const status = createStatus(document.getElementById('status'));
+  // 화면 아래 종단면도 (땅 높이가 있는 가상 지도만): 선로를 그리는 중이면 그리는 선로, 아니면 고른 선로·노선
+  const profilePanel = createProfilePanel(document.getElementById('profile'));
+  const showDraftProfile = (coords) => {
+    if (hasTerrain()) profilePanel.show({ title: '새 선로 (그리는 중)', parts: [trackProfile(coords)] });
+  };
+
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
   const panel = createPanel(document.getElementById('panel'), {
@@ -248,6 +271,7 @@ export function startApp(map, loadMessage) {
     bankruptDialog.show({ bankrupt, year, month, money });
     toolbar.setActive(ui.tool);
     congestionToggle.setActive(ui.congestion);
+    terrainToggle.setActive(ui.terrain);
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
@@ -269,6 +293,8 @@ export function startApp(map, loadMessage) {
       }),
     );
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
+    // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
+    if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);
   }
 
   // 혼잡·빚 경고 말풍선 (warnings.js)
@@ -292,6 +318,8 @@ export function startApp(map, loadMessage) {
     chooseTool,
     deleteSelected,
     toggleCongestion,
+    toggleTerrain,
+    showDraftProfile,
     renderTracks,
     trackTool,
     routeTool,
@@ -303,8 +331,9 @@ export function startApp(map, loadMessage) {
   const trackEditor = createTrackEditor(ctx);
   createStationMover(ctx);
 
-  // 그리는 순서: 역세권 원 → 선로 → 출구 통로 → 역 → 열차 → 출구 배지 → 미리보기 → 선로 손잡이
+  // 그리는 순서: 등고선 → 역세권 원 → 선로 → 출구 통로 → 역 → 열차 → 출구 배지 → 미리보기 → 선로 손잡이
   // (나중에 추가한 것이 위에 보인다)
+  if (hasTerrain()) addContourLayers(map, terrainGrid());
   addCatchmentLayer(map);
   addTrackLayers(map);
   addPassageLayers(map);

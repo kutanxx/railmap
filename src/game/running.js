@@ -1,5 +1,5 @@
 // 역 사이 한 구간을 달리는 모습: 출발하면 TRAIN_ACCELERATION으로 빨라지고, 도착 전에 같은 만큼 느려지며,
-// 선로가 많이 꺾이는 곳 앞뒤에서는 제한 속도까지 줄인다. 열차 움직임(sim.js)과 소요 시간 계산(demand.js)이 함께 쓴다.
+// 선로가 많이 꺾이는 곳 앞뒤와 가파른 경사(땅 높이가 있는 가상 지도, trackProfile.js)에서는 제한 속도까지 줄인다. 열차 움직임(sim.js)과 소요 시간 계산(demand.js)이 함께 쓴다.
 // 구간을 RUN_STEP_M마다 나눠 각 자리의 속도를 정하고(앞에서 가속, 뒤에서 감속), 자리마다 걸린 시간을 쌓아 둔다.
 // 가속과 감속이 같아서 거꾸로 달리는 모습은 앞으로 달리는 모습을 뒤집은 것과 같다.
 import { distance, bearing } from '@turf/turf';
@@ -10,7 +10,11 @@ import {
   SHARP_CURVE_ANGLE,
   SHARP_CURVE_SPEED_KMH,
   CURVE_ZONE_M,
+  GRADE_SLOW_START,
+  MAX_GRADE,
+  SPEED_RATIO_AT_MAX_GRADE,
 } from '../config.js';
+import { trackProfile } from './trackProfile.js';
 
 // 몇 미터마다 속도를 정할지 (작을수록 매끄럽지만 계산이 늘어난다)
 const RUN_STEP_M = 10;
@@ -34,10 +38,11 @@ export function buildRun(coords) {
 
   const steps = Math.max(1, Math.ceil(total / RUN_STEP_M));
   const step = total / steps;
-  // 자리마다 낼 수 있는 가장 빠른 속도: 달리는 속도, 꺾이는 곳 근처면 제한 속도
+  const profile = trackProfile(coords);
+  // 자리마다 낼 수 있는 가장 빠른 속도: 달리는 속도, 꺾이는 곳 근처면 제한 속도, 가파르면 경사 제한 속도
   const speed = [];
   for (let i = 0; i <= steps; i++) {
-    let v = CRUISE;
+    let v = CRUISE * gradeSpeedRatio(profile.gradeAt((i * step) / 1000));
     for (const limit of limits) if (Math.abs(i * step - limit.at) <= CURVE_ZONE_M) v = Math.min(v, limit.speed);
     speed.push(v);
   }
@@ -83,6 +88,13 @@ export function buildRun(coords) {
       return time[low] + (time[high] - time[low]) * (index - low);
     },
   };
+}
+
+// 경사에 따른 속도 비율: GRADE_SLOW_START까지는 1, 가장 가파른 경사(MAX_GRADE)에서 SPEED_RATIO_AT_MAX_GRADE (그 사이는 비례로)
+function gradeSpeedRatio(grade) {
+  if (grade <= GRADE_SLOW_START) return 1;
+  const t = Math.min(1, (grade - GRADE_SLOW_START) / (MAX_GRADE - GRADE_SLOW_START));
+  return 1 - (1 - SPEED_RATIO_AT_MAX_GRADE) * t;
 }
 
 // 세 점 a → b → c에서 b에서 꺾이는 각도 (0 = 곧게, 180 = 되돌아감)

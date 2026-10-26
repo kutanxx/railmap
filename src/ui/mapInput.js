@@ -16,8 +16,8 @@ import { formatMoney, formatPopulation } from './format.js';
 const TOO_FAR = '더 확대해야 역을 놓을 수 있어요';
 
 export function bindMapInput(ctx) {
-  const { map, ui, select, render, chooseTool, deleteSelected, toggleCongestion } = ctx;
-  const { trackTool, routeTool, cursorTip, shortfall, costNote, notice } = ctx;
+  const { map, ui, select, render, chooseTool, deleteSelected, toggleCongestion, toggleTerrain } = ctx;
+  const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
 
   // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
   const stationAt = (point) => {
@@ -118,9 +118,14 @@ export function bindMapInput(ctx) {
       // 그리는 중이면 지금까지의 길이와 예상 공사비를 마우스 옆에 보여준다
       const coords = trackTool.previewCoords();
       if (coords) {
-        const { km, bridgeKm, cost } = trackCostForCoords(coords);
-        const bridge = bridgeKm >= 0.01 ? ` (교량 ${bridgeKm.toFixed(2)} km)` : '';
-        tip(event.point, `${km.toFixed(2)} km${bridge} · 공사비 ${formatMoney(cost)}`, cost);
+        const { km, bridgeKm, tunnelKm, cost } = trackCostForCoords(coords);
+        const structures = [];
+        if (bridgeKm >= 0.01) structures.push(`교량 ${bridgeKm.toFixed(2)} km`);
+        if (tunnelKm >= 0.01) structures.push(`터널 ${tunnelKm.toFixed(2)} km`);
+        const detail = structures.length ? ` (${structures.join(' · ')})` : '';
+        tip(event.point, `${km.toFixed(2)} km${detail} · 공사비 ${formatMoney(cost)}`, cost);
+        // 땅 높이가 있으면 화면 아래 종단면도도 같이 바꾼다
+        showDraftProfile(coords);
       } else {
         cursorTip.hide();
       }
@@ -180,7 +185,7 @@ export function bindMapInput(ctx) {
   // Space로 멈췄다가 다시 갈 때 쓸 배속 (멈추기 전 배속)
   let resumeSpeed = 1;
 
-  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기
+  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   document.addEventListener('keydown', (event) => {
@@ -214,6 +219,8 @@ export function bindMapInput(ctx) {
       deleteSelected();
     } else if (event.key.toLowerCase() === 'c') {
       toggleCongestion();
+    } else if (event.key.toLowerCase() === 't') {
+      toggleTerrain();
     } else if (event.key === 'Escape') {
       cancelWork();
     } else if (event.key === 'Backspace') {

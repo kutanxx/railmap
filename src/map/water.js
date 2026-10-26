@@ -1,11 +1,7 @@
-// 선로가 물(한강·호수 등) 위를 지나는 길이 재기. 그 구간은 교량 공사비를 받는다 (game/economy.js).
+// 물(한강·호수·강) 위인지 재기. 물 위를 지나는 선로 구간은 교량이 된다 (game/trackProfile.js).
 // 물 모양은 지도 자료에서 읽는다 (mapFeatures.js). 실제 지도는 불러온 타일만 있어서 화면 밖 먼 곳의 물은 못 볼 수 있다.
-// 선을 WATER_STEP_M마다 짚어 보고, 물 안에 든 점의 비율로 길이를 어림한다.
-import { length, lineString, along } from '@turf/turf';
 import { readMapFeatures } from './mapFeatures.js';
 
-// 몇 미터마다 짚어 볼지 (작을수록 정확하지만 느리다)
-const WATER_STEP_M = 25;
 // 교량으로 치지 않는 물 (수영장)
 const SKIPPED_CLASSES = new Set(['swimming_pool']);
 
@@ -33,26 +29,14 @@ function waterShapes(map) {
   return entry.shapes;
 }
 
-// coords([경도, 위도] 목록)를 잇는 선이 물 위를 지나는 길이 (km)
-export function waterKm(map, coords) {
-  if (coords.length < 2) return 0;
-  const line = lineString(coords);
-  const totalKm = length(line, { units: 'kilometers' });
+// 점들([경도, 위도] 목록)이 하나씩 물 위인지 (true/false 목록). 선로 높이 분석이 쓴다 (game/trackProfile.js)
+export function waterAt(map, points) {
   const shapes = waterShapes(map);
-  if (shapes.length === 0 || totalKm === 0) return 0;
-
-  const lineBox = boundsOf(coords);
-  const nearby = shapes.filter(({ bbox }) => overlaps(bbox, lineBox));
-  if (nearby.length === 0) return 0;
-
-  const steps = Math.max(1, Math.ceil((totalKm * 1000) / WATER_STEP_M));
-  let wet = 0;
-  for (let i = 0; i < steps; i++) {
-    // 각 칸의 가운데를 짚는다
-    const point = along(line, ((i + 0.5) / steps) * totalKm, { units: 'kilometers' }).geometry.coordinates;
-    if (nearby.some(({ rings, bbox }) => inBox(point, bbox) && insideRings(point, rings))) wet += 1;
-  }
-  return (wet / steps) * totalKm;
+  const box = boundsOf(points);
+  const nearby = shapes.filter(({ bbox }) => overlaps(bbox, box));
+  return points.map((point) =>
+    nearby.some(({ rings, bbox }) => inBox(point, bbox) && insideRings(point, rings)),
+  );
 }
 
 function boundsOf(points) {

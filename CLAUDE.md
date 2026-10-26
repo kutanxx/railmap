@@ -33,14 +33,16 @@ src/
   style.css           화면 요소 모양 (배지, 도구 막대, 패널, 말풍선, 창)
   game/               게임 규칙과 상태. 화면 코드를 부르지 않는다
     state.js          게임 상태, 되돌리기, 시간과 매달 정산, 역·선로·노선 찾기
-    region.js         지금 하는 지도(서울 / 솔내 지방)
+    region.js         지금 하는 지도(서울 / 솔내 지방), 지도별 밸런스
+    terrain.js        땅 높이 (가상 지도만, 높이 격자)
+    trackProfile.js   선로 높이 분석: 땅·선로 높이, 터널·교량 판정, 경사
     build.js          역·선로 바꾸기 (짓기, 이름, 옮기기, 방향, 경유점, 지우기)
     routes.js         노선 바꾸기 (만들기, 이름·색, 열차 수, 역 끼워넣기·빼기, 지우기)
     history.js        되돌리기·다시 하기 기록
     sim.js            시간 흐름, 열차 이동, 종점 배차 간격, 매달 정산 부르기
-    running.js        역 사이를 달리는 모습 (가속·감속, 꺾이는 곳 감속)
+    running.js        역 사이를 달리는 모습 (가속·감속, 꺾이는 곳·가파른 곳 감속)
     demand.js         승객 수요(중력 모델), 혼잡도, 수입 계산
-    economy.js        공사비(교량 포함), 운영비, 거리 요금
+    economy.js        공사비(교량·터널 포함), 운영비, 거리 요금
     catchment.js      가까운 역끼리 주변 인구 나누기
     save.js           저장·불러오기·새로 시작, 자동 저장, 내보내기 (지도마다 저장 칸 따로)
   map/                지도에 그리기
@@ -55,7 +57,8 @@ src/
     exitLayers.js     출구 통로와 노란 출구 번호 배지
     stationLabels.js  역 이름 말풍선
     population.js     역 주변 인구 재기 (건물 면적), 역을 놓을 만큼 확대했는지
-    water.js          선로가 물 위를 지나는 길이 재기 (교량 공사비)
+    water.js          점들이 물 위인지 재기 (교량 판정)
+    contours.js       등고선 (가상 지도, [지형] 버튼)
   ui/                 화면 조작과 패널
     app.js            게임 화면의 중심: 화면 상태, 패널·도구 만들기, 다시 그리기, 상태 연결
     mapInput.js       지도 클릭·마우스·키보드 처리 (단축키, 오른쪽 클릭 취소)
@@ -67,6 +70,8 @@ src/
     exitNames.js      출구 이름 붙이기 (나라별 방식, 지금은 서울식)
     toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선) + 숫자키 표시
     congestionToggle.js [혼잡도 보기] 버튼과 색 설명
+    terrainToggle.js  [지형] 버튼 (가상 지도만)
+    profilePanel.js   화면 아래 종단면도 (땅·선로 높이, 터널·교량)
     helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
     startScreen.js    시작 화면 (지도 고르기, 지도별 저장 날짜)
     trackTool.js      선로 그리기
@@ -91,6 +96,7 @@ src/
     bankruptDialog.js 파산 창
   data/
     sollae.json       가상 지도 솔내 지방 (마을 4개, 강, 산, 공원, 도로). tools/make-sollae.mjs로 만든다
+    sollae-height.json 솔내 지방 땅 높이 격자 (60m 간격). 같은 프로그램으로 만든다
 tools/
   make-sollae.mjs     솔내 지방 GeoJSON 만들기 (node tools/make-sollae.mjs, 프로토타입 배치를 옮김)
 docs/                 정리한 문서 (economy-research.md: 다른 게임 경제 비교)

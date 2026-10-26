@@ -4,6 +4,7 @@ import { START_YEAR, START_MONTH } from './config.js';
 import { setRegion, getRegion } from './game/region.js';
 import { createMap } from './map/createMap.js';
 import { useVirtualMap } from './map/mapFeatures.js';
+import { setTerrain } from './game/terrain.js';
 import { loadFromBrowser, resetGame } from './game/save.js';
 import { renderBadge } from './ui/badge.js';
 import { chooseRegion } from './ui/startScreen.js';
@@ -18,11 +19,12 @@ renderBadge(document.getElementById('badge'), {
   region: region.name,
 });
 
-// 가상 지도는 GeoJSON 자료를 읽어 둔다 (실제 지도를 고르면 받지 않는다)
+// 가상 지도는 GeoJSON 자료와 땅 높이 격자를 읽어 둔다 (실제 지도를 고르면 받지 않는다)
 let virtualData = null;
 if (region.id === 'sollae') {
   virtualData = (await import('./data/sollae.json')).default;
   useVirtualMap(virtualData);
+  setTerrain((await import('./data/sollae-height.json')).default);
 }
 
 // 브라우저에 저장해 둔 이 지도의 게임이 있으면 이어서 한다
