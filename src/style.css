@@ -215,3 +215,21 @@ body {
 .panel-angle-presets button:hover {
   border-color: #1f3a55;
 }
+
+/* 패널의 선로 정보 (길이, 구간, 경유점) */
+.panel-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.panel-facts dt {
+  color: #6f6656;
+}
+
+.panel-facts dd {
+  margin: 0;
+  font-weight: 700;
+}
