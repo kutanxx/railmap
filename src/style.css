@@ -65,13 +65,26 @@ body {
 }
 
 /* ── 오른쪽 정보 패널 ── */
-.panel {
+/* 오른쪽 세로 줄: 역·선로 패널 위, 노선 패널 아래 */
+.side {
   position: fixed;
   top: 16px;
   right: 16px;
+  bottom: 40px;
   z-index: 1;
-  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 260px;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: 100%;
   padding: 14px;
+  pointer-events: auto;
   border: 2px solid #1f3a55;
   border-radius: 8px;
   background: #ffffff;
@@ -232,4 +245,156 @@ body {
 .panel-facts dd {
   margin: 0;
   font-weight: 700;
+}
+
+/* 보이는 섹션끼리만 사이에 줄을 긋는다 (숨긴 섹션은 자리를 차지하지 않는다) */
+.panel section[hidden] {
+  display: none;
+}
+
+.panel section:not([hidden]) ~ section:not([hidden]) {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px solid #efe7d6;
+}
+
+/* ── 노선 패널 ── */
+.route-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #6f6656;
+}
+
+.route-sequence {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.route-message {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b0574a;
+}
+
+.route-message:empty {
+  display: none;
+}
+
+.route-draft-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.route-draft-buttons button {
+  flex: 1;
+  padding: 7px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-draft-buttons .route-finish {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.route-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.route-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  outline: 2px solid transparent;
+  cursor: pointer;
+}
+
+/* 지금 고른 색 */
+.route-swatch.active {
+  outline-color: #1f3a55;
+}
+
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #9a8f7b;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-item:hover {
+  background: #efe7d6;
+}
+
+.route-item.active {
+  border-color: #1f3a55;
+}
+
+.route-item-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.route-item-name {
+  flex: 1;
+}
+
+.route-item-length {
+  font-weight: 400;
+  color: #9a8f7b;
+}
+
+/* 역 말풍선 안의 노선 색 점 */
+.station-label-routes {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.station-label-routes:empty {
+  display: none;
+}
+
+.station-label-route {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.route-detail .panel-facts {
+  margin-top: 12px;
 }

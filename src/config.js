@@ -27,3 +27,14 @@ export const PLATFORM_WIDTH_M = 40;
 
 // 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 그림으로 대신 보여준다
 export const PLATFORM_REAL_SIZE_ZOOM = 14;
+
+// ── 노선 색 ────────────────────────────
+// 노선마다 고를 수 있는 차분한 색 6가지. 새 노선은 이 순서대로 돌아가며 받는다
+export const ROUTE_COLORS = [
+  { name: '파랑', color: '#3F6E9A' },
+  { name: '초록', color: '#5E8C61' },
+  { name: '벽돌', color: '#B0574A' },
+  { name: '보라', color: '#7E6A9E' },
+  { name: '청록', color: '#3E8A8A' },
+  { name: '자두', color: '#9C5B7A' },
+];

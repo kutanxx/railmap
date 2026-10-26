@@ -1,3 +1,5 @@
+import { bindNameInput } from './nameInput.js';
+
 // 오른쪽 정보 패널. 선택한 역 또는 선로의 정보를 보여주고 고치거나 지운다.
 // 상태를 직접 고치지 않고 onRename, onRotate, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
 
@@ -40,9 +42,10 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   const angleText = element.querySelector('.panel-angle-text');
   const coordText = element.querySelector('.panel-coord');
 
-  // 지금 보여주는 역 { id, defaultName } 또는 선로 { id }
+  // 지금 보여주는 역 { id } 또는 선로 { id }
   let station = null;
   let track = null;
+  const stationName = bindNameInput(nameInput, onRename);
 
   // 슬라이더를 움직이면 승강장을 돌린다
   angleInput.addEventListener('input', () => {
@@ -53,26 +56,6 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
       if (station) onRotate(station.id, Number(button.dataset.angle));
     });
   }
-
-  // 글자를 칠 때마다 이름을 바꿔서 말풍선에 바로 보이게 한다
-  nameInput.addEventListener('input', () => {
-    if (station) onRename(station.id, nameInput.value);
-  });
-  // 입력을 마쳤는데 비어 있으면 원래 이름으로 돌려놓는다
-  nameInput.addEventListener('change', () => {
-    if (!station) return;
-    const trimmed = nameInput.value.trim();
-    if (trimmed === '') {
-      nameInput.value = station.defaultName;
-      onRename(station.id, station.defaultName);
-    } else if (trimmed !== nameInput.value) {
-      nameInput.value = trimmed;
-      onRename(station.id, trimmed);
-    }
-  });
-  nameInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') nameInput.blur();
-  });
 
   element.querySelector('.panel-delete-station').addEventListener('click', () => {
     if (station) onDeleteStation(station.id);
@@ -88,16 +71,8 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   });
 
   function showStation(nextStation) {
-    const isNewStation = !station || station.id !== nextStation.id;
-    station = {
-      id: nextStation.id,
-      // 이름을 비우면 돌아갈 이름 (선택했을 때의 이름)
-      defaultName: isNewStation ? nextStation.name : station.defaultName,
-    };
-    // 사용자가 입력 중일 때는 칸을 덮어쓰지 않는다
-    if (isNewStation || document.activeElement !== nameInput) {
-      nameInput.value = nextStation.name;
-    }
+    station = { id: nextStation.id };
+    stationName.show(nextStation.id, nextStation.name);
     angleInput.value = nextStation.angle;
     angleText.textContent = angleLabel(nextStation.angle);
     const [lng, lat] = nextStation.coord;
@@ -114,7 +89,10 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
 
   // view = { type: 'station', station } | { type: 'track', track: info } | null (숨김)
   function show(view) {
-    if (view?.type !== 'station') station = null;
+    if (view?.type !== 'station') {
+      station = null;
+      stationName.clear();
+    }
     if (view?.type !== 'track') track = null;
     element.hidden = !view;
     stationSection.hidden = view?.type !== 'station';

@@ -39,11 +39,22 @@ import {
   removeTrack,
   trackCoords,
   trackLengthKm,
+  findTrackBetween,
+  findRoute,
+  addRoute,
+  renameRoute,
+  recolorRoute,
+  removeRoute,
+  routeTracks,
+  routeCoords,
+  routeLengthKm,
 } from './game/state.js';
 import { renderBadge } from './ui/badge.js';
 import { createToolbar } from './ui/toolbar.js';
 import { createPanel } from './ui/panel.js';
 import { createTrackTool } from './ui/trackTool.js';
+import { createRouteTool } from './ui/routeTool.js';
+import { createRoutePanel } from './ui/routePanel.js';
 
 renderBadge(document.getElementById('badge'), {
   year: START_YEAR,
@@ -67,12 +78,15 @@ const map = new MapLibreMap({
 map.on('load', () => {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구와 선택한 것
   let currentTool = 'select';
-  let selected = null; // { type: 'station' | 'track', id } 또는 null
+  let selected = null; // { type: 'station' | 'track' | 'route', id } 또는 null
 
   const toolbar = createToolbar(document.getElementById('toolbar'), (toolId) => {
     currentTool = toolId;
-    trackTool.cancel(); // 도구를 바꾸면 그리던 선로는 취소
-    // 역·선로를 놓는 도구에서는 빠른 두 번 클릭이 확대로 바뀌지 않게 한다
+    selected = null; // 도구를 바꾸면 선택도 푼다
+    // 도구를 바꾸면 그리던 선로·고르던 노선은 취소
+    trackTool.cancel();
+    routeTool.cancel();
+    // 클릭으로 무언가를 놓는 도구에서는 빠른 두 번 클릭이 확대로 바뀌지 않게 한다
     if (toolId === 'select') map.doubleClickZoom.enable();
     else map.doubleClickZoom.disable();
     render();
@@ -91,6 +105,21 @@ map.on('load', () => {
     },
   });
 
+  const routePanel = createRoutePanel(document.getElementById('routes'), {
+    onSelect: (id) => {
+      selected = { type: 'route', id };
+      render();
+    },
+    onRename: (id, name) => renameRoute(id, name),
+    onRecolor: (id, color) => recolorRoute(id, color),
+    onDelete: (id) => {
+      selected = null;
+      removeRoute(id);
+    },
+    onFinishDraft: () => routeTool.finish(),
+    onCancelDraft: () => routeTool.cancel(),
+  });
+
   const trackTool = createTrackTool({
     onChange: (draft) => updateDraft(map, draft),
     onComplete: (from, to, waypoints) => {
@@ -100,7 +129,33 @@ map.on('load', () => {
     },
   });
 
-  // 선택한 것을 패널에 보여줄 내용으로 바꾼다. 지워졌으면 null
+  const routeTool = createRouteTool({
+    // 앞 역과 다음 역 사이에 선로가 없으면 이유를 알려준다
+    checkLink: (from, to) =>
+      findTrackBetween(from, to)
+        ? null
+        : `${findStation(from).name}과(와) ${findStation(to).name} 사이에 선로가 없어요. [선로] 도구로 먼저 이어주세요.`,
+    onChange: () => {
+      // 고른 역들을 잇는 선로를 점선으로 미리 보여준다
+      const draft = routeTool.getDraft();
+      updateDraft(
+        map,
+        draft && {
+          coords: routeCoords({ stations: draft.stations }),
+          waypoints: draft.stations.map((id) => findStation(id).coord),
+          cursor: null,
+        },
+      );
+      render();
+    },
+    onComplete: (stationIds) => {
+      const route = addRoute(stationIds);
+      selected = { type: 'route', id: route.id };
+      render();
+    },
+  });
+
+  // 선택한 역·선로를 오른쪽 위 패널에 보여줄 내용으로 바꾼다. 없거나 지워졌으면 null
   function panelView() {
     if (selected?.type === 'station') {
       const station = findStation(selected.id);
@@ -123,19 +178,70 @@ map.on('load', () => {
     return null;
   }
 
+  // 노선 패널에 보여줄 내용
+  function routePanelView(routes) {
+    const route = selected?.type === 'route' ? findRoute(selected.id) : null;
+    const draft = routeTool.getDraft();
+    const stationNames = (ids) => ids.map((id) => findStation(id).name);
+    return {
+      tool: currentTool,
+      draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },
+      routes: routes.map((r) => ({
+        id: r.id,
+        name: r.name,
+        color: r.color,
+        lengthKm: routeLengthKm(r),
+      })),
+      selected: route && {
+        id: route.id,
+        name: route.name,
+        color: route.color,
+        lengthKm: routeLengthKm(route),
+        stationNames: stationNames(route.stations),
+      },
+    };
+  }
+
   // 상태를 읽어서 화면 전체를 다시 그린다
   function render() {
-    const { stations, tracks } = getState();
-    const selectedId = (type) => (selected?.type === type ? selected.id : null);
+    const { stations, tracks, routes } = getState();
+
+    // 노선 색: 선로마다 지나는 노선 중 먼저 만든 노선의 색, 역마다 지나는 노선 색 전부
+    const trackColor = new Map();
+    const stationColors = new Map();
+    for (const route of routes) {
+      for (const track of routeTracks(route)) {
+        if (!trackColor.has(track.id)) trackColor.set(track.id, route.color);
+      }
+      for (const id of route.stations) {
+        const colors = stationColors.get(id) ?? [];
+        if (!colors.includes(route.color)) colors.push(route.color);
+        stationColors.set(id, colors);
+      }
+    }
+
+    // 노란색으로 강조할 선로: 고른 선로 하나, 또는 고른 노선의 선로 전부
+    const highlighted = new Set();
+    if (selected?.type === 'track') highlighted.add(selected.id);
+    if (selected?.type === 'route') {
+      const route = findRoute(selected.id);
+      if (route) for (const track of routeTracks(route)) highlighted.add(track.id);
+    }
+
     toolbar.setActive(currentTool);
     updateTracks(
       map,
-      tracks.map((track) => ({ id: track.id, coords: trackCoords(track) })),
-      selectedId('track'),
+      tracks.map((track) => ({
+        id: track.id,
+        coords: trackCoords(track),
+        routeColor: trackColor.get(track.id) ?? null,
+      })),
+      highlighted,
     );
-    updateStations(map, stations, selectedId('station'));
-    updateStationLabels(map, stations);
+    updateStations(map, stations, selected?.type === 'station' ? selected.id : null);
+    updateStationLabels(map, stations, stationColors);
     panel.show(panelView());
+    routePanel.show(routePanelView(routes));
     map.getCanvas().style.cursor = currentTool === 'select' ? '' : 'crosshair';
   }
 
@@ -153,6 +259,10 @@ map.on('load', () => {
     if (currentTool === 'track') {
       if (stationId) trackTool.clickStation(stationId, findStation(stationId).coord);
       else trackTool.clickEmpty(coord);
+      return;
+    }
+    if (currentTool === 'route') {
+      if (stationId) routeTool.clickStation(stationId);
       return;
     }
 
@@ -176,6 +286,8 @@ map.on('load', () => {
       const cursor = stationId ? findStation(stationId).coord : event.lngLat.toArray();
       trackTool.moveCursor(cursor);
       map.getCanvas().style.cursor = stationId ? 'pointer' : 'crosshair';
+    } else if (currentTool === 'route') {
+      map.getCanvas().style.cursor = stationId ? 'pointer' : 'crosshair';
     } else if (currentTool === 'select') {
       // 역이나 선로 위에 올리면 손가락 모양으로 바꾼다
       const onSomething = stationId || trackIdAt(map, event.point);
@@ -183,21 +295,26 @@ map.on('load', () => {
     }
   });
 
-  // Esc: 그리던 선로 취소 (그리는 중이 아니면 선택 해제), Backspace: 마지막 경유점 지우기
+  // Esc: 그리던 것 취소 (그리는 중이 아니면 선택 해제)
+  // Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   document.addEventListener('keydown', (event) => {
     // 패널의 이름 칸에 글자를 치는 중이면 건드리지 않는다
     if (event.target instanceof HTMLInputElement) return;
 
     if (event.key === 'Escape') {
-      if (trackTool.isDrawing()) {
-        trackTool.cancel();
-      } else {
+      if (trackTool.isDrawing()) trackTool.cancel();
+      else if (routeTool.isDrawing()) routeTool.cancel();
+      else {
         selected = null;
         render();
       }
-    } else if (event.key === 'Backspace' && trackTool.isDrawing()) {
+    } else if (event.key === 'Backspace') {
+      if (trackTool.isDrawing()) trackTool.undoWaypoint();
+      else if (routeTool.isDrawing()) routeTool.undoStation();
+      else return;
       event.preventDefault();
-      trackTool.undoWaypoint();
+    } else if (event.key === 'Enter' && routeTool.isDrawing()) {
+      routeTool.finish();
     }
   });
 });

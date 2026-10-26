@@ -3,6 +3,7 @@ export const TOOLS = [
   { id: 'select', label: '선택' },
   { id: 'station', label: '역 놓기' },
   { id: 'track', label: '선로' },
+  { id: 'route', label: '노선' },
 ];
 
 export function createToolbar(element, onSelect) {

@@ -1,6 +1,7 @@
 // 게임 상태: 역, 선로 등. 화면 코드와 분리되어 있고,
 // 상태가 바뀌면 subscribe로 등록한 함수들을 불러서 화면이 다시 그리게 한다.
 import { length, lineString } from '@turf/turf';
+import { ROUTE_COLORS } from '../config.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0 }
@@ -9,9 +10,13 @@ const state = {
   // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …] }
   // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다
   tracks: [],
+  // 노선 하나 = { id: 'r1', name: '1호선', color: '#3F6E9A', stations: [역 id, …] }
+  // 이웃한 두 역 사이에는 반드시 선로가 있다
+  routes: [],
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
+  nextRouteNumber: 1,
 };
 
 const listeners = new Set();
@@ -60,10 +65,11 @@ export function rotateStation(id, angle) {
   notify();
 }
 
-// 역을 지우면 그 역에 이어진 선로도 함께 지운다
+// 역을 지우면 그 역에 이어진 선로도 함께 지운다 (끊긴 노선도 지운다)
 export function removeStation(id) {
   state.stations = state.stations.filter((station) => station.id !== id);
   state.tracks = state.tracks.filter((track) => track.from !== id && track.to !== id);
+  removeBrokenRoutes();
   notify();
 }
 
@@ -83,9 +89,18 @@ export function addTrack(from, to, waypoints) {
   return track;
 }
 
+// 선로를 지우면 그 선로가 있어야 하는 노선도 지운다
 export function removeTrack(id) {
   state.tracks = state.tracks.filter((track) => track.id !== id);
+  removeBrokenRoutes();
   notify();
+}
+
+// 두 역을 바로 잇는 선로를 찾는다 (방향은 상관없다). 없으면 undefined
+export function findTrackBetween(a, b) {
+  return state.tracks.find(
+    (track) => (track.from === a && track.to === b) || (track.from === b && track.to === a),
+  );
 }
 
 // 선로가 지나는 좌표 전체: 출발역 → 경유점들 → 도착역
@@ -96,4 +111,80 @@ export function trackCoords(track) {
 // 선로 길이 (km)
 export function trackLengthKm(track) {
   return length(lineString(trackCoords(track)), { units: 'kilometers' });
+}
+
+// ── 노선 ─────────────────────────────
+
+export function findRoute(id) {
+  return state.routes.find((route) => route.id === id);
+}
+
+// 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
+// 이름은 "1호선", "2호선" …, 색은 ROUTE_COLORS를 차례로 돌아가며 받는다
+export function addRoute(stationIds) {
+  const number = state.nextRouteNumber;
+  state.nextRouteNumber += 1;
+  const route = {
+    id: `r${number}`,
+    name: `${number}호선`,
+    color: ROUTE_COLORS[(number - 1) % ROUTE_COLORS.length].color,
+    stations: stationIds,
+  };
+  state.routes.push(route);
+  notify();
+  return route;
+}
+
+export function renameRoute(id, name) {
+  const route = findRoute(id);
+  if (!route) return;
+  route.name = name;
+  notify();
+}
+
+export function recolorRoute(id, color) {
+  const route = findRoute(id);
+  if (!route) return;
+  route.color = color;
+  notify();
+}
+
+export function removeRoute(id) {
+  state.routes = state.routes.filter((route) => route.id !== id);
+  notify();
+}
+
+// 노선이 지나는 선로들 (역 순서대로)
+export function routeTracks(route) {
+  const tracks = [];
+  for (let i = 1; i < route.stations.length; i++) {
+    tracks.push(findTrackBetween(route.stations[i - 1], route.stations[i]));
+  }
+  return tracks;
+}
+
+// 노선이 지나는 좌표 전체. 선로가 거꾸로 놓여 있으면 뒤집어서 잇는다
+export function routeCoords(route) {
+  const coords = [];
+  routeTracks(route).forEach((track, i) => {
+    let segment = trackCoords(track);
+    if (track.from !== route.stations[i]) segment = [...segment].reverse();
+    // 이어지는 구간은 첫 점(앞 구간의 끝 역)이 겹치므로 빼고 붙인다
+    coords.push(...(i === 0 ? segment : segment.slice(1)));
+  });
+  return coords;
+}
+
+// 노선 전체 길이 (km)
+export function routeLengthKm(route) {
+  return routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);
+}
+
+// 역이나 선로가 지워져서 끊긴 노선을 지운다
+function removeBrokenRoutes() {
+  state.routes = state.routes.filter(
+    (route) =>
+      route.stations.every((id) => findStation(id)) &&
+      routeTracks(route).every((track) => track),
+  );
 }

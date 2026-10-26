@@ -201,7 +201,14 @@ const zoomWidth = (z10, z14, z18) => [
 const TRACK_SELECTED_WIDTH = zoomWidth(7, 13, 26);
 const TRACK_CASING_WIDTH = zoomWidth(3.5, 8, 20);
 const TRACK_BODY_WIDTH = zoomWidth(2, 5.5, 15);
-const TRACK_CENTER_WIDTH = zoomWidth(0.5, 1, 2.5);
+// 가운데 줄: 노선이 지나는 선로는 노선 색으로 조금 더 굵게, 아니면 베이지로 얇게
+const HAS_ROUTE = ['!=', ['get', 'routeColor'], null];
+const TRACK_CENTER_WIDTH = zoomWidth(
+  ['case', HAS_ROUTE, 1.2, 0.5],
+  ['case', HAS_ROUTE, 2.5, 1],
+  ['case', HAS_ROUTE, 6, 2.5],
+);
+const TRACK_CENTER_COLOR = ['coalesce', ['get', 'routeColor'], TRACK_COLORS.center];
 
 const ROUND_LINE = { 'line-join': 'round', 'line-cap': 'round' };
 
@@ -238,18 +245,24 @@ export function addTrackLayers(map) {
     type: 'line',
     source: TRACK_SOURCE,
     layout: ROUND_LINE,
-    paint: { 'line-color': TRACK_COLORS.center, 'line-width': TRACK_CENTER_WIDTH },
+    paint: { 'line-color': TRACK_CENTER_COLOR, 'line-width': TRACK_CENTER_WIDTH },
   });
 }
 
-// 선로 전체를 다시 그린다. lines = [{ id, coords: [[경도, 위도], …] }]
-export function updateTracks(map, lines, selectedId) {
+// 선로 전체를 다시 그린다
+// lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null }]
+// selectedIds = 노란색으로 강조할 선로 id들 (Set)
+export function updateTracks(map, lines, selectedIds) {
   map.getSource(TRACK_SOURCE).setData({
     type: 'FeatureCollection',
     features: lines.map((line) => ({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: line.coords },
-      properties: { id: line.id, selected: line.id === selectedId },
+      properties: {
+        id: line.id,
+        routeColor: line.routeColor,
+        selected: selectedIds.has(line.id),
+      },
     })),
   });
 }
