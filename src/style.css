@@ -26,3 +26,192 @@ body {
   font-weight: 700;
   pointer-events: none;
 }
+
+/* ── 위쪽 도구 막대 ── */
+.toolbar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.tool-button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tool-button:hover {
+  background: #efe7d6;
+}
+
+/* 지금 고른 도구 */
+.tool-button.active {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+/* ── 오른쪽 정보 패널 ── */
+.panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  width: 240px;
+  padding: 14px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-title {
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #6f6656;
+}
+
+.panel-name {
+  padding: 6px 8px;
+  border: 2px solid #d6c9af;
+  border-radius: 5px;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.panel-name:focus {
+  border-color: #1f3a55;
+  outline: none;
+}
+
+.panel-coord {
+  margin: 10px 0 14px;
+  font-size: 12px;
+  color: #9a8f7b;
+}
+
+.panel-delete {
+  width: 100%;
+  padding: 7px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-delete:hover {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+/* ── 역 이름 말풍선 (흰 말풍선 + 남색 테두리 + 노란 점 + 지시선) ──
+   .station-label은 크기 0인 점이고, 그 점이 역의 위치다 */
+.station-label {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* 역 위치의 노란 점 */
+.station-label-dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f2c230;
+}
+
+/* 역에서 오른쪽 위 말풍선으로 가는 지시선 */
+.station-label-line {
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 26px;
+  height: 2px;
+  background: #1f3a55;
+  transform-origin: 0 50%;
+  transform: rotate(-40deg);
+}
+
+.station-label-bubble {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  padding: 3px 9px;
+  border: 2px solid #1f3a55;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 패널의 방향 조절 */
+.panel-field + .panel-field {
+  margin-top: 12px;
+}
+
+.panel-angle-text {
+  color: #1f3a55;
+}
+
+.panel-angle {
+  width: 100%;
+  accent-color: #1f3a55;
+}
+
+.panel-angle-presets {
+  display: flex;
+  gap: 6px;
+}
+
+.panel-angle-presets button {
+  flex: 1;
+  padding: 4px;
+  border: 2px solid #d6c9af;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-angle-presets button:hover {
+  border-color: #1f3a55;
+}

@@ -18,3 +18,12 @@ export const REGION_NAME = '서울';
 // 게임 시작 날짜
 export const START_YEAR = 2026;
 export const START_MONTH = 3;
+
+// ── 역(승강장) 모양 ─────────────────────
+// 승강장의 실제 크기 (미터). 가까이 확대하면 이 크기로 땅 위에 그려진다
+// (실제 지하철 승강장은 길이 150~200m쯤이고, 폭은 잘 보이게 조금 넓게 잡았다)
+export const PLATFORM_LENGTH_M = 160;
+export const PLATFORM_WIDTH_M = 40;
+
+// 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 그림으로 대신 보여준다
+export const PLATFORM_REAL_SIZE_ZOOM = 14;
