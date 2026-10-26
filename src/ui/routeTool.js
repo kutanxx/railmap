@@ -33,10 +33,10 @@ export function createRouteTool({ checkLink, onChange, onComplete }) {
       onChange();
       return;
     }
-    const stations = draft.stations;
+    // onComplete가 false를 돌려주면 (예: 자금 부족) 고르던 역을 그대로 둔다
+    if (onComplete(draft.stations) === false) return;
     draft = null;
     onChange();
-    onComplete(stations);
   }
 
   // Backspace: 마지막에 고른 역을 뺀다

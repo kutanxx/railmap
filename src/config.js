@@ -56,6 +56,15 @@ export const STATION_DWELL_SECONDS = 30;
 export const DEFAULT_TRAINS_PER_ROUTE = 1;
 export const MAX_TRAINS_PER_ROUTE = 10;
 
+// 열차 한 편에 탈 수 있는 사람 수 (서울 지하철 10량 정원 약 1,600명보다 조금 작게)
+export const TRAIN_CAPACITY = 1000;
+// 하루 승객 중 가장 붐비는 한 시간(출퇴근)에 타는 비율. 혼잡도는 이 시간을 기준으로 잰다
+export const PEAK_HOUR_SHARE = 0.12;
+// 열차 한 대 사는 값 (억 원). 노선을 만들 때 기본 열차 값도 낸다. 줄여도 돌려받지 않는다
+export const TRAIN_COST = 5;
+// 혼잡도가 이 비율을 넘으면 노선 패널에 주황색으로 경고한다 (1 = 100%)
+export const CROWDED_WARNING = 0.8;
+
 // 열차 길이 (미터). 지도 위 캡슐 길이가 된다
 export const TRAIN_LENGTH_M = 120;
 

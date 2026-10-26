@@ -1,13 +1,26 @@
 // 노선 고치기: 만들기, 이름·색·열차 수 바꾸기, 역 끼워넣기·빼기, 지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
-import { ROUTE_COLORS, DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE } from '../config.js';
+import {
+  ROUTE_COLORS,
+  DEFAULT_TRAINS_PER_ROUTE,
+  MAX_TRAINS_PER_ROUTE,
+  TRAIN_COST,
+} from '../config.js';
 import { getState, change, findStation, findTrackBetween, findRoute } from './state.js';
+
+// 노선을 만들 때 내는 돈: 기본 열차 값
+export function newRouteCost() {
+  return DEFAULT_TRAINS_PER_ROUTE * TRAIN_COST;
+}
 
 // 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
 // 이름은 "1호선", "2호선" …, 색은 ROUTE_COLORS를 차례로 돌아가며 받는다
+// 기본 열차 값을 낼 돈이 모자라면 만들지 않고 null을 돌려준다
 export function addRoute(stationIds) {
   return change(null, () => {
     const state = getState();
+    if (state.money < newRouteCost()) return null;
+    state.money -= newRouteCost();
     const number = state.nextRouteNumber;
     state.nextRouteNumber += 1;
     const route = {
@@ -44,10 +57,24 @@ export function recolorRoute(id, color) {
   });
 }
 
+// 열차 수를 바꿀 때 내는 돈: 늘린 대수 × 열차 값 (줄이면 0, 돌려받지 않는다)
+export function trainPurchaseCost(route, count) {
+  return Math.max(0, count - route.trainCount) * TRAIN_COST;
+}
+
 // 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)
+// 늘린 열차 값을 낼 돈이 모자라면 바꾸지 않고 null을 돌려준다
 export function setRouteTrainCount(id, count) {
-  changeRoute(null, id, (route) => {
-    route.trainCount = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
+  return change(null, () => {
+    const route = findRoute(id);
+    if (!route) return null;
+    const next = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
+    const cost = trainPurchaseCost(route, next);
+    const state = getState();
+    if (state.money < cost) return null;
+    state.money -= cost;
+    route.trainCount = next;
+    return route;
   });
 }
 

@@ -38,6 +38,8 @@ import {
   setRouteTrainCount,
   removeRoute,
   removeStationFromRoute,
+  newRouteCost,
+  trainPurchaseCost,
 } from '../game/routes.js';
 import { syncTrains, stepSimulation, trainFeatures } from '../game/sim.js';
 import { trackCostForCoords } from '../game/economy.js';
@@ -124,7 +126,12 @@ export function startApp(map, loadMessage) {
     },
     onRename: (id, name) => renameRoute(id, name),
     onRecolor: (id, color) => recolorRoute(id, color),
-    onTrainCount: (id, count) => setRouteTrainCount(id, count),
+    // 열차를 늘릴 돈이 모자라면 이유를 알려준다
+    onTrainCount: (id, count) => {
+      if (setRouteTrainCount(id, count)) return;
+      const route = getState().routes.find((r) => r.id === id);
+      notice(shortfall(trainPurchaseCost(route, count)), 'bad');
+    },
     onDelete: (id) => {
       select(null);
       removeRoute(id);
@@ -181,6 +188,11 @@ export function startApp(map, loadMessage) {
     },
     onComplete: (stationIds) => {
       const route = addRoute(stationIds);
+      if (!route) {
+        // 기본 열차 값을 낼 돈이 모자라면 고르던 역을 그대로 두고 이유를 알려준다
+        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
+        return false;
+      }
       select({ type: 'route', id: route.id });
       render();
       // 노선 가운데쯤 역 위에 개통 말풍선을 띄운다
@@ -236,6 +248,22 @@ export function startApp(map, loadMessage) {
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
   }
 
+  // 노선이 새로 혼잡해지면 (혼잡도 100% 넘음) 그 노선 가운데 역 위에 말풍선을 띄운다
+  // 이미 혼잡한 노선은 다시 알리지 않는다. silent: 처음 불러올 때는 알리지 않고 기억만 한다
+  let crowdedRoutes = new Set();
+  function warnCrowding({ silent = false } = {}) {
+    const { routeLoad } = getEconomy();
+    const now = new Set(getState().routes.filter((r) => routeLoad.get(r.id) > 1).map((r) => r.id));
+    if (!silent) {
+      for (const route of getState().routes) {
+        if (!now.has(route.id) || crowdedRoutes.has(route.id)) continue;
+        const middle = route.stations[Math.floor(route.stations.length / 2)];
+        showCallout(map, findStation(middle).coord, `${route.name} 혼잡 — 열차가 더 필요해요`, 'bad');
+      }
+    }
+    crowdedRoutes = now;
+  }
+
   // 지도 입력과 선로 끌기가 함께 쓰는 것들
   const ctx = { map, ui, select, render, renderTracks, trackTool, routeTool, cursorTip, shortfall, notice };
   const trackEditor = createTrackEditor(ctx);
@@ -255,10 +283,12 @@ export function startApp(map, loadMessage) {
     trainsChanged = true;
   });
   subscribe(updateEconomy);
+  subscribe(warnCrowding);
   subscribe(render);
   // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
   syncTrains();
   updateEconomy();
+  warnCrowding({ silent: true });
   render();
 
   bindMapInput(ctx);

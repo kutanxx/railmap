@@ -1,8 +1,8 @@
 // 오른쪽 노선 패널: 새 노선 만들기 안내, 고른 노선 정보, 노선 목록.
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
-import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE } from '../config.js';
+import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE, TRAIN_COST, CROWDED_WARNING } from '../config.js';
 import { bindNameInput } from './nameInput.js';
-import { formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
+import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
 
 export function createRoutePanel(
   element,
@@ -45,9 +45,11 @@ export function createRoutePanel(
           <button type="button" class="route-trains-minus" aria-label="열차 빼기">−</button>
           <b class="route-trains-count"></b>
           <button type="button" class="route-trains-plus" aria-label="열차 더하기">+</button>
+          <span class="route-trains-price"></span>
         </div>
       </div>
       <dl class="panel-facts">
+        <dt>혼잡도</dt><dd class="route-load"></dd>
         <dt>하루 승객</dt><dd class="route-riders"></dd>
         <dt>평균 이동</dt><dd class="route-avg-km"></dd>
         <dt>월 수입</dt><dd class="route-revenue"></dd>
@@ -75,6 +77,8 @@ export function createRoutePanel(
   const lengthText = element.querySelector('.route-length');
   const revenueText = element.querySelector('.route-revenue');
   const ridersText = element.querySelector('.route-riders');
+  const loadText = element.querySelector('.route-load');
+  element.querySelector('.route-trains-price').textContent = `1대 ${formatMoney(TRAIN_COST)}`;
   const avgKmText = element.querySelector('.route-avg-km');
   const stopList = element.querySelector('.route-stops');
   const insertButton = element.querySelector('.route-insert');
@@ -124,8 +128,9 @@ export function createRoutePanel(
   // view = {
   //   tool: 지금 도구 id,
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
-  //   routes: [{ id, name, color, lengthKm, revenue, riders }],
-  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm } 또는 null,
+  //   routes: [{ id, name, color, lengthKm, revenue, riders, load }],
+  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm, load, lost } 또는 null,
+  //   (load: 혼잡도, 1 = 100%. lost: 자리가 없어 놓친 하루 승객)
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
   function show({ tool, draft, routes, selected, inserting, message }) {
@@ -154,6 +159,7 @@ export function createRoutePanel(
       plusButton.disabled = trainCount >= MAX_TRAINS_PER_ROUTE;
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
       ridersText.textContent = selected.trainCount > 0 ? formatPopulation(selected.riders) : '0명';
+      showLoad(selected);
       avgKmText.textContent = selected.riders > 0 ? `${selected.avgKm.toFixed(1)} km` : '-';
       revenueText.textContent =
         selected.trainCount > 0 ? `${formatSignedMoney(selected.revenue)} / 월` : '열차가 없어 운행 안 함';
@@ -166,6 +172,21 @@ export function createRoutePanel(
     }
 
     renderList(routes, routeId);
+  }
+
+  // 혼잡도: 가장 붐비는 한 시간 기준. 넘치면 놓친 승객도 알려준다
+  function showLoad({ trainCount, load, lost }) {
+    loadText.className = `route-load ${loadTone(load)}`;
+    if (trainCount === 0) {
+      loadText.replaceChildren('-');
+      return;
+    }
+    const small = document.createElement('small');
+    small.textContent =
+      load > 1
+        ? `자리가 없어 하루 ${formatPopulation(lost)}을 놓쳐요. 열차를 늘려보세요`
+        : '출퇴근 시간 기준';
+    loadText.replaceChildren(`${Math.round(load * 100)}%`, small);
   }
 
   // 역 순서: 역 이름 + [빼기] 버튼
@@ -210,6 +231,13 @@ export function createRoutePanel(
         const length = document.createElement('span');
         length.className = 'route-item-length';
         length.textContent = `${formatPeopleShort(route.riders)}명 · ${formatSignedMoney(route.revenue)}`;
+        // 넘치는 노선은 목록에서도 빨간 "혼잡"으로 알려준다
+        if (route.load > 1) {
+          const crowded = document.createElement('span');
+          crowded.className = 'route-item-crowded';
+          crowded.textContent = '혼잡';
+          name.append(crowded);
+        }
         length.title = `하루 승객 · 월 수입 (길이 ${route.lengthKm.toFixed(1)} km)`;
         item.append(dot, name, length);
         item.addEventListener('click', () => onSelect(route.id));
@@ -219,4 +247,11 @@ export function createRoutePanel(
   }
 
   return { show };
+}
+
+// 혼잡도 색: 여유(초록) / 붐빔(주황) / 넘침(빨강)
+function loadTone(load) {
+  if (load > 1) return 'load-over';
+  if (load >= CROWDED_WARNING) return 'load-busy';
+  return 'load-ok';
 }
