@@ -22,6 +22,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
       </div>
       <dl class="panel-facts panel-station-facts">
         <dt>주변 인구</dt><dd class="panel-population"></dd>
+        <dt>하루 이용객</dt><dd class="panel-riders"></dd>
       </dl>
       <div class="panel-coord"></div>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
@@ -46,6 +47,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   const angleText = element.querySelector('.panel-angle-text');
   const coordText = element.querySelector('.panel-coord');
   const populationText = element.querySelector('.panel-population');
+  const ridersText = element.querySelector('.panel-riders');
 
   // 지금 보여주는 역 { id } 또는 선로 { id }
   let station = null;
@@ -75,17 +77,31 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     if (track) onDeleteTrack(track.id);
   });
 
-  function showStation(nextStation) {
+  // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균 }
+  function showStation({ station: nextStation, sharedPopulation, riders, averageRiders }) {
     station = { id: nextStation.id };
     stationName.show(nextStation.id, nextStation.name);
     angleInput.value = nextStation.angle;
     angleText.textContent = angleLabel(nextStation.angle);
+    // 큰 글씨로 숫자, 그 아래 작은 글씨로 설명
     // 건물 면적으로 추정했으면 면적을, 못 쟀으면 기본값이라고 알려준다
+    // 이웃 역과 나눠서 줄었으면 나누기 전 인구도 함께 보여준다
     const source =
       nextStation.builtArea === null
         ? '기본값'
         : `건물 ${(nextStation.builtArea / 10000).toFixed(1)}만 ㎡`;
-    populationText.textContent = `${formatPopulation(nextStation.population)} (${source})`;
+    const shared =
+      // 아주 조금 줄어든 건 (1% 미만) 굳이 알리지 않는다
+      sharedPopulation < nextStation.population * 0.99
+        ? ` · 이웃 역과 나눔 (원래 ${formatPopulation(nextStation.population)})`
+        : '';
+    showFact(populationText, formatPopulation(sharedPopulation), source + shared);
+    // 하루 이용객 = 이 역에서 타고 내린 사람. 노선이 없으면 0
+    if (riders > 0) {
+      showFact(ridersText, formatPopulation(riders), `타고 내린 사람 · 역 평균 ${formatPopulation(averageRiders)}`);
+    } else {
+      showFact(ridersText, '0명', '아직 이 역을 지나는 노선이 없어요');
+    }
     const [lng, lat] = nextStation.coord;
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }
@@ -108,12 +124,19 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     element.hidden = !view;
     stationSection.hidden = view?.type !== 'station';
     trackSection.hidden = view?.type !== 'track';
-    if (view?.type === 'station') showStation(view.station);
+    if (view?.type === 'station') showStation(view);
     if (view?.type === 'track') showTrack(view.track);
   }
 
   show(null);
   return { show };
+}
+
+// 숫자(굵게) + 설명(작은 글씨, 다음 줄)을 칸에 넣는다
+function showFact(element, value, detail) {
+  const small = document.createElement('small');
+  small.textContent = detail;
+  element.replaceChildren(value, small);
 }
 
 // 각도를 읽기 쉬운 말로: 0 → "가로", 90 → "세로", 그 밖에는 "45°"

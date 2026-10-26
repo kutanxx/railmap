@@ -1,24 +1,68 @@
 // 지도 위 클릭·마우스 움직임과 키보드를 도구에 맞게 처리한다.
 // ctx: app.js가 넘겨주는 화면 상태와 도구들
-import { stationIdAt } from '../map/stationLayers.js';
+import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
 import { estimatePopulation } from '../map/population.js';
-import { findStation, addStation, undo, redo } from '../game/state.js';
+import { getState, findStation, addStation, undo, redo } from '../game/state.js';
+import { sharedPopulations } from '../game/catchment.js';
 import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
 import { showCallout } from './callouts.js';
-import { formatMoney } from './format.js';
+import { formatMoney, formatPopulation } from './format.js';
 
 export function bindMapInput(ctx) {
   const { map, ui, select, render, trackTool, routeTool, cursorTip, shortfall, notice } = ctx;
+
+  // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
+  const stationAt = (point) => {
+    const id = stationIdAt(map, point);
+    return id && findStation(id) ? id : null;
+  };
 
   // 마우스 옆 안내: 모자란 돈이 있으면 붉게
   const tip = (point, text, problem) =>
     cursorTip.show(point.x, point.y, problem ? `${text} · ${problem}` : text, problem ? 'bad' : 'info');
 
+  // ── 역 놓기 미리보기: 마우스 자리에 500m 원, 마우스가 멈추면 주변 인구 ──
+  // 인구 재기는 0.1초쯤 걸려서, 마우스를 움직이는 동안에는 재지 않고 멈춘 뒤에 한 번 잰다
+  const ESTIMATE_DELAY_MS = 250;
+  let estimateTimer = null;
+  let estimate = null; // { key: 잰 자리, population: 이웃 역과 나눈 뒤 인구 }
+  const placeKey = (coord) => coord.map((value) => value.toFixed(5)).join(',');
+
+  function showStationTip(point, coord) {
+    const cost = `역 공사비 ${formatMoney(stationCost())}`;
+    const people =
+      estimate?.key === placeKey(coord)
+        ? `주변 인구 약 ${formatPopulation(estimate.population)}`
+        : '주변 인구 재는 중…';
+    tip(point, `${cost} · ${people}`, shortfall(stationCost()));
+  }
+
+  function previewStation(point, coord) {
+    ui.hover = coord;
+    updateCatchment(map, coord);
+    showStationTip(point, coord);
+    clearTimeout(estimateTimer);
+    estimateTimer = setTimeout(() => {
+      const { population, cells } = estimatePopulation(map, coord);
+      // 이미 있는 역들과 나눈 뒤의 인구를 보여준다 (실제로 지으면 받을 인구)
+      const preview = { id: '__preview', coord, population, cells };
+      const shared = sharedPopulations([...getState().stations, preview]).get(preview.id);
+      estimate = { key: placeKey(coord), population: shared };
+      if (ui.tool === 'station' && ui.hover === coord) showStationTip(point, coord);
+    }, ESTIMATE_DELAY_MS);
+  }
+
+  function clearPreview() {
+    clearTimeout(estimateTimer);
+    ui.hover = null;
+    if (ui.tool === 'station') updateCatchment(map, null);
+  }
+
   map.on('click', (event) => {
     const coord = event.lngLat.toArray();
-    const stationId = stationIdAt(map, event.point);
+    const stationId = stationAt(event.point);
 
     if (ui.tool === 'track') {
       if (stationId) trackTool.clickStation(stationId, findStation(stationId).coord);
@@ -52,7 +96,7 @@ export function bindMapInput(ctx) {
   });
 
   map.on('mousemove', (event) => {
-    const stationId = stationIdAt(map, event.point);
+    const stationId = stationAt(event.point);
 
     if (ui.tool === 'track') {
       // 역 위에 올리면 미리보기 끝을 역 한가운데에 붙인다
@@ -68,9 +112,13 @@ export function bindMapInput(ctx) {
         cursorTip.hide();
       }
     } else if (ui.tool === 'station') {
-      // 역을 놓을 자리에 예상 공사비를 보여준다
-      if (stationId) cursorTip.hide();
-      else tip(event.point, `역 공사비 ${formatMoney(stationCost())}`, shortfall(stationCost()));
+      // 역을 놓을 자리에 500m 원, 예상 공사비, 주변 인구를 보여준다
+      if (stationId) {
+        cursorTip.hide();
+        clearPreview();
+      } else {
+        previewStation(event.point, event.lngLat.toArray());
+      }
     } else if (ui.tool === 'route' || ui.insertingInto) {
       map.getCanvas().style.cursor = stationId ? 'pointer' : 'crosshair';
     } else if (ui.tool === 'select' && !ui.trackPreview) {
@@ -80,8 +128,11 @@ export function bindMapInput(ctx) {
     }
   });
 
-  // 마우스가 지도 밖으로 나가면 안내를 숨긴다
-  map.on('mouseout', () => cursorTip.hide());
+  // 마우스가 지도 밖으로 나가면 안내와 미리보기 원을 숨긴다
+  map.on('mouseout', () => {
+    cursorTip.hide();
+    clearPreview();
+  });
 
   // Esc: 그리던 것 취소 (그리는 중이 아니면 역 끼워넣기 끝, 그다음 선택 해제)
   // Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성

@@ -11,9 +11,11 @@ import { stationCost, trackCostForCoords } from './economy.js';
 import { createHistory } from './history.js';
 
 const state = {
-  // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea }
+  // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea, cells }
   // angle: 승강장 방향(도). 0 = 가로, 90 = 세로
-  // population: 주변 인구, builtArea: 인구를 셀 때 잰 주변 건물 면적 ㎡ (못 쟀으면 null)
+  // population: 반경 안 전체 인구 (이웃 역과 나누기 전), builtArea: 반경 안 건물 면적 ㎡ (못 쟀으면 null)
+  // cells: 반경 안 건물 면적을 칸마다 적은 것 [[경도, 위도, 면적㎡], …] (못 쟀으면 null)
+  //        이웃 역과 인구를 나눌 때 쓴다 (game/catchment.js)
   stations: [],
   // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …] }
   // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다
@@ -208,7 +210,7 @@ export function findStation(id) {
 
 // coord 자리에 새 역을 짓고, 지은 역을 돌려준다
 // 자금이 공사비보다 모자라면 짓지 않고 null을 돌려준다
-export function addStation(coord, { population, builtArea }) {
+export function addStation(coord, { population, builtArea, cells }) {
   return change(null, () => {
     const cost = stationCost();
     if (state.money < cost) return null;
@@ -222,6 +224,7 @@ export function addStation(coord, { population, builtArea }) {
       angle: 0,
       population,
       builtArea,
+      cells,
     };
     state.stations.push(station);
     return station;

@@ -2,7 +2,7 @@
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
 import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE } from '../config.js';
 import { bindNameInput } from './nameInput.js';
-import { formatSignedMoney } from './format.js';
+import { formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
 
 export function createRoutePanel(
   element,
@@ -48,6 +48,8 @@ export function createRoutePanel(
         </div>
       </div>
       <dl class="panel-facts">
+        <dt>하루 승객</dt><dd class="route-riders"></dd>
+        <dt>평균 이동</dt><dd class="route-avg-km"></dd>
         <dt>월 수입</dt><dd class="route-revenue"></dd>
         <dt>길이</dt><dd class="route-length"></dd>
       </dl>
@@ -72,6 +74,8 @@ export function createRoutePanel(
   const messageText = element.querySelector('.route-message');
   const lengthText = element.querySelector('.route-length');
   const revenueText = element.querySelector('.route-revenue');
+  const ridersText = element.querySelector('.route-riders');
+  const avgKmText = element.querySelector('.route-avg-km');
   const stopList = element.querySelector('.route-stops');
   const insertButton = element.querySelector('.route-insert');
   const editMessage = element.querySelector('.route-edit-message');
@@ -120,8 +124,8 @@ export function createRoutePanel(
   // view = {
   //   tool: 지금 도구 id,
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
-  //   routes: [{ id, name, color, lengthKm, revenue }],
-  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue } 또는 null,
+  //   routes: [{ id, name, color, lengthKm, revenue, riders }],
+  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm } 또는 null,
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
   function show({ tool, draft, routes, selected, inserting, message }) {
@@ -149,6 +153,8 @@ export function createRoutePanel(
       minusButton.disabled = trainCount <= 0;
       plusButton.disabled = trainCount >= MAX_TRAINS_PER_ROUTE;
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
+      ridersText.textContent = selected.trainCount > 0 ? formatPopulation(selected.riders) : '0명';
+      avgKmText.textContent = selected.riders > 0 ? `${selected.avgKm.toFixed(1)} km` : '-';
       revenueText.textContent =
         selected.trainCount > 0 ? `${formatSignedMoney(selected.revenue)} / 월` : '열차가 없어 운행 안 함';
       renderStops(selected.stops);
@@ -203,8 +209,8 @@ export function createRoutePanel(
         name.textContent = route.name;
         const length = document.createElement('span');
         length.className = 'route-item-length';
-        length.textContent = formatSignedMoney(route.revenue);
-        length.title = `${route.lengthKm.toFixed(1)} km`;
+        length.textContent = `${formatPeopleShort(route.riders)}명 · ${formatSignedMoney(route.revenue)}`;
+        length.title = `하루 승객 · 월 수입 (길이 ${route.lengthKm.toFixed(1)} km)`;
         item.append(dot, name, length);
         item.addEventListener('click', () => onSelect(route.id));
         return item;

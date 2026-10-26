@@ -1,15 +1,17 @@
 // 역 이름 말풍선: 흰 말풍선 + 남색 테두리 + 노란 점 + 지시선.
-// 이름 옆에는 그 역을 지나는 노선 색 점을 작게 붙인다.
+// 이름 옆에는 그 역을 지나는 노선 색 점과 하루 이용객(예: "2.3만")을 작게 붙인다.
 // MapLibre Marker(지도 좌표에 붙어 다니는 HTML 조각)로 만들어서
 // 확대·이동해도 역 위치에 붙어 있다.
 import { Marker } from 'maplibre-gl';
+import { formatPeopleShort } from '../ui/format.js';
 
-// 역 id → { marker, name, dots, colorsKey }
+// 역 id → { marker, name, dots, colorsKey, riders }
 const labels = new Map();
 
 // 상태의 역 목록에 맞춰 말풍선을 추가·수정·삭제한다
 // routeColors = Map(역 id → 그 역을 지나는 노선 색 배열)
-export function updateStationLabels(map, stations, routeColors) {
+// riders = Map(역 id → 하루 이용객)
+export function updateStationLabels(map, stations, routeColors, riders) {
   const aliveIds = new Set();
 
   for (const station of stations) {
@@ -36,6 +38,10 @@ export function updateStationLabels(map, stations, routeColors) {
         }),
       );
     }
+    // 하루 이용객: 노선이 지나지 않아 0이면 비운다
+    const count = riders.get(station.id) ?? 0;
+    const ridersText = count > 0 ? formatPeopleShort(count) : '';
+    if (label.riders.textContent !== ridersText) label.riders.textContent = ridersText;
   }
 
   for (const [id, label] of labels) {
@@ -59,10 +65,12 @@ function createLabel(map, coord) {
   const name = document.createElement('span');
   const dots = document.createElement('span');
   dots.className = 'station-label-routes';
-  bubble.append(name, dots);
+  const ridersCount = document.createElement('span');
+  ridersCount.className = 'station-label-riders';
+  bubble.append(name, dots, ridersCount);
 
   element.append(line, dot, bubble);
 
   const marker = new Marker({ element, anchor: 'center' }).setLngLat(coord).addTo(map);
-  return { marker, name, dots, colorsKey: '' };
+  return { marker, name, dots, colorsKey: '', riders: ridersCount };
 }

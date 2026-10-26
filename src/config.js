@@ -76,8 +76,10 @@ export const OPEX_PER_TRAIN = 0.5;
 export const SECONDS_PER_MONTH = 20;
 
 // ── 승객 수요 (중력 모델) ─────────────────
-// 두 역 사이 월 수입(억) = DEMAND_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER
-export const DEMAND_FACTOR = 0.02;
+// 두 역 사이 하루 승객(명, 오가는 사람 모두) =
+//   RIDERS_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER
+// 43이면 전에 쓰던 수입 공식(월 0.02억 × …)과 비슷한 수입이 나온다
+export const RIDERS_FACTOR = 43;
 export const DEMAND_TIME_POWER = 0.8;
 // 소요 시간이 이보다 짧아도 이 값(분)으로 친다. 아주 가까운 두 역의 수요가 터무니없이 커지지 않게
 export const MIN_TRIP_MINUTES = 3;
@@ -87,6 +89,9 @@ export const TRANSFER_MINUTES = 2;
 // ── 역 주변 인구 ─────────────────────────
 // 역을 놓을 때 이 반경(미터) 안의 건물 바닥 면적을 재어 인구를 추정한다
 export const POPULATION_RADIUS_M = 500;
+// 이웃 역과 인구를 나눌 때 쓰는 칸 크기(미터). 칸마다 가장 가까운 역에만 인구를 준다
+// 작을수록 정확하지만 저장 파일이 커진다
+export const CATCHMENT_CELL_M = 50;
 // 건물 바닥 면적 1㎡당 사는(일하는) 사람 수. 명동 근처 ≈ 35만 ㎡ → 약 3.5만 명
 export const PEOPLE_PER_BUILT_M2 = 0.1;
 // 건물을 재지 못했을 때 쓰는 인구 (예: 너무 멀리 축소해서 건물 데이터가 없을 때)
@@ -97,3 +102,14 @@ export const MIN_STATION_POPULATION = 1000;
 // ── 알림 ──────────────────────────────
 // 지도 위 말풍선 알림이 떠 있는 시간 (실제 초)
 export const CALLOUT_SECONDS = 4;
+
+// ── 요금 (서울 지하철 거리 비례 요금, 2025-06-28 기준) ──
+// 기본 거리까지는 기본요금, 그 뒤로는 일정 거리마다 추가요금
+export const FARE_BASE_WON = 1550; // 기본요금 (원)
+export const FARE_BASE_KM = 10; // 기본요금으로 갈 수 있는 거리 (km)
+export const FARE_STEP_WON = 100; // 추가요금 한 번 (원)
+export const FARE_STEP_KM = 5; // 기본 거리 ~ 50km 구간: 이 거리마다 추가요금
+export const FARE_LONG_KM = 50; // 이 거리부터는 더 긴 간격으로 추가요금
+export const FARE_LONG_STEP_KM = 8; // 50km 넘는 구간: 이 거리마다 추가요금
+// 한 달을 며칠로 칠지 (하루 승객 × 요금 × 이 날수 = 월 수입)
+export const DAYS_PER_MONTH = 30;

@@ -1,7 +1,12 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 애니메이션, 저장 버튼.
 // 지도 위 클릭·마우스·키보드 처리는 mapInput.js, 선로 끌기는 trackEditor.js가 맡는다.
 import { REGION_NAME } from '../config.js';
-import { addStationLayers, updateStations } from '../map/stationLayers.js';
+import {
+  addStationLayers,
+  updateStations,
+  addCatchmentLayer,
+  updateCatchment,
+} from '../map/stationLayers.js';
 import {
   addTrackLayers,
   updateTracks,
@@ -62,6 +67,7 @@ export function startApp(map, loadMessage) {
     insertingInto: null, // 역을 끼워넣는 중인 노선 id
     routeMessage: '', // 노선 패널에 보여줄 안내
     trackPreview: null, // 끌어서 고치는 중인 선로 { id, waypoints }
+    hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
   };
 
   // 공사비가 자금보다 많으면 모자란 금액을 알려주는 글, 아니면 null
@@ -206,12 +212,16 @@ export function startApp(map, loadMessage) {
     const { stationColors } = routeColors(routes);
 
     renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
-    status.show({ money, net: getEconomy().net });
+    const economy = getEconomy();
+    status.show({ money, net: economy.net, riders: economy.dailyRiders });
     toolbar.setActive(ui.tool);
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null);
-    updateStationLabels(map, stations, stationColors);
+    // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
+    const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
+    updateCatchment(map, ui.tool === 'station' ? ui.hover : (selectedStation?.coord ?? null));
+    updateStationLabels(map, stations, stationColors, economy.stationRiders);
     panel.show(infoPanelView(ui.selected));
     routePanel.show(
       routePanelView({
@@ -230,7 +240,8 @@ export function startApp(map, loadMessage) {
   const ctx = { map, ui, select, render, renderTracks, trackTool, routeTool, cursorTip, shortfall, notice };
   const trackEditor = createTrackEditor(ctx);
 
-  // 그리는 순서: 선로 → 역 → 열차 → 미리보기 → 선로 손잡이 (나중에 추가한 것이 위에 보인다)
+  // 그리는 순서: 역세권 원 → 선로 → 역 → 열차 → 미리보기 → 선로 손잡이 (나중에 추가한 것이 위에 보인다)
+  addCatchmentLayer(map);
   addTrackLayers(map);
   addStationLayers(map);
   addTrainLayers(map);

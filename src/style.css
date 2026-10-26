@@ -491,7 +491,8 @@ body {
   color: #6f6656;
 }
 
-.status-label + b + .status-label {
+.status-label + b + .status-label,
+.status-label + b + .status-label + b + .status-label {
   margin-left: 6px;
 }
 
@@ -674,4 +675,25 @@ body {
 /* 노선 편집 안내는 차분한 색 (넣었어요 / 못 넣는 이유) */
 .route-edit-message {
   color: #6f6656;
+}
+
+/* 역 말풍선의 하루 이용객 (작고 흐린 글자) */
+.station-label-riders:not(:empty) {
+  margin-left: 6px;
+  color: #9a8f7b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 역 패널: 숫자 아래 작은 설명 */
+.panel-station-facts {
+  margin-top: 12px;
+}
+
+.panel-facts dd small {
+  display: block;
+  margin-top: 1px;
+  color: #9a8f7b;
+  font-size: 11px;
+  font-weight: 400;
 }

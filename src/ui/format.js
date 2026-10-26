@@ -12,6 +12,12 @@ export function formatSignedMoney(amount) {
   return `${sign}${formatMoney(Math.abs(amount))}`;
 }
 
+// 짧은 사람 수 (말풍선처럼 좁은 곳): 23400 → "2.3만", 4000 → "4,000"
+export function formatPeopleShort(people) {
+  if (people >= 10000) return `${(people / 10000).toFixed(1)}만`;
+  return Math.round(people).toLocaleString('ko-KR');
+}
+
 // 인구: 23400 → "2.3만 명", 4000 → "4,000명"
 export function formatPopulation(people) {
   if (people >= 10000) return `${(people / 10000).toFixed(1)}만 명`;

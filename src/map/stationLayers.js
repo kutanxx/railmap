@@ -1,7 +1,8 @@
 // 역(승강장)을 지도 레이어로 그린다.
 // 화면은 상태를 읽어서 그리기만 한다.
-import { destination } from '@turf/turf';
+import { circle, destination } from '@turf/turf';
 import {
+  POPULATION_RADIUS_M,
   PLATFORM_LENGTH_M,
   PLATFORM_WIDTH_M,
   PLATFORM_REAL_SIZE_ZOOM,
@@ -168,4 +169,30 @@ function drawIcon(selected) {
   ctx.fillRect(ring + border, ring + border, width - border * 2, height - border * 2);
 
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+
+// ── 역세권 원 (반경 POPULATION_RADIUS_M) ────────────
+// 역을 놓기 전 마우스 자리, 또는 고른 역 둘레에 점선 원을 그려서 인구를 세는 범위를 보여준다
+
+const CATCHMENT_SOURCE = 'station-catchment';
+
+export function addCatchmentLayer(map) {
+  map.addSource(CATCHMENT_SOURCE, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: 'station-catchment',
+    type: 'line',
+    source: CATCHMENT_SOURCE,
+    paint: { 'line-color': COLORS.border, 'line-width': 1.5, 'line-dasharray': [2, 2] },
+  });
+}
+
+// center: [경도, 위도] 또는 null (원 지우기)
+export function updateCatchment(map, center) {
+  const features = center
+    ? [circle(center, POPULATION_RADIUS_M / 1000, { steps: 64, units: 'kilometers' })]
+    : [];
+  map.getSource(CATCHMENT_SOURCE).setData({ type: 'FeatureCollection', features });
 }

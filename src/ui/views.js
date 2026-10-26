@@ -16,7 +16,17 @@ const stationNames = (ids) => ids.map((id) => findStation(id).name);
 export function infoPanelView(selected) {
   if (selected?.type === 'station') {
     const station = findStation(selected.id);
-    return station ? { type: 'station', station } : null;
+    if (!station) return null;
+    // 패널에는 이웃 역과 나눈 뒤의 인구와 하루 이용객을 보여준다
+    const { stationPopulation, stationRiders } = getEconomy();
+    const shared = stationPopulation.get(station.id) ?? station.population;
+    return {
+      type: 'station',
+      station,
+      sharedPopulation: shared,
+      riders: stationRiders.get(station.id) ?? 0,
+      averageRiders: averageStationRiders(),
+    };
   }
   if (selected?.type === 'track') {
     const track = findTrack(selected.id);
@@ -38,7 +48,7 @@ export function infoPanelView(selected) {
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
 export function routePanelView({ selected, tool, draft, routes, inserting, message }) {
   const route = selected?.type === 'route' ? findRoute(selected.id) : null;
-  const { routeRevenue } = getEconomy();
+  const { routeRevenue, routeRiders, routeAvgKm } = getEconomy();
   return {
     tool,
     inserting,
@@ -50,6 +60,7 @@ export function routePanelView({ selected, tool, draft, routes, inserting, messa
       color: r.color,
       lengthKm: routeLengthKm(r),
       revenue: routeRevenue.get(r.id) ?? 0,
+      riders: routeRiders.get(r.id) ?? 0,
     })),
     selected: route && {
       id: route.id,
@@ -59,8 +70,16 @@ export function routePanelView({ selected, tool, draft, routes, inserting, messa
       stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,
       revenue: routeRevenue.get(route.id) ?? 0,
+      riders: routeRiders.get(route.id) ?? 0,
+      avgKm: routeAvgKm.get(route.id) ?? 0,
     },
   };
+}
+
+// 승객이 있는 역들의 하루 이용객 평균 (역 패널에서 비교용)
+function averageStationRiders() {
+  const served = [...getEconomy().stationRiders.values()].filter((riders) => riders > 0);
+  return served.length > 0 ? served.reduce((sum, riders) => sum + riders, 0) / served.length : 0;
 }
 
 // 노선 색: 선로마다 지나는 노선 중 먼저 만든 노선의 색, 역마다 지나는 노선 색 전부

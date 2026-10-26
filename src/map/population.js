@@ -5,8 +5,12 @@
 //
 // 속도: 건물 모양을 원으로 자르는 계산을 범용 함수(Turf intersect)로 하면 역 하나에 2초 넘게 걸렸다.
 // 원은 볼록한 모양이라, 볼록한 모양으로 자르는 간단한 방법(서덜랜드-호지먼)을 직접 쓴다.
+//
+// 이웃 역과 나누기: 원 안의 건물 면적을 CATCHMENT_CELL_M 크기 칸(격자)마다 따로 적어 둔다(cells).
+// 나중에 칸마다 가장 가까운 역에만 인구를 주면(game/catchment.js), 붙어 있는 역이 같은 건물을 두 번 세지 않는다.
 import {
   POPULATION_RADIUS_M,
+  CATCHMENT_CELL_M,
   PEOPLE_PER_BUILT_M2,
   DEFAULT_STATION_POPULATION,
   MIN_STATION_POPULATION,
@@ -18,12 +22,13 @@ const BUILDING_LAYER = 'building';
 // 원을 몇 각형으로 근사할지
 const CIRCLE_STEPS = 32;
 
-// 결과: { population, builtArea: 건물 면적(㎡) } (건물 데이터가 없으면 builtArea = null, 인구는 기본값)
+// 결과: { population, builtArea: 건물 면적(㎡), cells: [[경도, 위도, 면적㎡], …] }
+// 건물 데이터가 없으면 builtArea = null, cells = null, 인구는 기본값
 export function estimatePopulation(map, coord) {
   const features = map.querySourceFeatures(BASE_SOURCE, { sourceLayer: BUILDING_LAYER });
   // 너무 멀리 축소하면 건물 데이터가 아예 없다
   if (features.length === 0) {
-    return { population: DEFAULT_STATION_POPULATION, builtArea: null };
+    return { population: DEFAULT_STATION_POPULATION, builtArea: null, cells: null };
   }
 
   // 역을 원점으로 한 평면 좌표(미터)로 바꿔서 계산한다. 반경 500m 정도면 지구가 둥근 건 무시해도 된다
@@ -36,6 +41,7 @@ export function estimatePopulation(map, coord) {
   }
 
   let builtArea = 0;
+  const grid = new Map(); // "칸x,칸y" → 면적
   for (const feature of features) {
     const { type, coordinates } = feature.geometry;
     const polygons = type === 'MultiPolygon' ? coordinates : [coordinates];
@@ -44,22 +50,77 @@ export function estimatePopulation(map, coord) {
         const points = ring.map(toMeters);
         // 원과 멀리 떨어진 모양은 자르지 않고 넘어간다
         if (!nearCircle(points, radius)) return;
-        const area = Math.abs(shoelaceArea(clipToConvex(points, zone)));
+        const inside = clipToConvex(points, zone);
+        if (inside.length < 3) return;
         // 첫 고리는 건물 바깥선, 나머지는 안뜰 같은 구멍이라 뺀다
-        builtArea += i === 0 ? area : -area;
+        const sign = i === 0 ? 1 : -1;
+        builtArea += sign * Math.abs(shoelaceArea(inside));
+        addToGrid(grid, inside, sign);
       });
     }
   }
 
+  const toLngLat = inverseProjection(coord);
+  const cells = [];
+  for (const [key, area] of grid) {
+    if (area < 1) continue;
+    const [gx, gy] = key.split(',').map(Number);
+    const [lng, lat] = toLngLat([(gx + 0.5) * CATCHMENT_CELL_M, (gy + 0.5) * CATCHMENT_CELL_M]);
+    // 저장 파일이 너무 커지지 않게 좌표는 소수 5자리(약 1m), 면적은 ㎡ 단위로 줄인다
+    cells.push([round(lng, 5), round(lat, 5), Math.round(area)]);
+  }
+
   const population = Math.max(MIN_STATION_POPULATION, Math.round(builtArea * PEOPLE_PER_BUILT_M2));
-  return { population, builtArea: Math.round(builtArea) };
+  return { population, builtArea: Math.round(builtArea), cells };
 }
+
+// 다각형을 격자 칸마다 잘라서 칸별 면적에 더한다 (sign: 구멍이면 −1)
+function addToGrid(grid, polygon, sign) {
+  const size = CATCHMENT_CELL_M;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of polygon) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+  for (let gx = Math.floor(minX / size); gx * size < maxX; gx++) {
+    for (let gy = Math.floor(minY / size); gy * size < maxY; gy++) {
+      const x0 = gx * size;
+      const y0 = gy * size;
+      // 칸(네모)은 볼록하므로 같은 방법으로 자른다. 꼭짓점은 반시계 방향
+      const square = [
+        [x0, y0],
+        [x0 + size, y0],
+        [x0 + size, y0 + size],
+        [x0, y0 + size],
+      ];
+      const area = Math.abs(shoelaceArea(clipToConvex(polygon, square)));
+      if (area > 0) {
+        const key = `${gx},${gy}`;
+        grid.set(key, (grid.get(key) ?? 0) + sign * area);
+      }
+    }
+  }
+}
+
+const round = (value, digits) => Math.round(value * 10 ** digits) / 10 ** digits;
 
 // [경도, 위도] → 기준점에서 동쪽 x, 북쪽 y 미터
 function localProjection([lng0, lat0]) {
   const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
   const metersPerLat = 110540;
   return ([lng, lat]) => [(lng - lng0) * metersPerLng, (lat - lat0) * metersPerLat];
+}
+
+// 기준점에서 동쪽 x, 북쪽 y 미터 → [경도, 위도] (localProjection의 반대)
+function inverseProjection([lng0, lat0]) {
+  const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
+  const metersPerLat = 110540;
+  return ([x, y]) => [lng0 + x / metersPerLng, lat0 + y / metersPerLat];
 }
 
 // 모양의 네모 테두리가 원의 네모 테두리와 겹치는지
