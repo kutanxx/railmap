@@ -114,7 +114,8 @@ function placeTrains(route, path) {
   const roundTrip = path.length * 2;
   for (let i = 0; i < route.trainCount; i++) {
     const position = (roundTrip * i) / route.trainCount;
-    const goingForward = position <= path.length;
+    // 반 바퀴 지점(열차가 짝수 대일 때)은 끝 역이라 되돌아오는 쪽으로 놓는다
+    const goingForward = position < path.length;
     trains.push({
       id: `${route.id}-${i + 1}`,
       routeId: route.id,
@@ -158,6 +159,9 @@ function moveTrain(train, path, seconds, startTime) {
           }
           path.departures[terminal] = now;
         }
+        // 끝 역에서는 갈 수 있는 쪽이 하나뿐이다
+        if (stop === 0) train.direction = 1;
+        if (stop === last) train.direction = -1;
         train.leg = train.direction > 0 ? stop : stop - 1;
         train.legTime = 0;
       }
