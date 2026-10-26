@@ -26,7 +26,6 @@ import {
   removeStation,
   addTrack,
   removeTrack,
-  trackCoords,
   findTrackBetween,
   routeCoords,
   monthlyInterest,
@@ -60,6 +59,8 @@ import { formatMoney } from './format.js';
 import { createFileMenu } from './fileMenu.js';
 import { bindMapInput } from './mapInput.js';
 import { createBankruptDialog } from './bankruptDialog.js';
+import { createWarnings } from './warnings.js';
+import { createStationMover } from './stationMover.js';
 import { createTrackEditor } from './trackEditor.js';
 
 export function startApp(map, loadMessage) {
@@ -70,6 +71,7 @@ export function startApp(map, loadMessage) {
     insertingInto: null, // 역을 끼워넣는 중인 노선 id
     routeMessage: '', // 노선 패널에 보여줄 안내
     trackPreview: null, // 끌어서 고치는 중인 선로 { id, waypoints }
+    stationPreview: null, // 끌어서 옮기는 중인 역 { id, coord }
     hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
   };
 
@@ -212,16 +214,30 @@ export function startApp(map, loadMessage) {
     },
   });
 
+  // 끌고 있는 역은 끄는 자리에 있는 것처럼 보여준다
+  const shownCoord = (station) =>
+    ui.stationPreview?.id === station.id ? ui.stationPreview.coord : station.coord;
+  const shownStations = () =>
+    getState().stations.map((station) =>
+      ui.stationPreview?.id === station.id ? { ...station, coord: ui.stationPreview.coord } : station,
+    );
+
   // 선로만 다시 그린다 (선로를 끄는 동안 매 마우스 움직임마다 부르므로 가볍게)
+  // 끌고 있는 경유점·역이 있으면 그 모양대로 그린다
   function renderTracks() {
     const { tracks, routes } = getState();
     const { trackColor } = routeColors(routes);
     const preview = ui.trackPreview;
+    const coordsOf = (track) => [
+      shownCoord(findStation(track.from)),
+      ...(preview?.id === track.id ? preview.waypoints : track.waypoints),
+      shownCoord(findStation(track.to)),
+    ];
     updateTracks(
       map,
       tracks.map((track) => ({
         id: track.id,
-        coords: trackCoords(preview?.id === track.id ? { ...track, waypoints: preview.waypoints } : track),
+        coords: coordsOf(track),
         routeColor: trackColor.get(track.id) ?? null,
       })),
       highlightedTracks(ui.selected),
@@ -231,7 +247,8 @@ export function startApp(map, loadMessage) {
 
   // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
   function render() {
-    const { stations, routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
+    const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
+    const stations = shownStations();
     const { stationColors } = routeColors(routes);
 
     renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
@@ -250,7 +267,8 @@ export function startApp(map, loadMessage) {
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null);
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
-    updateCatchment(map, ui.tool === 'station' ? ui.hover : (selectedStation?.coord ?? null));
+    const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
+    updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
     updateStationLabels(map, stations, stationColors, economy.stationRiders);
     panel.show(infoPanelView(ui.selected));
     routePanel.show(
@@ -266,42 +284,8 @@ export function startApp(map, loadMessage) {
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
   }
 
-  // 노선이 새로 혼잡해지면 (혼잡도 100% 넘음) 그 노선 가운데 역 위에 말풍선을 띄운다
-  // 이미 혼잡한 노선은 다시 알리지 않는다. silent: 처음 불러올 때는 알리지 않고 기억만 한다
-  let crowdedRoutes = new Set();
-  function warnCrowding({ silent = false } = {}) {
-    const { routeLoad } = getEconomy();
-    const now = new Set(getState().routes.filter((r) => routeLoad.get(r.id) > 1).map((r) => r.id));
-    if (!silent) {
-      for (const route of getState().routes) {
-        if (!now.has(route.id) || crowdedRoutes.has(route.id)) continue;
-        const middle = route.stations[Math.floor(route.stations.length / 2)];
-        showCallout(map, findStation(middle).coord, `${route.name} 혼잡 — 열차가 더 필요해요`, 'bad');
-      }
-    }
-    crowdedRoutes = now;
-  }
-
-  // 빚 경고: 한도를 처음 넘은 달, 그 뒤 매달 남은 달, 한도 안으로 돌아온 달에 말풍선을 띄운다
-  let lastDebtMonths = getState().monthsOverDebtLimit;
-  function warnDebt() {
-    const { monthsOverDebtLimit: months, bankrupt } = getState();
-    if (months === lastDebtMonths || bankrupt) {
-      lastDebtMonths = months;
-      return;
-    }
-    if (months === 1) {
-      notice(
-        `빚이 한도(${formatMoney(DEBT_LIMIT)})를 넘었어요. ${BANKRUPT_GRACE_MONTHS}개월 안에 갚지 못하면 파산해요`,
-        'bad',
-      );
-    } else if (months > 1) {
-      notice(`파산까지 ${BANKRUPT_GRACE_MONTHS - months}개월 남았어요`, 'bad');
-    } else {
-      notice('빚이 한도 안으로 돌아왔어요');
-    }
-    lastDebtMonths = months;
-  }
+  // 혼잡·빚 경고 말풍선 (warnings.js)
+  const warnings = createWarnings(map, notice);
 
   // 지도 입력과 선로 끌기가 함께 쓰는 것들
   const bankruptDialog = createBankruptDialog(document.getElementById('bankrupt'), {
@@ -323,6 +307,7 @@ export function startApp(map, loadMessage) {
     notice,
   };
   const trackEditor = createTrackEditor(ctx);
+  createStationMover(ctx);
 
   // 그리는 순서: 역세권 원 → 선로 → 역 → 열차 → 미리보기 → 선로 손잡이 (나중에 추가한 것이 위에 보인다)
   addCatchmentLayer(map);
@@ -339,13 +324,13 @@ export function startApp(map, loadMessage) {
     trainsChanged = true;
   });
   subscribe(updateEconomy);
-  subscribe(warnCrowding);
-  subscribe(warnDebt);
+  subscribe(() => warnings.crowding());
+  subscribe(warnings.debt);
   subscribe(render);
   // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
   syncTrains();
   updateEconomy();
-  warnCrowding({ silent: true });
+  warnings.crowding({ silent: true });
   render();
 
   bindMapInput(ctx);

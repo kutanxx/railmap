@@ -5,7 +5,7 @@
 import { Marker } from 'maplibre-gl';
 import { formatPeopleShort } from '../ui/format.js';
 
-// 역 id → { marker, name, dots, colorsKey, riders }
+// 역 id → { marker, name, dots, colorsKey, riders, coordKey }
 const labels = new Map();
 
 // 상태의 역 목록에 맞춰 말풍선을 추가·수정·삭제한다
@@ -20,6 +20,12 @@ export function updateStationLabels(map, stations, routeColors, riders) {
     if (!label) {
       label = createLabel(map, station.coord);
       labels.set(station.id, label);
+    }
+    // 역을 옮겼으면 말풍선도 새 자리로
+    const coordKey = station.coord.join(',');
+    if (label.coordKey !== coordKey) {
+      label.marker.setLngLat(station.coord);
+      label.coordKey = coordKey;
     }
     if (label.name.textContent !== station.name) {
       label.name.textContent = station.name;
@@ -72,5 +78,5 @@ function createLabel(map, coord) {
   element.append(line, dot, bubble);
 
   const marker = new Marker({ element, anchor: 'center' }).setLngLat(coord).addTo(map);
-  return { marker, name, dots, colorsKey: '', riders: ridersCount };
+  return { marker, name, dots, colorsKey: '', riders: ridersCount, coordKey: coord.join(',') };
 }

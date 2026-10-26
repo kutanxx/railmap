@@ -1,6 +1,7 @@
 // 이미 지은 선로 다듬기: [선택] 도구로 선로를 고르면 손잡이가 생긴다.
 // - 경유점 손잡이를 끌면 그 경유점이 옮겨진다
 // - 두 점 사이의 작은 손잡이를 끌면 그 자리에 경유점이 새로 생긴다
+// - 경유점 손잡이를 두 번 클릭하면 그 경유점이 지워진다 (선로가 짧아지니 돈은 들지 않는다)
 // 끄는 동안 마우스 옆에 바뀐 길이와 더 낼 공사비를 보여주고, 놓을 때 공사비를 낸다.
 import { updateHandles, handleAt } from '../map/trackLayers.js';
 import { findTrack, trackCoords, rerouteCost, setTrackWaypoints } from '../game/state.js';
@@ -72,6 +73,21 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
       const { cost } = rerouteCost(findTrack(trackId), waypoints);
       showCallout(map, event.lngLat.toArray(), shortfall(cost), 'bad');
     }
+    render();
+  });
+
+  // 경유점 손잡이를 두 번 클릭하면 지운다
+  map.on('dblclick', (event) => {
+    const track = editableTrack();
+    if (!track) return;
+    const handle = handleAt(map, event.point);
+    if (handle?.kind !== 'waypoint') return;
+    // 두 번 클릭이 지도 확대로 이어지지 않게 막는다
+    event.preventDefault();
+    setTrackWaypoints(
+      track.id,
+      track.waypoints.filter((_, index) => index !== handle.index),
+    );
     render();
   });
 

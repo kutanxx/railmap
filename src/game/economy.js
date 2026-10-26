@@ -3,6 +3,7 @@ import { length, lineString } from '@turf/turf';
 import {
   TRACK_COST_PER_KM,
   STATION_COST,
+  STATION_MOVE_COST_RATIO,
   OPEX_PER_TRACK_KM,
   OPEX_PER_TRAIN,
   OPEX_PER_STATION,
@@ -17,6 +18,11 @@ import {
 // 역 하나 공사비
 export function stationCost() {
   return STATION_COST;
+}
+
+// 역 하나를 옮기는 이전 비용 (이어진 선로가 늘어난 만큼은 따로 더한다)
+export function stationMoveFee() {
+  return STATION_COST * STATION_MOVE_COST_RATIO;
 }
 
 // 좌표들을 잇는 선로의 길이(km)와 공사비

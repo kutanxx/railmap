@@ -76,6 +76,8 @@ export const START_MONEY = 600;
 // 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값
 export const TRACK_COST_PER_KM = 60;
 export const STATION_COST = 40;
+// 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
+export const STATION_MOVE_COST_RATIO = 0.25;
 
 // 매달 운영비 = 역 개수 × OPEX_PER_STATION + 선로 km × OPEX_PER_TRACK_KM + 열차 대수 × OPEX_PER_TRAIN
 // 한적한 곳에 지은 노선은 이 운영비 때문에 적자가 난다

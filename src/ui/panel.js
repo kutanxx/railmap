@@ -25,6 +25,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
         <dt>하루 이용객</dt><dd class="panel-riders"></dd>
       </dl>
       <div class="panel-coord"></div>
+      <p class="panel-hint">이 역을 끌면 옮길 수 있어요. 이전 비용과 늘어난 선로 공사비가 들어요.</p>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
     </section>
     <section class="panel-track">
@@ -34,6 +35,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
         <dt>구간</dt><dd class="panel-track-ends"></dd>
         <dt>경유점</dt><dd class="panel-track-waypoints"></dd>
       </dl>
+      <p class="panel-hint">흰 점을 끌어서 경유점을 옮기고, 두 번 클릭해 지워요. 선 중간의 작은 점을 끌면 경유점이 생겨요.</p>
       <button type="button" class="panel-delete panel-delete-track">선로 삭제</button>
     </section>
   `;

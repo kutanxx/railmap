@@ -10,7 +10,7 @@ import {
   DEBT_LIMIT,
   BANKRUPT_GRACE_MONTHS,
 } from '../config.js';
-import { stationCost, trackCostForCoords } from './economy.js';
+import { stationCost, stationMoveFee, trackCostForCoords } from './economy.js';
 import { createHistory } from './history.js';
 
 const state = {
@@ -211,6 +211,36 @@ export function renameStation(id, name) {
     const station = findStation(id);
     if (!station) return null;
     station.name = name;
+    return station;
+  });
+}
+
+// 역을 coord로 옮길 때 드는 돈: 이전 비용 + 이어진 선로들이 길어진 만큼의 공사비
+// (짧아진 선로는 돌려받지 않는다)
+export function moveStationCost(id, coord) {
+  let addedKm = 0;
+  let trackCost = 0;
+  for (const track of state.tracks) {
+    if (track.from !== id && track.to !== id) continue;
+    const before = trackCostForCoords(trackCoords(track));
+    const from = track.from === id ? coord : findStation(track.from).coord;
+    const to = track.to === id ? coord : findStation(track.to).coord;
+    const after = trackCostForCoords([from, ...track.waypoints, to]);
+    addedKm += after.km - before.km;
+    trackCost += Math.max(0, after.cost - before.cost);
+  }
+  return { addedKm, cost: stationMoveFee() + trackCost };
+}
+
+// 역을 옮긴다. 새 자리의 주변 인구(estimate)도 함께 바꾼다. 빚 한도 안에서도 낼 수 없으면 null
+export function moveStation(id, coord, { population, builtArea, cells }) {
+  return change(null, () => {
+    const station = findStation(id);
+    if (!station) return null;
+    const { cost } = moveStationCost(id, coord);
+    if (!canAfford(cost)) return null;
+    state.money -= cost;
+    Object.assign(station, { coord, population, builtArea, cells });
     return station;
   });
 }
