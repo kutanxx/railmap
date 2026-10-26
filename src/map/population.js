@@ -110,14 +110,14 @@ function addToGrid(grid, polygon, sign) {
 const round = (value, digits) => Math.round(value * 10 ** digits) / 10 ** digits;
 
 // [경도, 위도] → 기준점에서 동쪽 x, 북쪽 y 미터
-function localProjection([lng0, lat0]) {
+export function localProjection([lng0, lat0]) {
   const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
   const metersPerLat = 110540;
   return ([lng, lat]) => [(lng - lng0) * metersPerLng, (lat - lat0) * metersPerLat];
 }
 
 // 기준점에서 동쪽 x, 북쪽 y 미터 → [경도, 위도] (localProjection의 반대)
-function inverseProjection([lng0, lat0]) {
+export function inverseProjection([lng0, lat0]) {
   const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
   const metersPerLat = 110540;
   return ([x, y]) => [lng0 + x / metersPerLng, lat0 + y / metersPerLat];

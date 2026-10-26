@@ -55,6 +55,7 @@ src/
     animation.js      매 프레임 시간 흘리기와 열차 다시 그리기
     views.js          상태를 패널에 보여줄 내용으로 바꾸기
     stationShapes.js  승강장 방향(선로 따라 자동), 환승역·종착역
+    stationBands.js   가까이서 보이는 역 모양 (선로 따라 휘는 승강장 띠 + 대합실)
     toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선)
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기

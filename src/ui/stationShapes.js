@@ -1,12 +1,12 @@
 // 역 모양 정하기: 승강장 방향, 환승역·종착역.
 // 게임 상태를 고치지 않고, 지금 역·선로·노선을 보고 그때그때 계산한다.
 // 그래서 선로를 깔거나 옮기거나 되돌려도 늘 맞는 모양이 나온다.
+// 가까이서 보이는 띠·대합실 모양은 stationBands.js가 계산한다.
 import { bearing } from '@turf/turf';
 
-// 역이 "자동 방향"인지. 예전 저장 파일(값 없음)은 방향을 손대지 않았으면(0) 자동으로 본다
-export const isAutoAngle = (station) => station.autoAngle ?? station.angle === 0;
-
-// 결과: Map(역 id → { angle: 승강장 방향(도, 0 = 가로), transfer: 환승역인지, tag: '환승' | '종착' | '' })
+// 결과: Map(역 id → { angle: 승강장 방향(도, 0 = 가로), followsTrack: 선로 방향을 따르는지,
+//                     transfer: 환승역인지, tag: '환승' | '종착' | '' })
+// 선로가 이어진 역은 늘 선로 방향을 따른다. 선로가 없는 역만 직접 정한 방향(station.angle)을 쓴다
 // stations: 화면에 보일 역들 (끌어서 옮기는 중이면 그 자리가 들어 있다)
 export function stationShapes(stations, tracks, routes) {
   const coordOf = new Map(stations.map((station) => [station.id, station.coord]));
@@ -24,8 +24,10 @@ export function stationShapes(stations, tracks, routes) {
   for (const station of stations) {
     const transfer = (routeCount.get(station.id) ?? 0) >= 2;
     const tag = transfer ? '환승' : isEnd.has(station.id) ? '종착' : '';
-    const auto = isAutoAngle(station) ? trackAngle(station, tracks, coordOf) : null;
-    shapes.set(station.id, { angle: auto ?? station.angle, transfer, tag });
+    const followsTrack = tracks.some((track) => track.from === station.id || track.to === station.id);
+    // 선로 방향이 딱 갈리지 않으면(예: 직각으로 두 선로) 정한 방향을 쓴다
+    const angle = (followsTrack ? trackAngle(station, tracks, coordOf) : null) ?? station.angle;
+    shapes.set(station.id, { angle, followsTrack, transfer, tag });
   }
   return shapes;
 }

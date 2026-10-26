@@ -239,6 +239,12 @@ body {
   border-color: #1f3a55;
 }
 
+/* 선로가 이어진 역은 방향을 돌리지 않으므로 조절을 숨긴다 */
+.panel-angle[hidden],
+.panel-angle-presets[hidden] {
+  display: none;
+}
+
 /* 패널의 선로 정보 (길이, 구간, 경유점) */
 .panel-facts {
   display: grid;
@@ -816,13 +822,6 @@ body {
   color: #9a8f7b;
   font-size: 11px;
   line-height: 1.5;
-}
-
-/* 승강장 방향 [자동]이 켜져 있을 때 */
-.panel-angle-presets button.active {
-  border-color: #1f3a55;
-  background: #1f3a55;
-  color: #ffffff;
 }
 
 /* 역 말풍선의 "환승"·"종착" (시안처럼 이름 옆 작은 글자) */

@@ -30,7 +30,6 @@ export function addStation(coord, { population, builtArea, cells }) {
       name: `역 ${number}`,
       coord,
       angle: 0,
-      autoAngle: true,
       population,
       builtArea,
       cells,
@@ -85,17 +84,6 @@ export function rotateStation(id, angle) {
     const station = findStation(id);
     if (!station) return null;
     station.angle = angle;
-    station.autoAngle = false;
-    return station;
-  });
-}
-
-// 승강장 방향을 다시 선로 방향에 맡긴다
-export function setStationAutoAngle(id) {
-  change(null, () => {
-    const station = findStation(id);
-    if (!station) return null;
-    station.autoAngle = true;
     return station;
   });
 }

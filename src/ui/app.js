@@ -29,7 +29,6 @@ import {
 import {
   renameStation,
   rotateStation,
-  setStationAutoAngle,
   removeStation,
   addTrack,
   removeTrack,
@@ -65,6 +64,7 @@ import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
 import { createStationMover } from './stationMover.js';
 import { stationShapes } from './stationShapes.js';
+import { stationBands } from './stationBands.js';
 import { createTrackEditor } from './trackEditor.js';
 
 export function startApp(map, loadMessage) {
@@ -111,7 +111,6 @@ export function startApp(map, loadMessage) {
   const panel = createPanel(document.getElementById('panel'), {
     onRename: (id, name) => renameStation(id, name),
     onRotate: (id, angle) => rotateStation(id, angle),
-    onAutoAngle: (id) => setStationAutoAngle(id),
     onDeleteStation: (id) => {
       select(null);
       removeStation(id);
@@ -240,8 +239,9 @@ export function startApp(map, loadMessage) {
     const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
     const stations = shownStations();
     const { stationColors } = routeColors(routes);
-    // 승강장 방향(선로 따라 자동), 환승역·종착역
+    // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
     const shapes = stationShapes(stations, getState().tracks, routes);
+    const bands = stationBands(stations, getState().tracks, routes, shapes);
 
     renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
     const economy = getEconomy();
@@ -256,7 +256,7 @@ export function startApp(map, loadMessage) {
     toolbar.setActive(ui.tool);
     speedControl.setActive(speed);
     renderTracks();
-    updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes);
+    updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;

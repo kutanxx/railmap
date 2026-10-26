@@ -4,10 +4,7 @@ import { formatPopulation } from './format.js';
 // 오른쪽 정보 패널. 선택한 역 또는 선로의 정보를 보여주고 고치거나 지운다.
 // 상태를 직접 고치지 않고 onRename, onRotate, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
 
-export function createPanel(
-  element,
-  { onRename, onRotate, onAutoAngle, onDeleteStation, onDeleteTrack },
-) {
+export function createPanel(element, { onRename, onRotate, onDeleteStation, onDeleteTrack }) {
   element.innerHTML = `
     <section class="panel-station">
       <div class="panel-title">역 정보</div>
@@ -19,7 +16,6 @@ export function createPanel(
         <span>방향 <b class="panel-angle-text"></b></span>
         <input class="panel-angle" type="range" min="0" max="175" step="5" />
         <div class="panel-angle-presets">
-          <button type="button" class="panel-angle-auto">자동</button>
           <button type="button" data-angle="0">가로</button>
           <button type="button" data-angle="90">세로</button>
         </div>
@@ -51,6 +47,7 @@ export function createPanel(
   const nameInput = element.querySelector('.panel-name');
   const angleInput = element.querySelector('.panel-angle');
   const angleText = element.querySelector('.panel-angle-text');
+  const anglePresets = element.querySelector('.panel-angle-presets');
   const coordText = element.querySelector('.panel-coord');
   const populationText = element.querySelector('.panel-population');
   const ridersText = element.querySelector('.panel-riders');
@@ -63,11 +60,6 @@ export function createPanel(
   // 슬라이더를 움직이면 승강장을 돌린다
   angleInput.addEventListener('input', () => {
     if (station) onRotate(station.id, Number(angleInput.value));
-  });
-  // [자동]: 다시 선로 방향을 따라간다
-  const autoButton = element.querySelector('.panel-angle-auto');
-  autoButton.addEventListener('click', () => {
-    if (station) onAutoAngle(station.id);
   });
   for (const button of element.querySelectorAll('.panel-angle-presets button[data-angle]')) {
     button.addEventListener('click', () => {
@@ -89,13 +81,15 @@ export function createPanel(
   });
 
   // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균,
-  //          angle: 화면에 보이는 승강장 방향, autoAngle: 선로 방향을 따라가는지 }
-  function showStation({ station: nextStation, sharedPopulation, riders, averageRiders, angle, autoAngle }) {
+  //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지 }
+  function showStation({ station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack }) {
     station = { id: nextStation.id };
     stationName.show(nextStation.id, nextStation.name);
+    // 선로가 이어진 역은 승강장이 선로를 따라 휘므로 방향을 직접 돌릴 수 없다
+    angleInput.hidden = followsTrack;
+    anglePresets.hidden = followsTrack;
     angleInput.value = Math.round(angle / 5) * 5;
-    angleText.textContent = `${angleLabel(Math.round(angle))} · ${autoAngle ? '자동 (선로 방향)' : '직접 정함'}`;
-    autoButton.classList.toggle('active', autoAngle);
+    angleText.textContent = followsTrack ? '선로 모양을 따라가요' : angleLabel(Math.round(angle));
     // 큰 글씨로 숫자, 그 아래 작은 글씨로 설명
     // 건물 면적으로 추정했으면 면적을, 못 쟀으면 기본값이라고 알려준다
     // 이웃 역과 나눠서 줄었으면 나누기 전 인구도 함께 보여준다
