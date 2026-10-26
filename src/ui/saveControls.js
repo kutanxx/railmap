@@ -29,6 +29,8 @@ export function bindSaveControls({ notice, loadMessage, clearWork, render }) {
     onExport: exportToFile,
     onImport: importGame,
     onReset: startOver,
+    // 시작 화면으로 돌아간다. 페이지를 다시 열 때 자동 저장이 지금 게임을 저장한다 (pagehide)
+    onChangeMap: () => window.location.reload(),
   });
   const bankruptDialog = createBankruptDialog(document.getElementById('bankrupt'), {
     onReset: startOver,

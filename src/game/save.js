@@ -2,7 +2,9 @@
 // - 자동 저장: 상태가 바뀌면 잠깐 기다렸다가 브라우저 저장 공간(localStorage)에 저장한다
 // - 내보내기: 저장 내용을 JSON 파일로 받는다
 // - 불러오기: JSON 파일을 읽어 그 상태로 바꾼다
-import { START_MONEY, START_YEAR, START_MONTH } from '../config.js';
+// 지도(지역)마다 저장 칸이 따로 있고, 저장 파일에도 어느 지도인지 적어 둔다
+import { START_MONEY, START_YEAR, START_MONTH, REGIONS } from '../config.js';
+import { getRegion } from './region.js';
 import {
   getState,
   subscribe,
@@ -20,6 +22,7 @@ const SAVE_VERSION = 1;
 export function saveData() {
   return {
     version: SAVE_VERSION,
+    region: getRegion().id,
     network: snapshotNetwork(),
     speed: state.speed,
     elapsedSeconds: state.elapsedSeconds,
@@ -40,6 +43,12 @@ export function loadData(data) {
   }
   for (const key of ['stations', 'tracks', 'routes']) {
     if (!Array.isArray(network[key])) throw new Error(`저장 파일에 ${key} 목록이 없어요.`);
+  }
+  // 다른 지도의 게임은 불러오지 않는다 (지도 이름이 없는 예전 파일은 서울 게임이다)
+  const region = data.region ?? 'seoul';
+  if (region !== getRegion().id) {
+    const name = REGIONS[region]?.name ?? region;
+    throw new Error(`${name} 지도의 저장 파일이에요. 시작 화면에서 ${name} 지도를 골라 불러오세요.`);
   }
   restoreNetwork(network);
   state.money = network.money;
@@ -81,13 +90,28 @@ export function resetGame() {
   notify();
 }
 
-const STORAGE_KEY = 'railmap-save';
 const AUTOSAVE_DELAY_MS = 1000; // 바뀐 뒤 이만큼 조용하면 저장한다 (연달아 바뀔 때 매번 저장하지 않게)
+
+// 지도마다 브라우저 저장 칸 이름 (서울은 예전부터 쓰던 이름 그대로)
+const storageKey = (regionId) => (regionId === 'seoul' ? 'railmap-save' : `railmap-save-${regionId}`);
+
+// 시작 화면에 보여줄 그 지도의 저장 상태: 저장이 없으면 null, 있으면 { year, month }, 읽을 수 없으면 { broken: true }
+export function savedGameInfo(regionId) {
+  const text = localStorage.getItem(storageKey(regionId));
+  if (text === null) return null;
+  try {
+    const { year, month } = JSON.parse(text);
+    return { year, month };
+  } catch {
+    // 망가진 저장은 이 지도를 고르면 새 게임으로 시작하면서 이유를 알려준다 (main.js)
+    return { broken: true };
+  }
+}
 
 // 브라우저에 저장해 둔 게임이 있으면 불러온다. 불러왔으면 true
 // 저장 내용이 망가졌으면 이유를 담은 에러를 던진다
 export function loadFromBrowser() {
-  const text = localStorage.getItem(STORAGE_KEY);
+  const text = localStorage.getItem(storageKey(getRegion().id));
   if (text === null) return false;
   loadData(JSON.parse(text));
   return true;
@@ -101,7 +125,7 @@ export function startAutosave(onError) {
     clearTimeout(timer);
     timer = null;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData()));
+      localStorage.setItem(storageKey(getRegion().id), JSON.stringify(saveData()));
     } catch (error) {
       // 브라우저가 저장을 막으면 게임은 계속하되, 저장이 안 된다는 걸 화면에 알린다
       onError(`자동 저장에 실패했어요: ${error.message}`);
@@ -119,13 +143,13 @@ export function startAutosave(onError) {
   });
 }
 
-// 지금 게임을 JSON 파일로 내려받는다. 파일 이름에 게임 날짜를 넣는다
+// 지금 게임을 JSON 파일로 내려받는다. 파일 이름에 지도와 게임 날짜를 넣는다
 export function exportToFile() {
   const data = saveData();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `railmap-${data.year}-${String(data.month).padStart(2, '0')}.json`;
+  link.download = `railmap-${data.region}-${data.year}-${String(data.month).padStart(2, '0')}.json`;
   link.click();
   URL.revokeObjectURL(link.href);
 }

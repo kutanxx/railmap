@@ -2,7 +2,8 @@
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
 // 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js
-import { REGION_NAME, BANKRUPT_GRACE_MONTHS } from '../config.js';
+import { BANKRUPT_GRACE_MONTHS } from '../config.js';
+import { getRegion } from '../game/region.js';
 import {
   addStationLayers,
   updateStations,
@@ -235,7 +236,7 @@ export function startApp(map, loadMessage) {
     const bands = stationBands(stations, getState().tracks, routes, shapes);
     lastBands = { stations, bands };
 
-    renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
+    renderBadge(document.getElementById('badge'), { year, month, region: getRegion().name });
     const economy = getEconomy();
     status.show({
       money,

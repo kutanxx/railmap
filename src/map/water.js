@@ -1,9 +1,9 @@
 // 선로가 물(한강·호수 등) 위를 지나는 길이 재기. 그 구간은 교량 공사비를 받는다 (game/economy.js).
-// 물 모양은 지금 불러온 지도 타일에서 읽는다 (population.js와 같은 방법). 그래서 화면 밖 먼 곳의 물은 못 볼 수 있다.
+// 물 모양은 지도 자료에서 읽는다 (mapFeatures.js). 실제 지도는 불러온 타일만 있어서 화면 밖 먼 곳의 물은 못 볼 수 있다.
 // 선을 WATER_STEP_M마다 짚어 보고, 물 안에 든 점의 비율로 길이를 어림한다.
 import { length, lineString, along } from '@turf/turf';
+import { readMapFeatures } from './mapFeatures.js';
 
-const BASE_SOURCE = 'openmaptiles';
 // 몇 미터마다 짚어 볼지 (작을수록 정확하지만 느리다)
 const WATER_STEP_M = 25;
 // 교량으로 치지 않는 물 (수영장)
@@ -21,8 +21,7 @@ function waterShapes(map) {
       entry.shapes = null;
     });
   }
-  entry.shapes ??= map
-    .querySourceFeatures(BASE_SOURCE, { sourceLayer: 'water' })
+  entry.shapes ??= readMapFeatures(map, 'water')
     .filter((f) => !SKIPPED_CLASSES.has(f.properties.class) && f.properties.brunnel !== 'tunnel')
     .flatMap((feature) => {
       const { type, coordinates } = feature.geometry;

@@ -2,7 +2,7 @@
 // CLAUDE.md 아트 규칙의 베이지 팔레트로 색을 바꾼다.
 
 // 아트 규칙 표의 색 (배경 지도용)
-const PALETTE = {
+export const PALETTE = {
   land: '#EFE7D6', // 땅 (배경)
   urban: '#E9E0CC', // 시가지 블록
   building: '#E2D6BF', // 건물

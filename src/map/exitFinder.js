@@ -3,7 +3,7 @@
 // - 역이 건물 밑이면: 통로가 건물 밑을 지나 길가까지 길어진다
 // - EXIT_SEARCH_M 안에 길가가 없으면: 건물 밑이면 "건물 연결" 출구, 빈 땅(공원 등)이면 그냥 출구
 // - 대합실 가까이 큰 사거리가 있으면: 그 대합실 출구는 양옆 대신 사거리 네 모퉁이 보도에 낸다
-// 건물·도로는 지금 불러온 지도 타일에서 읽는다 (population.js와 같은 방법).
+// 건물·도로는 지도 자료에서 읽는다 (mapFeatures.js: 실제 지도는 불러온 타일, 가상 지도는 GeoJSON).
 // 계산은 역을 원점으로 한 평면 좌표(미터, 동쪽 x·북쪽 y)에서 한다.
 import {
   EXIT_SEARCH_M,
@@ -16,8 +16,8 @@ import {
   CORNER_ROAD_CLASSES,
 } from '../config.js';
 import { localProjection, inverseProjection } from './population.js';
+import { readMapFeatures } from './mapFeatures.js';
 
-const BASE_SOURCE = 'openmaptiles';
 // 통로를 뻗으며 몇 미터마다 확인할지
 const STEP_M = 4;
 // 모퉁이 출구를 도로 가장자리에서 적어도 얼마나 떨어뜨릴지 (미터)
@@ -30,15 +30,12 @@ const STATION_CLEARANCE_M = 4;
 // 지금 불러온 건물과 도로를 한 번 모아 둔다 (여러 역을 한꺼번에 찾을 때 다시 읽지 않도록)
 // 아직 지도 타일이 없으면 null
 export function readSurroundings(map) {
-  const buildings = map
-    .querySourceFeatures(BASE_SOURCE, { sourceLayer: 'building' })
-    .map((feature) => {
-      const { type, coordinates } = feature.geometry;
-      const polygons = type === 'MultiPolygon' ? coordinates : [coordinates];
-      return { bbox: boundsOf(polygons.flat(2)), polygons };
-    });
-  const roads = map
-    .querySourceFeatures(BASE_SOURCE, { sourceLayer: 'transportation' })
+  const buildings = readMapFeatures(map, 'building').map((feature) => {
+    const { type, coordinates } = feature.geometry;
+    const polygons = type === 'MultiPolygon' ? coordinates : [coordinates];
+    return { bbox: boundsOf(polygons.flat(2)), polygons };
+  });
+  const roads = readMapFeatures(map, 'transportation')
     .filter(
       (feature) =>
         ROAD_HALF_WIDTH_M[feature.properties.class] !== undefined &&

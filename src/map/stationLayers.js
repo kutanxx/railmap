@@ -6,7 +6,7 @@ import {
   PLATFORM_LENGTH_M,
   CONCOURSE_WIDTH_M,
   PLATFORM_REAL_SIZE_ZOOM,
-  START_CENTER,
+  GROUND_LATITUDE,
 } from '../config.js';
 
 // 역은 두 가지로 그린다
@@ -42,8 +42,8 @@ const ICON_SIZE = [
   ['case', IS_TRANSFER, 1.35, 1],
 ];
 
-// 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 서울 위도로 한 번만 계산한다
-const METERS_PER_PIXEL_Z0 = (40075016.686 * Math.cos((START_CENTER[1] * Math.PI) / 180)) / 512;
+// 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 지도들이 있는 위도로 한 번만 계산한다
+export const METERS_PER_PIXEL_Z0 = (40075016.686 * Math.cos((GROUND_LATITUDE * Math.PI) / 180)) / 512;
 // 띠의 테두리 굵기 (줌 → px): 줌 14에서 1.5, 18부터 3
 export const outlinePx = (zoom) => Math.min(3, 1.5 + (zoom - PLATFORM_REAL_SIZE_ZOOM) * 0.375);
 // 실제 폭(미터, 지물 속성 width)을 화면 굵기(px)로 바꾸는 식. extraPx(줌)만큼 더 굵게 (통로도 같이 쓴다)

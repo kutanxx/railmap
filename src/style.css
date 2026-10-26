@@ -541,6 +541,78 @@ body {
   border-radius: 50%;
 }
 
+/* ── 시작 화면: 지도 고르기 (게임 화면 전체를 덮는다) ── */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #efe7d6;
+}
+
+.start-screen[hidden] {
+  display: none;
+}
+
+.start-card {
+  width: 100%;
+  max-width: 460px;
+  color: #1f3a55;
+}
+
+.start-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.start-lead {
+  margin: 6px 0 18px;
+  color: #6f6656;
+  font-size: 15px;
+}
+
+.start-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.start-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 2px solid #1f3a55;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.start-choice:hover {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.start-choice b {
+  font-size: 17px;
+}
+
+.start-choice span {
+  font-size: 13px;
+}
+
+.start-choice small {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c9772f;
+}
+
 /* 조작 안내 카드: 키(굵게) + 하는 일 */
 .help-card {
   max-width: 460px;

@@ -7,9 +7,7 @@ import { distance } from '@turf/turf';
 import { getState, routeCoords, routeTracks, trackLengthKm, settleMonth } from './state.js';
 import { getEconomy } from './demand.js';
 import { buildRun } from './running.js';
-import { STATION_DWELL_SECONDS, TRAIN_LENGTH_M, TIME_SCALE, SECONDS_PER_MONTH } from '../config.js';
-
-const TRAIN_LENGTH_KM = TRAIN_LENGTH_M / 1000;
+import { STATION_DWELL_SECONDS, TIME_SCALE, SECONDS_PER_MONTH } from '../config.js';
 const EPSILON = 1e-6; // 아주 작은 거리(km). "역에 딱 서 있음"을 판단할 때 쓴다
 // 배차 간격을 이 비율만큼만 지나도 출발한다 (열차가 한 대일 때 계산 오차로 괜히 기다리지 않게)
 const HOLD_TOLERANCE = 0.95;
@@ -69,11 +67,12 @@ export function stepSimulation(seconds) {
 }
 
 // 지도에 그릴 열차 모양: 노선을 따라 휘는 짧은 선 (캡슐)
-export function trainFeatures() {
+// lengthKm: 그릴 열차 길이 (멀리서 볼 때는 화면에서 보이게 실제보다 길게 넘겨준다, ui/animation.js)
+export function trainFeatures(lengthKm) {
   const features = [];
   for (const train of getState().trains) {
     const path = paths.get(train.routeId);
-    const half = Math.min(TRAIN_LENGTH_KM, path.length) / 2;
+    const half = Math.min(lengthKm, path.length) / 2;
     // 열차가 노선 끝을 넘어가 보이지 않게 가운데 위치를 안쪽으로 당긴다
     const center = Math.max(half, Math.min(path.length - half, train.distance));
     features.push({

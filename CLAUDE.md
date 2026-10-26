@@ -28,11 +28,12 @@
 ```
 index.html
 src/
-  main.js             시작점. 저장된 게임 불러오기 → 지도 만들기 → 게임 화면 시작
-  config.js           모든 숫자 설정 (공사비, 운영비, 수요·요금, 정원, 빚 한도, 시간, 역 모양)
+  main.js             시작점. 시작 화면에서 지도 고르기 → 그 지도의 저장 불러오기 → 지도 만들기 → 게임 화면 시작
+  config.js           모든 숫자 설정 (지도 목록, 공사비, 운영비, 수요·요금, 정원, 빚 한도, 시간, 역 모양)
   style.css           화면 요소 모양 (배지, 도구 막대, 패널, 말풍선, 창)
   game/               게임 규칙과 상태. 화면 코드를 부르지 않는다
     state.js          게임 상태, 되돌리기, 시간과 매달 정산, 역·선로·노선 찾기
+    region.js         지금 하는 지도(서울 / 솔내 지방)
     build.js          역·선로 바꾸기 (짓기, 이름, 옮기기, 방향, 경유점, 지우기)
     routes.js         노선 바꾸기 (만들기, 이름·색, 열차 수, 역 끼워넣기·빼기, 지우기)
     history.js        되돌리기·다시 하기 기록
@@ -41,10 +42,12 @@ src/
     demand.js         승객 수요(중력 모델), 혼잡도, 수입 계산
     economy.js        공사비(교량 포함), 운영비, 거리 요금
     catchment.js      가까운 역끼리 주변 인구 나누기
-    save.js           저장·불러오기·새로 시작, 자동 저장, 내보내기
+    save.js           저장·불러오기·새로 시작, 자동 저장, 내보내기 (지도마다 저장 칸 따로)
   map/                지도에 그리기
-    createMap.js      MapLibre 지도 만들기 (워커 준비, 스타일 불러오기)
+    createMap.js      MapLibre 지도 만들기 (워커 준비, 실제·가상 지도 스타일)
     style.js          기본 지도 스타일을 불러와 베이지 팔레트로 색을 바꾼다
+    sollaeStyle.js    가상 지도(솔내 지방) 스타일: GeoJSON 하나로 같은 팔레트
+    mapFeatures.js    건물·도로·물 읽기 (실제: 지도 타일, 가상: GeoJSON)
     stationLayers.js  역(승강장) 레이어, 500m 역세권 원
     trackLayers.js    선로 레이어, 그리는 중인 선로 미리보기, 선로 손잡이
     trainLayers.js    열차 레이어 (GeoJSON source 하나)
@@ -65,6 +68,7 @@ src/
     toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선) + 숫자키 표시
     congestionToggle.js [혼잡도 보기] 버튼과 색 설명
     helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
+    startScreen.js    시작 화면 (지도 고르기, 지도별 저장 날짜)
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기
     trackEditor.js    선로 경유점 끌기·지우기
@@ -82,10 +86,13 @@ src/
     cursorTip.js      마우스 옆 안내
     costText.js       공사비 안내 글 (빚 한도, 빚으로 짓기)
     format.js         숫자를 글로 (돈, 사람 수)
-    fileMenu.js       왼쪽 아래 [내보내기] [불러오기] [새로 시작]
+    fileMenu.js       왼쪽 아래 [내보내기] [불러오기] [새로 시작] [지도 바꾸기]
     saveControls.js   자동 저장 켜기, 파일 버튼, 파산 창 연결
     bankruptDialog.js 파산 창
-  data/               가상 지도 데이터 (나중에)
+  data/
+    sollae.json       가상 지도 솔내 지방 (마을 4개, 강, 산, 공원, 도로). tools/make-sollae.mjs로 만든다
+tools/
+  make-sollae.mjs     솔내 지방 GeoJSON 만들기 (node tools/make-sollae.mjs, 프로토타입 배치를 옮김)
 docs/                 정리한 문서 (economy-research.md: 다른 게임 경제 비교)
 reports/, research_notes/  조사 보고서 원본과 조사 메모
 reference/            참고 자료. 게임 코드에서 불러오지 않는다

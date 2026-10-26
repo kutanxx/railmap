@@ -1,19 +1,32 @@
 // 게임의 모든 숫자 설정을 모아두는 곳.
 // 값을 바꾸고 저장하면 브라우저가 알아서 새로고침된다.
 
-// ── 지도 ──────────────────────────────
-// 처음 화면에 보일 위치 [경도, 위도]. 지금은 서울 도심(을지로 근처).
-export const START_CENTER = [126.9895, 37.5615];
+// ── 지도 (지역) ─────────────────────────
+// 시작 화면에서 고르는 지도들. 역·선로·노선·열차·돈 계산은 어느 지도든 똑같다
+// name: 왼쪽 위 배지에 보일 지역 이름, title·description: 시작 화면 글,
+// center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
+export const REGIONS = {
+  seoul: {
+    name: '서울',
+    title: '실제 지도 · 서울',
+    description: 'OpenStreetMap의 실제 서울 도심 위에 노선을 깔아요',
+    center: [126.9895, 37.5615],
+    zoom: 14,
+  },
+  sollae: {
+    name: '솔내 지방',
+    title: '가상 지도 · 솔내 지방',
+    description: '마을 넷과 금빛강, 봉우리산이 있는 가상의 지방이에요',
+    center: [131.0, 37.56],
+    zoom: 12,
+  },
+};
 
-// 처음 확대 정도. 숫자가 클수록 가까이 보인다 (14 ≈ 동네 몇 개가 보이는 정도).
-export const START_ZOOM = 14;
-
-// 기본 지도 데이터 주소 (OpenFreeMap positron, 가입·키 없음)
+// 실제 지도의 기본 지도 데이터 주소 (OpenFreeMap positron, 가입·키 없음)
 export const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
-// ── 화면 표시 ──────────────────────────
-// 왼쪽 위 배지에 보일 지역 이름
-export const REGION_NAME = '서울';
+// 미터를 화면 px로 바꿀 때 쓰는 위도. 서울과 솔내 지방 모두 이 위도에 있다
+export const GROUND_LATITUDE = 37.56;
 
 // 게임 시작 날짜
 export const START_YEAR = 2026;
@@ -118,6 +131,8 @@ export const CROWDED_WARNING = 0.8;
 
 // 열차 길이 (미터). 지도 위 캡슐 길이가 된다
 export const TRAIN_LENGTH_M = 120;
+// 멀리서 볼 때도 열차가 점처럼 작아지지 않게, 화면에서 적어도 이만큼(px) 길게 그린다
+export const TRAIN_MIN_SCREEN_PX = 24;
 
 // ── 돈 (단위: 억 원) ────────────────────
 // 시작 자금. 역 3개짜리 첫 노선(약 320억)을 지을 수 있을 만큼
