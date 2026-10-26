@@ -2,6 +2,7 @@
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
 import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE } from '../config.js';
 import { bindNameInput } from './nameInput.js';
+import { formatSignedMoney } from './format.js';
 
 export function createRoutePanel(
   element,
@@ -37,6 +38,7 @@ export function createRoutePanel(
         </div>
       </div>
       <dl class="panel-facts">
+        <dt>월 수입</dt><dd class="route-revenue"></dd>
         <dt>길이</dt><dd class="route-length"></dd>
         <dt>역 순서</dt><dd class="route-stations"></dd>
       </dl>
@@ -54,6 +56,7 @@ export function createRoutePanel(
   const sequenceText = element.querySelector('.route-sequence');
   const messageText = element.querySelector('.route-message');
   const lengthText = element.querySelector('.route-length');
+  const revenueText = element.querySelector('.route-revenue');
   const stationsText = element.querySelector('.route-stations');
   const list = element.querySelector('.route-list');
 
@@ -97,8 +100,8 @@ export function createRoutePanel(
   // view = {
   //   tool: 지금 도구 id,
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
-  //   routes: [{ id, name, color, lengthKm }],
-  //   selected: { id, name, color, lengthKm, stationNames, trainCount } 또는 null,
+  //   routes: [{ id, name, color, lengthKm, revenue }],
+  //   selected: { id, name, color, lengthKm, stationNames, trainCount, revenue } 또는 null,
   // }
   function show({ tool, draft, routes, selected }) {
     const showDraft = tool === 'route';
@@ -125,6 +128,8 @@ export function createRoutePanel(
       minusButton.disabled = trainCount <= 0;
       plusButton.disabled = trainCount >= MAX_TRAINS_PER_ROUTE;
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
+      revenueText.textContent =
+        selected.trainCount > 0 ? `${formatSignedMoney(selected.revenue)} / 월` : '열차가 없어 운행 안 함';
       stationsText.textContent = selected.stationNames.join(' → ');
     } else {
       routeName.clear();
@@ -156,7 +161,8 @@ export function createRoutePanel(
         name.textContent = route.name;
         const length = document.createElement('span');
         length.className = 'route-item-length';
-        length.textContent = `${route.lengthKm.toFixed(1)} km`;
+        length.textContent = formatSignedMoney(route.revenue);
+        length.title = `${route.lengthKm.toFixed(1)} km`;
         item.append(dot, name, length);
         item.addEventListener('click', () => onSelect(route.id));
         return item;

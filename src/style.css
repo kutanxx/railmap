@@ -472,3 +472,108 @@ body {
   min-width: 34px;
   text-align: center;
 }
+
+/* ── 자금 표시 (자금 · 월 수지) ── */
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: 14px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #6f6656;
+}
+
+.status-label + b + .status-label {
+  margin-left: 6px;
+}
+
+/* 월 수지: +는 초록, −는 빨강 */
+.status .positive {
+  color: #3f7d3f;
+}
+
+.status .negative {
+  color: #b0402f;
+}
+
+/* ── 마우스 옆 안내 ── */
+.cursor-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  padding: 4px 8px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cursor-tip[hidden] {
+  display: none;
+}
+
+.cursor-tip-bad {
+  border-color: #b0402f;
+  color: #b0402f;
+}
+
+/* ── 지도 위 말풍선 알림 ── */
+.callout {
+  pointer-events: none;
+}
+
+.callout-bubble {
+  position: relative;
+  padding: 6px 12px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 말풍선 아래 꼬리 */
+.callout-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #1f3a55;
+  border-bottom: 2px solid #1f3a55;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.callout-info .callout-bubble::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f2c230;
+  vertical-align: middle;
+}
+
+.callout-bad .callout-bubble,
+.callout-bad .callout-bubble::after {
+  border-color: #b0402f;
+  color: #b0402f;
+}

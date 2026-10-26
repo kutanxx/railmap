@@ -8,6 +8,7 @@ import {
   routeLengthKm,
   trackLengthKm,
 } from '../game/state.js';
+import { getEconomy } from '../game/demand.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 
@@ -37,6 +38,7 @@ export function infoPanelView(selected) {
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
 export function routePanelView({ selected, tool, draft, routes }) {
   const route = selected?.type === 'route' ? findRoute(selected.id) : null;
+  const { routeRevenue } = getEconomy();
   return {
     tool,
     draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },
@@ -45,6 +47,7 @@ export function routePanelView({ selected, tool, draft, routes }) {
       name: r.name,
       color: r.color,
       lengthKm: routeLengthKm(r),
+      revenue: routeRevenue.get(r.id) ?? 0,
     })),
     selected: route && {
       id: route.id,
@@ -53,6 +56,7 @@ export function routePanelView({ selected, tool, draft, routes }) {
       lengthKm: routeLengthKm(route),
       stationNames: stationNames(route.stations),
       trainCount: route.trainCount,
+      revenue: routeRevenue.get(route.id) ?? 0,
     },
   };
 }

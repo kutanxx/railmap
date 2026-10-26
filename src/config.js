@@ -58,3 +58,42 @@ export const MAX_TRAINS_PER_ROUTE = 10;
 
 // 열차 길이 (미터). 지도 위 캡슐 길이가 된다
 export const TRAIN_LENGTH_M = 120;
+
+// ── 돈 (단위: 억 원) ────────────────────
+// 시작 자금
+export const START_MONEY = 500;
+
+// 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
+export const TRACK_COST_PER_KM = 22;
+export const STATION_COST = 15;
+
+// 매달 운영비 = 선로 km × OPEX_PER_TRACK_KM + 열차 대수 × OPEX_PER_TRAIN
+export const OPEX_PER_TRACK_KM = 0.1;
+export const OPEX_PER_TRAIN = 0.5;
+
+// ── 날짜 ───────────────────────────────
+// 1배속에서 한 달이 실제 몇 초인지
+export const SECONDS_PER_MONTH = 20;
+
+// ── 승객 수요 (중력 모델) ─────────────────
+// 두 역 사이 월 수입(억) = DEMAND_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER
+export const DEMAND_FACTOR = 0.02;
+export const DEMAND_TIME_POWER = 0.8;
+// 소요 시간이 이보다 짧아도 이 값(분)으로 친다. 아주 가까운 두 역의 수요가 터무니없이 커지지 않게
+export const MIN_TRIP_MINUTES = 3;
+// 갈아탈 때 더 걸리는 시간 (분). 기다리는 시간과 별개로 걸어서 옮기는 시간
+export const TRANSFER_MINUTES = 2;
+
+// ── 역 주변 인구 ─────────────────────────
+// 역을 놓을 때 이 반경(미터) 안의 건물 바닥 면적을 재어 인구를 추정한다
+export const POPULATION_RADIUS_M = 500;
+// 건물 바닥 면적 1㎡당 사는(일하는) 사람 수. 명동 근처 ≈ 35만 ㎡ → 약 3.5만 명
+export const PEOPLE_PER_BUILT_M2 = 0.1;
+// 건물을 재지 못했을 때 쓰는 인구 (예: 너무 멀리 축소해서 건물 데이터가 없을 때)
+export const DEFAULT_STATION_POPULATION = 10000;
+// 아무리 한적한 곳도 이 정도 인구는 있다고 친다
+export const MIN_STATION_POPULATION = 1000;
+
+// ── 알림 ──────────────────────────────
+// 지도 위 말풍선 알림이 떠 있는 시간 (실제 초)
+export const CALLOUT_SECONDS = 4;

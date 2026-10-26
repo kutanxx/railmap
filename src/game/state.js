@@ -1,11 +1,20 @@
 // 게임 상태: 역, 선로 등. 화면 코드와 분리되어 있고,
 // 상태가 바뀌면 subscribe로 등록한 함수들을 불러서 화면이 다시 그리게 한다.
 import { length, lineString } from '@turf/turf';
-import { ROUTE_COLORS, DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE } from '../config.js';
+import {
+  ROUTE_COLORS,
+  DEFAULT_TRAINS_PER_ROUTE,
+  MAX_TRAINS_PER_ROUTE,
+  START_MONEY,
+  START_YEAR,
+  START_MONTH,
+} from '../config.js';
+import { stationCost, trackCostForCoords } from './economy.js';
 
 const state = {
-  // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0 }
+  // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea }
   // angle: 승강장 방향(도). 0 = 가로, 90 = 세로
+  // population: 주변 인구, builtArea: 인구를 셀 때 잰 주변 건물 면적 ㎡ (못 쟀으면 null)
   stations: [],
   // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …] }
   // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다
@@ -20,6 +29,14 @@ const state = {
   speed: 1,
   // 게임 시작 뒤 흐른 게임 시간 (초)
   elapsedSeconds: 0,
+  // 자금 (억 원)
+  money: START_MONEY,
+  // 지금 날짜와 이번 달이 얼마나 지났는지 (0 ~ 1)
+  year: START_YEAR,
+  month: START_MONTH,
+  monthProgress: 0,
+  // 지난달 정산 결과 { revenue, opex, net } (아직 없으면 null)
+  lastSettlement: null,
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
@@ -47,17 +64,41 @@ export function setSpeed(speed) {
   notify();
 }
 
+// 한 달을 마무리한다: 수입 − 운영비를 자금에 더하고 날짜를 한 달 넘긴다
+export function settleMonth(revenue, opex) {
+  const net = revenue - opex;
+  state.money += net;
+  state.lastSettlement = { revenue, opex, net };
+  state.month += 1;
+  if (state.month > 12) {
+    state.month = 1;
+    state.year += 1;
+  }
+  notify();
+}
+
 // ── 역 ──────────────────────────────
 
 export function findStation(id) {
   return state.stations.find((station) => station.id === id);
 }
 
-// coord 자리에 새 역을 만들고, 만든 역을 돌려준다
-export function addStation(coord) {
+// coord 자리에 새 역을 짓고, 지은 역을 돌려준다
+// 자금이 공사비보다 모자라면 짓지 않고 null을 돌려준다
+export function addStation(coord, { population, builtArea }) {
+  const cost = stationCost();
+  if (state.money < cost) return null;
+  state.money -= cost;
   const number = state.nextStationNumber;
   state.nextStationNumber += 1;
-  const station = { id: `s${number}`, name: `역 ${number}`, coord, angle: 0 };
+  const station = {
+    id: `s${number}`,
+    name: `역 ${number}`,
+    coord,
+    angle: 0,
+    population,
+    builtArea,
+  };
   state.stations.push(station);
   notify();
   return station;
@@ -92,8 +133,13 @@ export function findTrack(id) {
   return state.tracks.find((track) => track.id === id);
 }
 
-// 역 from에서 경유점들을 지나 역 to까지 선로를 만들고, 만든 선로를 돌려준다
+// 역 from에서 경유점들을 지나 역 to까지 선로를 깔고, 깐 선로를 돌려준다
+// 자금이 공사비보다 모자라면 깔지 않고 null을 돌려준다
 export function addTrack(from, to, waypoints) {
+  const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
+  const { cost } = trackCostForCoords(coords);
+  if (state.money < cost) return null;
+  state.money -= cost;
   const number = state.nextTrackNumber;
   state.nextTrackNumber += 1;
   const track = { id: `t${number}`, from, to, waypoints };

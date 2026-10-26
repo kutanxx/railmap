@@ -1,4 +1,5 @@
 import { bindNameInput } from './nameInput.js';
+import { formatPopulation } from './format.js';
 
 // 오른쪽 정보 패널. 선택한 역 또는 선로의 정보를 보여주고 고치거나 지운다.
 // 상태를 직접 고치지 않고 onRename, onRotate, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
@@ -19,6 +20,9 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
           <button type="button" data-angle="90">세로</button>
         </div>
       </div>
+      <dl class="panel-facts panel-station-facts">
+        <dt>주변 인구</dt><dd class="panel-population"></dd>
+      </dl>
       <div class="panel-coord"></div>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
     </section>
@@ -41,6 +45,7 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
   const angleInput = element.querySelector('.panel-angle');
   const angleText = element.querySelector('.panel-angle-text');
   const coordText = element.querySelector('.panel-coord');
+  const populationText = element.querySelector('.panel-population');
 
   // 지금 보여주는 역 { id } 또는 선로 { id }
   let station = null;
@@ -75,6 +80,12 @@ export function createPanel(element, { onRename, onRotate, onDeleteStation, onDe
     stationName.show(nextStation.id, nextStation.name);
     angleInput.value = nextStation.angle;
     angleText.textContent = angleLabel(nextStation.angle);
+    // 건물 면적으로 추정했으면 면적을, 못 쟀으면 기본값이라고 알려준다
+    const source =
+      nextStation.builtArea === null
+        ? '기본값'
+        : `건물 ${(nextStation.builtArea / 10000).toFixed(1)}만 ㎡`;
+    populationText.textContent = `${formatPopulation(nextStation.population)} (${source})`;
     const [lng, lat] = nextStation.coord;
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }

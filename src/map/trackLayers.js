@@ -1,0 +1,174 @@
+// 선로와 그리는 중인 선로 미리보기를 지도 레이어로 그린다.
+// 화면은 상태를 읽어서 그리기만 한다.
+
+const TRACK_SOURCE = 'tracks';
+const TRACK_SELECTED_LAYER = 'track-selected';
+const TRACK_CASING_LAYER = 'track-casing';
+const TRACK_BODY_LAYER = 'track-body';
+const TRACK_CENTER_LAYER = 'track-center';
+
+const TRACK_COLORS = {
+  casing: '#D8C9AA', // 테두리
+  body: '#3E4651', // 몸통
+  center: '#D8C9AA', // 가운데 줄
+  selected: '#F2C230', // 선택 표시
+};
+
+// 줌에 따라 선 굵기를 바꾼다 (줌 → px). 지수 보간이라 확대할수록 빠르게 굵어진다
+// 열차 레이어에서도 같이 쓴다
+export const zoomWidth = (z10, z14, z18) => [
+  'interpolate',
+  ['exponential', 1.5],
+  ['zoom'],
+  10,
+  z10,
+  14,
+  z14,
+  18,
+  z18,
+];
+const TRACK_SELECTED_WIDTH = zoomWidth(7, 13, 26);
+const TRACK_CASING_WIDTH = zoomWidth(3.5, 8, 20);
+const TRACK_BODY_WIDTH = zoomWidth(2, 5.5, 15);
+// 가운데 줄: 노선이 지나는 선로는 노선 색으로 조금 더 굵게, 아니면 베이지로 얇게
+const HAS_ROUTE = ['!=', ['get', 'routeColor'], null];
+const TRACK_CENTER_WIDTH = zoomWidth(
+  ['case', HAS_ROUTE, 1.2, 0.5],
+  ['case', HAS_ROUTE, 2.5, 1],
+  ['case', HAS_ROUTE, 6, 2.5],
+);
+const TRACK_CENTER_COLOR = ['coalesce', ['get', 'routeColor'], TRACK_COLORS.center];
+
+const ROUND_LINE = { 'line-join': 'round', 'line-cap': 'round' };
+
+// 선로 레이어는 역보다 먼저 추가해야 역 밑에 깔린다
+export function addTrackLayers(map) {
+  map.addSource(TRACK_SOURCE, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: TRACK_SELECTED_LAYER,
+    type: 'line',
+    source: TRACK_SOURCE,
+    filter: ['get', 'selected'],
+    layout: ROUND_LINE,
+    paint: { 'line-color': TRACK_COLORS.selected, 'line-width': TRACK_SELECTED_WIDTH },
+  });
+  map.addLayer({
+    id: TRACK_CASING_LAYER,
+    type: 'line',
+    source: TRACK_SOURCE,
+    layout: ROUND_LINE,
+    paint: { 'line-color': TRACK_COLORS.casing, 'line-width': TRACK_CASING_WIDTH },
+  });
+  map.addLayer({
+    id: TRACK_BODY_LAYER,
+    type: 'line',
+    source: TRACK_SOURCE,
+    layout: ROUND_LINE,
+    paint: { 'line-color': TRACK_COLORS.body, 'line-width': TRACK_BODY_WIDTH },
+  });
+  map.addLayer({
+    id: TRACK_CENTER_LAYER,
+    type: 'line',
+    source: TRACK_SOURCE,
+    layout: ROUND_LINE,
+    paint: { 'line-color': TRACK_CENTER_COLOR, 'line-width': TRACK_CENTER_WIDTH },
+  });
+}
+
+// 선로 전체를 다시 그린다
+// lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null }]
+// selectedIds = 노란색으로 강조할 선로 id들 (Set)
+export function updateTracks(map, lines, selectedIds) {
+  map.getSource(TRACK_SOURCE).setData({
+    type: 'FeatureCollection',
+    features: lines.map((line) => ({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: line.coords },
+      properties: {
+        id: line.id,
+        routeColor: line.routeColor,
+        selected: selectedIds.has(line.id),
+      },
+    })),
+  });
+}
+
+// 화면의 한 점(px) 근처에 있는 선로의 id를 돌려준다. 없으면 null
+export function trackIdAt(map, point) {
+  const pad = 4;
+  const features = map.queryRenderedFeatures(
+    [
+      [point.x - pad, point.y - pad],
+      [point.x + pad, point.y + pad],
+    ],
+    { layers: [TRACK_CASING_LAYER] },
+  );
+  return features.length > 0 ? features[0].properties.id : null;
+}
+
+// ── 그리는 중인 선로 미리보기 ─────────────
+// 공사 중 색(#C9772F) 점선으로 그리고, 경유점은 작은 점으로 보여준다
+
+const DRAFT_SOURCE = 'track-draft';
+const DRAFT_LINE_LAYER = 'track-draft-line';
+const DRAFT_POINT_LAYER = 'track-draft-points';
+const DRAFT_COLOR = '#C9772F';
+
+// 미리보기는 역보다 나중에 추가해서 맨 위에 보이게 한다
+export function addDraftLayers(map) {
+  map.addSource(DRAFT_SOURCE, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: DRAFT_LINE_LAYER,
+    type: 'line',
+    source: DRAFT_SOURCE,
+    filter: ['==', ['geometry-type'], 'LineString'],
+    layout: { 'line-join': 'round' },
+    paint: {
+      'line-color': DRAFT_COLOR,
+      'line-width': 3,
+      'line-dasharray': [2, 1.5],
+    },
+  });
+  map.addLayer({
+    id: DRAFT_POINT_LAYER,
+    type: 'circle',
+    source: DRAFT_SOURCE,
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': 4,
+      'circle-color': DRAFT_COLOR,
+      'circle-stroke-color': '#EFE7D6',
+      'circle-stroke-width': 1.5,
+    },
+  });
+}
+
+// draft = { coords: [출발역, 경유점…], waypoints: [경유점…], cursor: [경도, 위도] | null }
+// null이면 미리보기를 지운다
+export function updateDraft(map, draft) {
+  const features = [];
+  if (draft) {
+    const coords = draft.cursor ? [...draft.coords, draft.cursor] : draft.coords;
+    if (coords.length >= 2) {
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: coords },
+        properties: {},
+      });
+    }
+    for (const point of draft.waypoints) {
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: point },
+        properties: {},
+      });
+    }
+  }
+  map.getSource(DRAFT_SOURCE).setData({ type: 'FeatureCollection', features });
+}

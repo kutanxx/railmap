@@ -18,10 +18,18 @@ export function createTrackTool({ onChange, onComplete }) {
       return;
     }
     if (stationId === draft.from) return; // 같은 역으로 돌아오는 선로는 만들지 않는다
-    const { from, waypoints } = draft;
+    // onComplete가 false를 돌려주면 (예: 자금 부족) 그리던 선로를 그대로 둔다
+    if (onComplete(draft.from, stationId, draft.waypoints) === false) return;
     draft = null;
     changed();
-    onComplete(from, stationId, waypoints);
+  }
+
+  // 미리보기 끝(마우스 또는 역)까지 이은 좌표. 공사비 미리 계산에 쓴다
+  function previewCoords() {
+    if (!draft) return null;
+    const coords = [draft.fromCoord, ...draft.waypoints];
+    if (draft.cursor) coords.push(draft.cursor);
+    return coords;
   }
 
   // 빈 지도를 눌렀을 때: 그리는 중이면 경유점을 추가한다
@@ -68,6 +76,7 @@ export function createTrackTool({ onChange, onComplete }) {
     moveCursor,
     undoWaypoint,
     cancel,
+    previewCoords,
     isDrawing: () => draft !== null,
   };
 }

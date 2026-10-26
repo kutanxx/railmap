@@ -1,9 +1,16 @@
-// 시뮬레이션: 시간 흐름과 열차 이동.
+// 시뮬레이션: 시간 흐름, 열차 이동, 매달 정산.
 // 열차는 노선 끝에서 끝까지 왕복하고, 역마다 STATION_DWELL_SECONDS 동안 멈춘다.
 // 매 프레임 불리므로 계산을 가볍게 유지한다 (노선 모양은 미리 계산해 둔다).
 import { distance } from '@turf/turf';
-import { getState, routeCoords, routeTracks, trackLengthKm } from './state.js';
-import { TRAIN_SPEED_KMH, STATION_DWELL_SECONDS, TRAIN_LENGTH_M } from '../config.js';
+import { getState, routeCoords, routeTracks, trackLengthKm, settleMonth } from './state.js';
+import { getEconomy } from './demand.js';
+import {
+  TRAIN_SPEED_KMH,
+  STATION_DWELL_SECONDS,
+  TRAIN_LENGTH_M,
+  TIME_SCALE,
+  SECONDS_PER_MONTH,
+} from '../config.js';
 
 const SPEED_KM_PER_SECOND = TRAIN_SPEED_KMH / 3600;
 const TRAIN_LENGTH_KM = TRAIN_LENGTH_M / 1000;
@@ -34,13 +41,23 @@ export function syncTrains() {
   state.trains = trains;
 }
 
-// 게임 시간 seconds초만큼 시간을 흘리고 열차를 움직인다
+// 시간을 흘린다. seconds = 실제 흐른 초 × 배속
+// - 열차는 TIME_SCALE배 빠른 게임 시간으로 움직인다 (1배에서 실제 1초 = 게임 TIME_SCALE초)
+// - 달력은 SECONDS_PER_MONTH초마다 한 달씩 넘어가고, 넘어갈 때 정산한다
 export function stepSimulation(seconds) {
   if (seconds <= 0) return;
   const state = getState();
-  state.elapsedSeconds += seconds;
+  const gameSeconds = seconds * TIME_SCALE;
+  state.elapsedSeconds += gameSeconds;
   for (const train of state.trains) {
-    moveTrain(train, paths.get(train.routeId), seconds);
+    moveTrain(train, paths.get(train.routeId), gameSeconds);
+  }
+
+  state.monthProgress += seconds / SECONDS_PER_MONTH;
+  while (state.monthProgress >= 1) {
+    state.monthProgress -= 1;
+    const { revenue, opex } = getEconomy();
+    settleMonth(revenue, opex);
   }
 }
 
