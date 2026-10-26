@@ -47,7 +47,7 @@ src/
     stationLayers.js  역(승강장) 레이어, 500m 역세권 원
     trackLayers.js    선로 레이어, 그리는 중인 선로 미리보기, 선로 손잡이
     trainLayers.js    열차 레이어 (GeoJSON source 하나)
-    exitFinder.js     역 출구 자리 찾기 (건물을 피해 가까운 길가로)
+    exitFinder.js     역 출구 자리 찾기 (건물을 피해 가까운 길가로, 큰 사거리는 네 모퉁이로)
     exitLayers.js     출구 통로와 노란 출구 번호 배지
     stationLabels.js  역 이름 말풍선
     population.js     역 주변 인구 재기 (건물 면적)

@@ -52,6 +52,10 @@ export const ROAD_HALF_WIDTH_M = {
   minor: 5, // 동네 길
   service: 3, // 건물 진입로
 };
+// 대합실에서 이만큼(미터) 안에 큰 길끼리 만나는 사거리가 있으면, 그 대합실 출구는 사거리 네 모퉁이에 낸다
+export const CORNER_EXIT_REACH_M = 60;
+// 사거리로 치는 큰 길 종류 (ROAD_HALF_WIDTH_M의 이름)
+export const CORNER_ROAD_CLASSES = ['trunk', 'primary', 'secondary', 'tertiary'];
 // 역 하나의 출구 수 상한, 이보다 가까운 출구는 하나로 합친다 (미터)
 export const MAX_EXITS_PER_STATION = 8;
 export const EXIT_MIN_GAP_M = 25;
