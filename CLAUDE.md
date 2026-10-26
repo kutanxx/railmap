@@ -23,30 +23,66 @@
 - 실행: `npm run dev`, 빌드: `npm run build`
 - 새 라이브러리를 추가해야 하면 이유를 먼저 설명한다.
 
-## 폴더 구조 (목표)
+## 폴더 구조
 
 ```
 index.html
 src/
-  main.js          시작점. 지도와 게임을 연결만 한다
-  config.js        모든 숫자 설정 (공사비, 속도, 수요 계수, 시간 배속, 시작 자금)
-  map/
-    style.js       기본 지도 스타일을 불러와 베이지 팔레트로 색을 바꾼다
-    layers.js      역·선로·노선·열차 레이어 추가와 갱신
-  game/
-    state.js       게임 상태 (역, 선로, 노선, 열차, 자금, 날짜). 화면 코드와 분리
-    sim.js         시간 흐름, 열차 이동, 매달 정산
-    demand.js      승객 수요와 수입 계산
-    save.js        저장과 불러오기
-  ui/
-    panel.js       오른쪽 정보 패널
-    callouts.js    지도 위 말풍선 알림
-    toolbar.js     도구 버튼 (선택, 역, 선로, 노선)
-  data/            가상 지도 데이터 (나중에)
-reference/         참고 자료. 게임 코드에서 불러오지 않는다
+  main.js             시작점. 저장된 게임 불러오기 → 지도 만들기 → 게임 화면 시작
+  config.js           모든 숫자 설정 (공사비, 운영비, 수요·요금, 정원, 빚 한도, 시간, 역 모양)
+  style.css           화면 요소 모양 (배지, 도구 막대, 패널, 말풍선, 창)
+  game/               게임 규칙과 상태. 화면 코드를 부르지 않는다
+    state.js          게임 상태, 되돌리기, 시간과 매달 정산, 역·선로·노선 찾기
+    build.js          역·선로 바꾸기 (짓기, 이름, 옮기기, 방향, 경유점, 지우기)
+    routes.js         노선 바꾸기 (만들기, 이름·색, 열차 수, 역 끼워넣기·빼기, 지우기)
+    history.js        되돌리기·다시 하기 기록
+    sim.js            시간 흐름, 열차 이동, 매달 정산 부르기
+    demand.js         승객 수요(중력 모델), 혼잡도, 수입 계산
+    economy.js        공사비, 운영비, 거리 요금
+    catchment.js      가까운 역끼리 주변 인구 나누기
+    save.js           저장·불러오기·새로 시작, 자동 저장, 내보내기
+  map/                지도에 그리기
+    createMap.js      MapLibre 지도 만들기 (워커 준비, 스타일 불러오기)
+    style.js          기본 지도 스타일을 불러와 베이지 팔레트로 색을 바꾼다
+    stationLayers.js  역(승강장) 레이어, 500m 역세권 원
+    trackLayers.js    선로 레이어, 그리는 중인 선로 미리보기, 선로 손잡이
+    trainLayers.js    열차 레이어 (GeoJSON source 하나)
+    stationLabels.js  역 이름 말풍선
+    population.js     역 주변 인구 재기 (건물 면적)
+  ui/                 화면 조작과 패널
+    app.js            게임 화면의 중심: 화면 상태, 패널·도구 만들기, 다시 그리기, 상태 연결
+    mapInput.js       지도 클릭·마우스·키보드 처리
+    animation.js      매 프레임 시간 흘리기와 열차 다시 그리기
+    views.js          상태를 패널에 보여줄 내용으로 바꾸기
+    stationShapes.js  승강장 방향(선로 따라 자동), 환승역·종착역
+    toolbar.js        도구 버튼 (선택, 역 놓기, 선로, 노선)
+    trackTool.js      선로 그리기
+    routeTool.js      노선 만들기
+    trackEditor.js    선로 경유점 끌기·지우기
+    stationMover.js   역 끌어서 옮기기
+    panel.js          오른쪽 위 역·선로 정보 패널
+    routePanel.js     오른쪽 노선 패널 (새 노선, 노선 정보, 목록)
+    nameInput.js      이름 입력 칸 공통 동작
+    status.js         위쪽 자금·월 수지·하루 승객
+    badge.js          왼쪽 위 날짜 배지
+    speedControl.js   배속 버튼
+    callouts.js       지도 위 말풍선 알림
+    warnings.js       혼잡·빚 경고 말풍선
+    cursorTip.js      마우스 옆 안내
+    costText.js       공사비 안내 글 (빚 한도, 빚으로 짓기)
+    format.js         숫자를 글로 (돈, 사람 수)
+    fileMenu.js       왼쪽 아래 [내보내기] [불러오기] [새로 시작]
+    saveControls.js   자동 저장 켜기, 파일 버튼, 파산 창 연결
+    bankruptDialog.js 파산 창
+  data/               가상 지도 데이터 (나중에)
+docs/                 정리한 문서 (economy-research.md: 다른 게임 경제 비교)
+reports/, research_notes/  조사 보고서 원본과 조사 메모
+reference/            참고 자료. 게임 코드에서 불러오지 않는다
 ```
 
-파일 하나가 400줄을 넘으면 나누자고 제안한다.
+- 게임 규칙은 `game/`, 지도에 그리는 것은 `map/`, 조작과 패널은 `ui/`에 둔다.
+- 상태를 바꾸는 함수는 `change()`를 거쳐 되돌리기 기록에 남게 한다. 역·선로는 `build.js`, 노선은 `routes.js`에 넣는다.
+- 파일 하나가 400줄을 넘으면 나누자고 제안한다.
 
 ## 아트 규칙
 
