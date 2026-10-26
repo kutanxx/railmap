@@ -1,0 +1,33 @@
+// 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (requestAnimationFrame).
+// 게임 시간 = 실제 흐른 시간 × 배속. 열차 위치는 GeoJSON source 하나에 setData로 한 번에 바꾼다.
+import { getState } from '../game/state.js';
+import { stepSimulation, trainFeatures } from '../game/sim.js';
+import { updateTrains } from '../map/trainLayers.js';
+
+// 결과: { markTrainsChanged } — 노선·열차가 바뀌었을 때 불러서, 멈춤 중에도 다음 프레임에 다시 그리게 한다
+export function startAnimation(map) {
+  let trainsChanged = true;
+  let lastFrame = performance.now();
+
+  function frame(now) {
+    // 탭을 오래 비웠다 돌아와도 열차가 순간이동하지 않게 한 프레임은 최대 0.1초로 친다
+    const realSeconds = Math.min((now - lastFrame) / 1000, 0.1);
+    lastFrame = now;
+    const { speed, trains } = getState();
+    // 시간이 흐르면 달력·정산을 위해 매 프레임 계산하지만,
+    // 열차를 다시 그리는 건 움직이는 열차가 있거나 열차가 바뀌었을 때만 한다 (지도가 쉴 수 있게)
+    stepSimulation(realSeconds * speed);
+    if ((speed > 0 && trains.length > 0) || trainsChanged) {
+      updateTrains(map, trainFeatures());
+      trainsChanged = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  return {
+    markTrainsChanged: () => {
+      trainsChanged = true;
+    },
+  };
+}

@@ -1,6 +1,7 @@
-// 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 애니메이션, 저장 버튼.
-// 지도 위 클릭·마우스·키보드 처리는 mapInput.js, 선로 끌기는 trackEditor.js가 맡는다.
-import { REGION_NAME, DEBT_LIMIT, BANKRUPT_GRACE_MONTHS } from '../config.js';
+// 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
+// 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
+// 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js
+import { REGION_NAME, BANKRUPT_GRACE_MONTHS } from '../config.js';
 import {
   addStationLayers,
   updateStations,
@@ -14,23 +15,25 @@ import {
   updateDraft,
   addHandleLayers,
 } from '../map/trackLayers.js';
-import { addTrainLayers, updateTrains } from '../map/trainLayers.js';
+import { addTrainLayers } from '../map/trainLayers.js';
 import { updateStationLabels } from '../map/stationLabels.js';
 import {
   getState,
   subscribe,
   setSpeed,
   findStation,
+  findTrackBetween,
+  routeCoords,
+  monthlyInterest,
+} from '../game/state.js';
+import {
   renameStation,
   rotateStation,
   setStationAutoAngle,
   removeStation,
   addTrack,
   removeTrack,
-  findTrackBetween,
-  routeCoords,
-  monthlyInterest,
-} from '../game/state.js';
+} from '../game/build.js';
 import {
   addRoute,
   renameRoute,
@@ -41,10 +44,9 @@ import {
   newRouteCost,
   trainPurchaseCost,
 } from '../game/routes.js';
-import { syncTrains, stepSimulation, trainFeatures } from '../game/sim.js';
+import { syncTrains } from '../game/sim.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
-import { startAutosave, exportToFile, importFromFile, resetGame } from '../game/save.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl } from './speedControl.js';
@@ -56,11 +58,11 @@ import { infoPanelView, routePanelView, routeColors, highlightedTracks } from '.
 import { createStatus } from './status.js';
 import { createCursorTip } from './cursorTip.js';
 import { showCallout } from './callouts.js';
-import { formatMoney } from './format.js';
-import { createFileMenu } from './fileMenu.js';
 import { bindMapInput } from './mapInput.js';
-import { createBankruptDialog } from './bankruptDialog.js';
 import { createWarnings } from './warnings.js';
+import { shortfall, costNote } from './costText.js';
+import { bindSaveControls } from './saveControls.js';
+import { startAnimation } from './animation.js';
 import { createStationMover } from './stationMover.js';
 import { stationShapes } from './stationShapes.js';
 import { createTrackEditor } from './trackEditor.js';
@@ -77,21 +79,6 @@ export function startApp(map, loadMessage) {
     hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
   };
 
-  // 빚 한도까지 써도 공사비가 모자라면 모자란 금액을 알려주는 글, 아니면 null
-  const shortfall = (cost) => {
-    const room = getState().money - DEBT_LIMIT; // 빚 한도까지 쓸 수 있는 돈
-    return cost > room
-      ? `빚 한도(${formatMoney(DEBT_LIMIT)})까지 ${formatMoney(cost - room)} 모자라요`
-      : null;
-  };
-  // 마우스 옆 공사비 안내에 붙일 말: 못 지으면 붉게, 빚을 내서 지으면 주황으로, 아니면 null
-  const costNote = (cost) => {
-    const problem = shortfall(cost);
-    if (problem) return { text: problem, tone: 'bad' };
-    const borrowed = cost - Math.max(getState().money, 0);
-    if (borrowed > 0) return { text: `빚 ${formatMoney(borrowed)}으로 지어요`, tone: 'warn' };
-    return null;
-  };
   // 화면 가운데 말풍선 알림
   const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);
 
@@ -292,12 +279,16 @@ export function startApp(map, loadMessage) {
   // 혼잡·빚 경고 말풍선 (warnings.js)
   const warnings = createWarnings(map, notice);
 
-  // 지도 입력과 선로 끌기가 함께 쓰는 것들
-  const bankruptDialog = createBankruptDialog(document.getElementById('bankrupt'), {
-    onReset: () => startOver(),
-    onImport: (file) => importGame(file),
-  });
+  // ── 저장: 자동 저장, 내보내기·불러오기·새로 시작, 파산 창 (saveControls.js) ──
+  // 불러오기·새로 시작 뒤에는 고르던 것과 그리던 것을 모두 놓는다
+  const clearWork = () => {
+    select(null);
+    trackTool.cancel();
+    routeTool.cancel();
+  };
+  const { bankruptDialog } = bindSaveControls({ notice, loadMessage, clearWork, render });
 
+  // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {
     map,
     ui,
@@ -322,11 +313,13 @@ export function startApp(map, loadMessage) {
   addDraftLayers(map);
   addHandleLayers(map);
 
+  // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──
+  const animation = startAnimation(map);
+
   // 상태가 바뀌면: 열차를 노선에 맞추고 → 수입·운영비를 다시 계산하고 → 화면을 다시 그린다
-  let trainsChanged = true;
   subscribe(() => {
     syncTrains();
-    trainsChanged = true;
+    animation.markTrainsChanged();
   });
   subscribe(updateEconomy);
   subscribe(() => warnings.crowding());
@@ -339,52 +332,4 @@ export function startApp(map, loadMessage) {
   render();
 
   bindMapInput(ctx);
-
-  // ── 저장: 자동 저장, 내보내기·불러오기·새로 시작 ──
-  startAutosave((problem) => notice(problem, 'bad'));
-  if (loadMessage) notice(loadMessage.text, loadMessage.tone);
-
-  // 불러오기·새로 시작 뒤에는 고르던 것과 그리던 것을 모두 놓는다
-  const clearWork = () => {
-    select(null);
-    trackTool.cancel();
-    routeTool.cancel();
-  };
-  const importGame = (file) => {
-    importFromFile(file)
-      .then(() => {
-        clearWork();
-        render();
-        notice('저장 파일을 불러왔어요');
-      })
-      .catch((error) => notice(error.message, 'bad'));
-  };
-  const startOver = () => {
-    clearWork();
-    resetGame();
-    notice('새 게임을 시작해요');
-  };
-  createFileMenu(document.getElementById('file-menu'), {
-    onExport: exportToFile,
-    onImport: importGame,
-    onReset: startOver,
-  });
-
-  // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 ──
-  let lastFrame = performance.now();
-  function frame(now) {
-    // 탭을 오래 비웠다 돌아와도 열차가 순간이동하지 않게 한 프레임은 최대 0.1초로 친다
-    const realSeconds = Math.min((now - lastFrame) / 1000, 0.1);
-    lastFrame = now;
-    const { speed, trains } = getState();
-    // 시간이 흐르면 달력·정산을 위해 매 프레임 계산하지만,
-    // 열차를 다시 그리는 건 움직이는 열차가 있거나 열차가 바뀌었을 때만 한다 (지도가 쉴 수 있게)
-    stepSimulation(realSeconds * speed);
-    if ((speed > 0 && trains.length > 0) || trainsChanged) {
-      updateTrains(map, trainFeatures());
-      trainsChanged = false;
-    }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
 }

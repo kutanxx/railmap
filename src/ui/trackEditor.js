@@ -4,7 +4,8 @@
 // - 경유점 손잡이를 두 번 클릭하면 그 경유점이 지워진다 (선로가 짧아지니 돈은 들지 않는다)
 // 끄는 동안 마우스 옆에 바뀐 길이와 더 낼 공사비를 보여주고, 놓을 때 공사비를 낸다.
 import { updateHandles, handleAt } from '../map/trackLayers.js';
-import { findTrack, trackCoords, rerouteCost, setTrackWaypoints } from '../game/state.js';
+import { findTrack, trackCoords } from '../game/state.js';
+import { rerouteCost, setTrackWaypoints } from '../game/build.js';
 import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
 

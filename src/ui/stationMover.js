@@ -2,7 +2,7 @@
 // 끄는 동안 이어진 선로가 따라오고, 마우스 옆에 이전 비용을 보여준다. 놓으면 새 자리의 주변 인구를 다시 잰다.
 import { stationIdAt } from '../map/stationLayers.js';
 import { estimatePopulation } from '../map/population.js';
-import { moveStationCost, moveStation } from '../game/state.js';
+import { moveStationCost, moveStation } from '../game/build.js';
 import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
 

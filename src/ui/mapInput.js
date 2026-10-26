@@ -3,7 +3,8 @@
 import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
 import { estimatePopulation } from '../map/population.js';
-import { getState, findStation, addStation, undo, redo } from '../game/state.js';
+import { getState, findStation, undo, redo } from '../game/state.js';
+import { addStation } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
 import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
