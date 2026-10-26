@@ -8,7 +8,7 @@
 // 지도마다 다른 돈 계산 (밸런스):
 //   startMoney: 시작 자금 (억)
 //   populationScale: 건물 면적으로 잰 인구에 곱하는 배율 (1 = PEOPLE_PER_BUILT_M2 그대로)
-//   trackCostScale: 선로·교량 공사비와 선로 운영비에 곱하는 배율 (지방은 땅값이 싸서 1보다 작다)
+//   trackCostScale: 선로·교량·터널 공사비와 선로 운영비에 곱하는 배율 (지방은 땅값이 싸서 1보다 작다)
 export const REGIONS = {
   seoul: {
     name: '서울',
@@ -60,6 +60,8 @@ export const STATION_SHAPE_VARIETY = 0.25;
 export const TRANSFER_HALL_M = 34;
 // 같은 선로를 두 노선이 함께 쓰면 띠를 나란히 놓는다. 띠 사이 틈 (미터)
 export const PARALLEL_PLATFORM_GAP_M = 3;
+// 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 승강장 그림으로 대신 보여준다
+export const PLATFORM_REAL_SIZE_ZOOM = 14;
 
 // ── 역 출구 ────────────────────────────
 // 대합실 양옆으로 통로를 뻗어, 건물이 없는 가장 가까운 길가(보도)에 출구를 놓는다
@@ -94,8 +96,6 @@ export const EXIT_LABEL_ZOOM = 16;
 // 출구 이름 붙이는 방식. 지금은 'seoul'(상행 오른쪽 앞이 1번, 시계 방향)만 있다 (ui/exitNames.js)
 export const EXIT_NAMING = 'seoul';
 
-// 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 그림으로 대신 보여준다
-export const PLATFORM_REAL_SIZE_ZOOM = 14;
 
 // ── 노선 색 ────────────────────────────
 // 노선마다 고를 수 있는 차분한 색 6가지. 새 노선은 이 순서대로 돌아가며 받는다
@@ -151,13 +151,33 @@ export const TRAIN_MIN_SCREEN_PX = 24;
 // ── 돈 (단위: 억 원) ────────────────────
 // 시작 자금은 지도마다 다르다: 위의 REGIONS의 startMoney (서울 600억 = 역 3개짜리 첫 노선 약 320억 + 여유)
 
-// 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
-// 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값
+// 선로 공사비 = (땅 위 km × TRACK_COST_PER_KM + 교량 km × BRIDGE_COST_PER_KM + 터널 km × TUNNEL_COST_PER_KM)
+//              × 지도의 trackCostScale. 교량·터널은 game/trackProfile.js가 판정한다
+// 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 서울에서 역 6개짜리 첫 노선이 열차 2대로 약 8년(93개월)에 본전
 export const TRACK_COST_PER_KM = 60;
 // 물(한강·호수 등) 위나 높은 고가 구간은 교량이라 km당 이만큼 든다 (보통 선로의 2.5배)
 export const BRIDGE_COST_PER_KM = 150;
 // 터널 구간은 km당 이만큼 든다 (가상 지도처럼 땅 높이가 있을 때만 생긴다)
 export const TUNNEL_COST_PER_KM = 230;
+// 새 역 하나 공사비
+export const STATION_COST = 40;
+// 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
+export const STATION_MOVE_COST_RATIO = 0.25;
+
+// 매달 운영비 = 역 개수 × OPEX_PER_STATION + 선로 km × OPEX_PER_TRACK_KM × 지도의 trackCostScale
+//              + 열차 대수 × OPEX_PER_TRAIN
+// 한적한 곳에 지은 노선은 이 운영비 때문에 적자가 난다
+export const OPEX_PER_STATION = 0.4;
+export const OPEX_PER_TRACK_KM = 0.2;
+export const OPEX_PER_TRAIN = 1.0;
+
+// ── 빚과 파산 ───────────────────────────
+// 자금이 마이너스면 매달 빚의 이만큼을 이자로 낸다 (0.01 = 1%)
+export const DEBT_INTEREST_PER_MONTH = 0.01;
+// 자금이 이보다 낮아지면 (예: −200억) 파산 경고가 시작된다
+export const DEBT_LIMIT = -200;
+// 한도 아래로 이만큼 달이 이어지면 파산해서 게임이 끝난다
+export const BANKRUPT_GRACE_MONTHS = 6;
 
 // ── 지형 (땅 높이가 있는 가상 지도만) ───────
 // 선로를 이만큼(미터)마다 짚어 땅 높이를 잰다
@@ -174,23 +194,6 @@ export const MIN_TUNNEL_M = 100;
 // 열차는 경사가 이만큼을 넘으면 느려지기 시작해서, 가장 가파른 경사(MAX_GRADE)에서는 최고 속도의 이 비율로 달린다
 export const GRADE_SLOW_START = 0.015;
 export const SPEED_RATIO_AT_MAX_GRADE = 0.75;
-export const STATION_COST = 40;
-// 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
-export const STATION_MOVE_COST_RATIO = 0.25;
-
-// 매달 운영비 = 역 개수 × OPEX_PER_STATION + 선로 km × OPEX_PER_TRACK_KM + 열차 대수 × OPEX_PER_TRAIN
-// 한적한 곳에 지은 노선은 이 운영비 때문에 적자가 난다
-export const OPEX_PER_STATION = 0.4;
-export const OPEX_PER_TRACK_KM = 0.2;
-export const OPEX_PER_TRAIN = 1.0;
-
-// ── 빚과 파산 ───────────────────────────
-// 자금이 마이너스면 매달 빚의 이만큼을 이자로 낸다 (0.01 = 1%)
-export const DEBT_INTEREST_PER_MONTH = 0.01;
-// 자금이 이보다 낮아지면 (예: −200억) 파산 경고가 시작된다
-export const DEBT_LIMIT = -200;
-// 한도 아래로 이만큼 달이 이어지면 파산해서 게임이 끝난다
-export const BANKRUPT_GRACE_MONTHS = 6;
 
 // ── 날짜 ───────────────────────────────
 // 1배속에서 한 달이 실제 몇 초인지

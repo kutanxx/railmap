@@ -21,9 +21,7 @@ function readMuted() {
   return localStorage.getItem(MUTED_KEY) === '1';
 }
 
-export const isMuted = () => muted;
-
-export function setMuted(next) {
+function setMuted(next) {
   muted = next;
   localStorage.setItem(MUTED_KEY, next ? '1' : '0');
 }

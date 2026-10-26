@@ -1,7 +1,8 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
-// 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js
+// 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js, [선로]·[노선] 도구 drawingTools.js,
+// 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js
 import { BANKRUPT_GRACE_MONTHS } from '../config.js';
 import { getRegion } from '../game/region.js';
 import {
@@ -10,44 +11,29 @@ import {
   addCatchmentLayer,
   updateCatchment,
 } from '../map/stationLayers.js';
-import { addTrackLayers, addDraftLayers, updateDraft, addHandleLayers } from '../map/trackLayers.js';
+import { addTrackLayers, addDraftLayers, addHandleLayers } from '../map/trackLayers.js';
 import { addTrainLayers } from '../map/trainLayers.js';
 import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
-import {
-  getState,
-  subscribe,
-  setSpeed,
-  findStation,
-  findTrackBetween,
-  routeCoords,
-  monthlyInterest,
-} from '../game/state.js';
-import {
-  renameStation,
-  rotateStation,
-  removeStation,
-  addTrack,
-  removeTrack,
-} from '../game/build.js';
-import { addRoute, removeRoute, newRouteCost } from '../game/routes.js';
+import { getState, subscribe, setSpeed, findStation, monthlyInterest } from '../game/state.js';
+import { renameStation, rotateStation, removeStation, removeTrack } from '../game/build.js';
+import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
-import { trackCostForCoords } from '../game/economy.js';
-import { setWaterTest } from '../game/trackProfile.js';
+import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl } from './speedControl.js';
 import { createPanel } from './panel.js';
-import { createTrackTool } from './trackTool.js';
-import { createRouteTool } from './routeTool.js';
 import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
 import { infoPanelView, routePanelView, profilePanelView, routeColors } from './views.js';
 import { createStatus } from './status.js';
 import { createCursorTip } from './cursorTip.js';
 import { showCallout } from './callouts.js';
+import { createDrawingTools } from './drawingTools.js';
+import { createViewToggles } from './viewToggles.js';
 import { bindMapInput } from './mapInput.js';
 import { createWarnings } from './warnings.js';
 import { shortfall, costNote } from './costText.js';
@@ -60,13 +46,9 @@ import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
 import { createTutorial } from './tutorial.js';
-import { createCongestionToggle } from './congestionToggle.js';
-import { createTerrainToggle } from './terrainToggle.js';
 import { hasTerrain, terrainGrid } from '../game/terrain.js';
-import { addContourLayers, setContoursVisible } from '../map/contours.js';
+import { addContourLayers } from '../map/contours.js';
 import { createProfilePanel } from './profilePanel.js';
-import { playSound, createSoundToggle } from './sounds.js';
-import { trackProfile } from '../game/trackProfile.js';
 
 export function startApp(map, loadMessage) {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구, 선택한 것, 진행 중인 편집
@@ -136,25 +118,9 @@ export function startApp(map, loadMessage) {
   createHelpCard(document.getElementById('help'), document.getElementById('help-button'), {
     onTutorial: tutorial.start,
   });
-  // 혼잡도 보기 켜고 끄기 (버튼, C 키)
-  const toggleCongestion = () => {
-    ui.congestion = !ui.congestion;
-    render();
-  };
-  const congestionToggle = createCongestionToggle(document.getElementById('congestion'), toggleCongestion);
-  // 지형 보기 켜고 끄기 (버튼, T 키). 땅 높이가 없는 지도(서울)에서는 버튼을 숨기고 아무것도 하지 않는다
-  const toggleTerrain = () => {
-    if (!hasTerrain()) return;
-    ui.terrain = !ui.terrain;
-    setContoursVisible(map, ui.terrain);
-    render();
-  };
-  const terrainElement = document.getElementById('terrain');
-  terrainElement.hidden = !hasTerrain();
-  const terrainToggle = createTerrainToggle(terrainElement, toggleTerrain);
+  // [혼잡도 보기]·[지형]·[소리] 버튼 (viewToggles.js)
+  const toggles = createViewToggles({ map, ui, render });
   const status = createStatus(document.getElementById('status'));
-  // [소리] 버튼 (M 키)
-  const soundToggle = createSoundToggle(document.getElementById('sound-button'));
   // 화면 아래 종단면도 (땅 높이가 있는 가상 지도만): 선로를 그리는 중이면 그리는 선로, 아니면 고른 선로·노선
   const profilePanel = createProfilePanel(document.getElementById('profile'));
   const showDraftProfile = (coords) => {
@@ -171,57 +137,8 @@ export function startApp(map, loadMessage) {
     onDeletePreview: previewDelete,
   });
 
-  const trackTool = createTrackTool({
-    onChange: (draft) => updateDraft(map, draft),
-    onComplete: (from, to, waypoints) => {
-      const track = addTrack(from, to, waypoints);
-      if (!track) {
-        const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
-        const { cost } = trackCostForCoords(coords);
-        showCallout(map, findStation(to).coord, shortfall(cost), 'bad');
-        return false;
-      }
-      select({ type: 'track', id: track.id });
-      render();
-      playSound('track');
-      return true;
-    },
-  });
-
-  const routeTool = createRouteTool({
-    // 앞 역과 다음 역 사이에 선로가 없으면 이유를 알려준다
-    checkLink: (from, to) =>
-      findTrackBetween(from, to)
-        ? null
-        : `${findStation(from).name}과(와) ${findStation(to).name} 사이에 선로가 없어요. [선로] 도구로 먼저 이어주세요.`,
-    onChange: () => {
-      // 고른 역들을 잇는 선로를 점선으로 미리 보여준다
-      const draft = routeTool.getDraft();
-      updateDraft(
-        map,
-        draft && {
-          coords: routeCoords({ stations: draft.stations }),
-          waypoints: draft.stations.map((id) => findStation(id).coord),
-          cursor: null,
-        },
-      );
-      render();
-    },
-    onComplete: (stationIds) => {
-      const route = addRoute(stationIds);
-      if (!route) {
-        // 기본 열차 값을 낼 돈이 모자라면 고르던 역을 그대로 두고 이유를 알려준다
-        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
-        return false;
-      }
-      select({ type: 'route', id: route.id });
-      render();
-      // 노선 가운데쯤 역 위에 개통 말풍선을 띄운다
-      const middle = stationIds[Math.floor(stationIds.length / 2)];
-      showCallout(map, findStation(middle).coord, `${route.name} 개통`);
-      playSound('open');
-    },
-  });
+  // [선로]·[노선] 그리기 도구 (drawingTools.js)
+  const { trackTool, routeTool } = createDrawingTools({ map, select, render, notice });
 
   // 오른쪽 노선 패널 (routeControls.js)
   const routePanel = createRouteControls(document.getElementById('routes'), {
@@ -280,8 +197,7 @@ export function startApp(map, loadMessage) {
     });
     bankruptDialog.show({ bankrupt, year, month, money });
     toolbar.setActive(ui.tool);
-    congestionToggle.setActive(ui.congestion);
-    terrainToggle.setActive(ui.terrain);
+    toggles.show();
     speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
@@ -327,10 +243,10 @@ export function startApp(map, loadMessage) {
     render,
     chooseTool,
     deleteSelected,
-    toggleCongestion,
-    toggleTerrain,
+    toggleCongestion: toggles.toggleCongestion,
+    toggleTerrain: toggles.toggleTerrain,
+    toggleSound: toggles.toggleSound,
     showDraftProfile,
-    toggleSound: soundToggle.toggle,
     renderTracks,
     trackTool,
     routeTool,
