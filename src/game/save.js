@@ -2,7 +2,84 @@
 // - 자동 저장: 상태가 바뀌면 잠깐 기다렸다가 브라우저 저장 공간(localStorage)에 저장한다
 // - 내보내기: 저장 내용을 JSON 파일로 받는다
 // - 불러오기: JSON 파일을 읽어 그 상태로 바꾼다
-import { saveData, loadData, subscribe } from './state.js';
+import { START_MONEY, START_YEAR, START_MONTH } from '../config.js';
+import {
+  getState,
+  subscribe,
+  notify,
+  snapshotNetwork,
+  restoreNetwork,
+  clearHistory,
+} from './state.js';
+
+const state = getState();
+
+const SAVE_VERSION = 1;
+
+// 저장할 내용 (열차 위치는 저장하지 않고, 불러올 때 노선에 맞춰 새로 놓는다)
+export function saveData() {
+  return {
+    version: SAVE_VERSION,
+    network: snapshotNetwork(),
+    speed: state.speed,
+    elapsedSeconds: state.elapsedSeconds,
+    year: state.year,
+    month: state.month,
+    monthProgress: state.monthProgress,
+    lastSettlement: state.lastSettlement,
+    monthsOverDebtLimit: state.monthsOverDebtLimit,
+    bankrupt: state.bankrupt,
+  };
+}
+
+// 저장한 내용을 불러온다. 형식이 맞지 않으면 이유를 담은 에러를 던진다
+export function loadData(data) {
+  const network = data?.network;
+  if (data?.version !== SAVE_VERSION || !network) {
+    throw new Error('레일맵 저장 파일이 아니거나, 지원하지 않는 버전이에요.');
+  }
+  for (const key of ['stations', 'tracks', 'routes']) {
+    if (!Array.isArray(network[key])) throw new Error(`저장 파일에 ${key} 목록이 없어요.`);
+  }
+  restoreNetwork(network);
+  state.money = network.money;
+  state.trains = [];
+  state.speed = data.speed;
+  state.elapsedSeconds = data.elapsedSeconds;
+  state.year = data.year;
+  state.month = data.month;
+  state.monthProgress = data.monthProgress;
+  state.lastSettlement = data.lastSettlement;
+  // 빚·파산 기록이 없는 예전 저장 파일은 빚이 없던 것으로 친다
+  state.monthsOverDebtLimit = data.monthsOverDebtLimit ?? 0;
+  state.bankrupt = data.bankrupt ?? false;
+  clearHistory();
+  notify();
+}
+
+// 처음 상태로 돌아간다
+export function resetGame() {
+  restoreNetwork({
+    stations: [],
+    tracks: [],
+    routes: [],
+    nextStationNumber: 1,
+    nextTrackNumber: 1,
+    nextRouteNumber: 1,
+  });
+  state.trains = [];
+  state.money = START_MONEY;
+  state.speed = 1;
+  state.elapsedSeconds = 0;
+  state.year = START_YEAR;
+  state.month = START_MONTH;
+  state.monthProgress = 0;
+  state.lastSettlement = null;
+  state.monthsOverDebtLimit = 0;
+  state.bankrupt = false;
+  clearHistory();
+  notify();
+}
 
 const STORAGE_KEY = 'railmap-save';
 const AUTOSAVE_DELAY_MS = 1000; // 바뀐 뒤 이만큼 조용하면 저장한다 (연달아 바뀔 때 매번 저장하지 않게)

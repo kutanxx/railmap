@@ -1,9 +1,11 @@
 // 숫자를 화면에 보여줄 글로 바꾼다
 
-// 돈 (억 원): 612.3 → "612.3억", 1234 → "1,234억"
+// 돈 (억 원): 612.3 → "612.3억", 1234 → "1,234억", -239 → "−239억"
 export function formatMoney(amount) {
-  const rounded = Math.abs(amount) >= 100 ? Math.round(amount) : Math.round(amount * 10) / 10;
-  return `${rounded.toLocaleString('ko-KR')}억`;
+  const size = Math.abs(amount);
+  const rounded = size >= 100 ? Math.round(size) : Math.round(size * 10) / 10;
+  // 빼기 기호는 글자 폭이 넓은 "−"로 통일한다 (월 수지의 "−"와 같게)
+  return `${amount < 0 && rounded > 0 ? '−' : ''}${rounded.toLocaleString('ko-KR')}억`;
 }
 
 // 부호를 붙인 돈: 4.81 → "+4.8억", -1.2 → "−1.2억"

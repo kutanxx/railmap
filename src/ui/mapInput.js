@@ -11,7 +11,7 @@ import { showCallout } from './callouts.js';
 import { formatMoney, formatPopulation } from './format.js';
 
 export function bindMapInput(ctx) {
-  const { map, ui, select, render, trackTool, routeTool, cursorTip, shortfall, notice } = ctx;
+  const { map, ui, select, render, trackTool, routeTool, cursorTip, shortfall, costNote, notice } = ctx;
 
   // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
   const stationAt = (point) => {
@@ -19,9 +19,11 @@ export function bindMapInput(ctx) {
     return id && findStation(id) ? id : null;
   };
 
-  // 마우스 옆 안내: 모자란 돈이 있으면 붉게
-  const tip = (point, text, problem) =>
-    cursorTip.show(point.x, point.y, problem ? `${text} · ${problem}` : text, problem ? 'bad' : 'info');
+  // 마우스 옆 공사비 안내: 못 지으면 붉게, 빚을 내서 지으면 주황으로 (costNote)
+  const tip = (point, text, cost) => {
+    const note = costNote(cost);
+    cursorTip.show(point.x, point.y, note ? `${text} · ${note.text}` : text, note?.tone ?? 'info');
+  };
 
   // ── 역 놓기 미리보기: 마우스 자리에 500m 원, 마우스가 멈추면 주변 인구 ──
   // 인구 재기는 0.1초쯤 걸려서, 마우스를 움직이는 동안에는 재지 않고 멈춘 뒤에 한 번 잰다
@@ -36,7 +38,7 @@ export function bindMapInput(ctx) {
       estimate?.key === placeKey(coord)
         ? `주변 인구 약 ${formatPopulation(estimate.population)}`
         : '주변 인구 재는 중…';
-    tip(point, `${cost} · ${people}`, shortfall(stationCost()));
+    tip(point, `${cost} · ${people}`, stationCost());
   }
 
   function previewStation(point, coord) {
@@ -107,7 +109,7 @@ export function bindMapInput(ctx) {
       const coords = trackTool.previewCoords();
       if (coords) {
         const { km, cost } = trackCostForCoords(coords);
-        tip(event.point, `${km.toFixed(2)} km · 공사비 ${formatMoney(cost)}`, shortfall(cost));
+        tip(event.point, `${km.toFixed(2)} km · 공사비 ${formatMoney(cost)}`, cost);
       } else {
         cursorTip.hide();
       }

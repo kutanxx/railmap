@@ -1,6 +1,6 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 애니메이션, 저장 버튼.
 // 지도 위 클릭·마우스·키보드 처리는 mapInput.js, 선로 끌기는 trackEditor.js가 맡는다.
-import { REGION_NAME } from '../config.js';
+import { REGION_NAME, DEBT_LIMIT, BANKRUPT_GRACE_MONTHS } from '../config.js';
 import {
   addStationLayers,
   updateStations,
@@ -28,8 +28,8 @@ import {
   removeTrack,
   trackCoords,
   findTrackBetween,
-  resetGame,
   routeCoords,
+  monthlyInterest,
 } from '../game/state.js';
 import {
   addRoute,
@@ -44,7 +44,7 @@ import {
 import { syncTrains, stepSimulation, trainFeatures } from '../game/sim.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
-import { startAutosave, exportToFile, importFromFile } from '../game/save.js';
+import { startAutosave, exportToFile, importFromFile, resetGame } from '../game/save.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl } from './speedControl.js';
@@ -59,6 +59,7 @@ import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
 import { createFileMenu } from './fileMenu.js';
 import { bindMapInput } from './mapInput.js';
+import { createBankruptDialog } from './bankruptDialog.js';
 import { createTrackEditor } from './trackEditor.js';
 
 export function startApp(map, loadMessage) {
@@ -72,10 +73,20 @@ export function startApp(map, loadMessage) {
     hover: null, // 역 놓기 도구에서 마우스가 있는 자리 [경도, 위도]
   };
 
-  // 공사비가 자금보다 많으면 모자란 금액을 알려주는 글, 아니면 null
+  // 빚 한도까지 써도 공사비가 모자라면 모자란 금액을 알려주는 글, 아니면 null
   const shortfall = (cost) => {
-    const { money } = getState();
-    return cost > money ? `자금이 ${formatMoney(cost - money)} 모자라요` : null;
+    const room = getState().money - DEBT_LIMIT; // 빚 한도까지 쓸 수 있는 돈
+    return cost > room
+      ? `빚 한도(${formatMoney(DEBT_LIMIT)})까지 ${formatMoney(cost - room)} 모자라요`
+      : null;
+  };
+  // 마우스 옆 공사비 안내에 붙일 말: 못 지으면 붉게, 빚을 내서 지으면 주황으로, 아니면 null
+  const costNote = (cost) => {
+    const problem = shortfall(cost);
+    if (problem) return { text: problem, tone: 'bad' };
+    const borrowed = cost - Math.max(getState().money, 0);
+    if (borrowed > 0) return { text: `빚 ${formatMoney(borrowed)}으로 지어요`, tone: 'warn' };
+    return null;
   };
   // 화면 가운데 말풍선 알림
   const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);
@@ -220,12 +231,19 @@ export function startApp(map, loadMessage) {
 
   // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
   function render() {
-    const { stations, routes, speed, money, year, month } = getState();
+    const { stations, routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
     const { stationColors } = routeColors(routes);
 
     renderBadge(document.getElementById('badge'), { year, month, region: REGION_NAME });
     const economy = getEconomy();
-    status.show({ money, net: economy.net, riders: economy.dailyRiders });
+    status.show({
+      money,
+      net: economy.net - monthlyInterest(),
+      riders: economy.dailyRiders,
+      monthsLeft:
+        monthsOverDebtLimit > 0 && !bankrupt ? BANKRUPT_GRACE_MONTHS - monthsOverDebtLimit : null,
+    });
+    bankruptDialog.show({ bankrupt, year, month, money });
     toolbar.setActive(ui.tool);
     speedControl.setActive(speed);
     renderTracks();
@@ -264,8 +282,46 @@ export function startApp(map, loadMessage) {
     crowdedRoutes = now;
   }
 
+  // 빚 경고: 한도를 처음 넘은 달, 그 뒤 매달 남은 달, 한도 안으로 돌아온 달에 말풍선을 띄운다
+  let lastDebtMonths = getState().monthsOverDebtLimit;
+  function warnDebt() {
+    const { monthsOverDebtLimit: months, bankrupt } = getState();
+    if (months === lastDebtMonths || bankrupt) {
+      lastDebtMonths = months;
+      return;
+    }
+    if (months === 1) {
+      notice(
+        `빚이 한도(${formatMoney(DEBT_LIMIT)})를 넘었어요. ${BANKRUPT_GRACE_MONTHS}개월 안에 갚지 못하면 파산해요`,
+        'bad',
+      );
+    } else if (months > 1) {
+      notice(`파산까지 ${BANKRUPT_GRACE_MONTHS - months}개월 남았어요`, 'bad');
+    } else {
+      notice('빚이 한도 안으로 돌아왔어요');
+    }
+    lastDebtMonths = months;
+  }
+
   // 지도 입력과 선로 끌기가 함께 쓰는 것들
-  const ctx = { map, ui, select, render, renderTracks, trackTool, routeTool, cursorTip, shortfall, notice };
+  const bankruptDialog = createBankruptDialog(document.getElementById('bankrupt'), {
+    onReset: () => startOver(),
+    onImport: (file) => importGame(file),
+  });
+
+  const ctx = {
+    map,
+    ui,
+    select,
+    render,
+    renderTracks,
+    trackTool,
+    routeTool,
+    cursorTip,
+    shortfall,
+    costNote,
+    notice,
+  };
   const trackEditor = createTrackEditor(ctx);
 
   // 그리는 순서: 역세권 원 → 선로 → 역 → 열차 → 미리보기 → 선로 손잡이 (나중에 추가한 것이 위에 보인다)
@@ -284,6 +340,7 @@ export function startApp(map, loadMessage) {
   });
   subscribe(updateEconomy);
   subscribe(warnCrowding);
+  subscribe(warnDebt);
   subscribe(render);
   // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
   syncTrains();
@@ -303,22 +360,24 @@ export function startApp(map, loadMessage) {
     trackTool.cancel();
     routeTool.cancel();
   };
+  const importGame = (file) => {
+    importFromFile(file)
+      .then(() => {
+        clearWork();
+        render();
+        notice('저장 파일을 불러왔어요');
+      })
+      .catch((error) => notice(error.message, 'bad'));
+  };
+  const startOver = () => {
+    clearWork();
+    resetGame();
+    notice('새 게임을 시작해요');
+  };
   createFileMenu(document.getElementById('file-menu'), {
     onExport: exportToFile,
-    onImport: (file) => {
-      importFromFile(file)
-        .then(() => {
-          clearWork();
-          render();
-          notice('저장 파일을 불러왔어요');
-        })
-        .catch((error) => notice(error.message, 'bad'));
-    },
-    onReset: () => {
-      clearWork();
-      resetGame();
-      notice('새 게임을 시작해요');
-    },
+    onImport: importGame,
+    onReset: startOver,
   });
 
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 ──

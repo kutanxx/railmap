@@ -9,13 +9,18 @@ export function createStatus(element) {
     <b class="status-net"></b>
     <span class="status-label">하루 승객</span>
     <b class="status-riders"></b>
+    <span class="status-danger" hidden></span>
   `;
   const moneyText = element.querySelector('.status-money');
   const netText = element.querySelector('.status-net');
   const ridersText = element.querySelector('.status-riders');
+  const dangerText = element.querySelector('.status-danger');
 
-  // money: 지금 자금, net: 이번 달 예상 수지 (수입 − 운영비), riders: 하루 승객 전체
-  function show({ money, net, riders }) {
+  // money: 지금 자금, net: 이번 달 예상 수지 (수입 − 운영비 − 이자), riders: 하루 승객 전체
+  // monthsLeft: 파산까지 남은 달 (빚이 한도 안이면 null)
+  function show({ money, net, riders, monthsLeft }) {
+    dangerText.hidden = monthsLeft === null;
+    if (monthsLeft !== null) dangerText.textContent = `파산까지 ${monthsLeft}개월`;
     ridersText.textContent = formatPopulation(riders);
     moneyText.textContent = formatMoney(money);
     moneyText.classList.toggle('negative', money < 0);

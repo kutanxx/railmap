@@ -118,7 +118,7 @@ export function updateEconomy() {
 
   const trackKm = tracks.reduce((sum, track) => sum + trackLengthKm(track), 0);
   const trainCount = routes.reduce((sum, route) => sum + route.trainCount, 0);
-  const opex = monthlyOpex(trackKm, trainCount);
+  const opex = monthlyOpex(stations.length, trackKm, trainCount);
   economy = {
     revenue,
     opex,

@@ -5,6 +5,7 @@ import {
   STATION_COST,
   OPEX_PER_TRACK_KM,
   OPEX_PER_TRAIN,
+  OPEX_PER_STATION,
   FARE_BASE_WON,
   FARE_BASE_KM,
   FARE_STEP_WON,
@@ -24,9 +25,11 @@ export function trackCostForCoords(coords) {
   return { km, cost: km * TRACK_COST_PER_KM };
 }
 
-// 매달 운영비 = 선로 km × km당 운영비 + 열차 대수 × 열차당 운영비
-export function monthlyOpex(totalTrackKm, totalTrains) {
-  return totalTrackKm * OPEX_PER_TRACK_KM + totalTrains * OPEX_PER_TRAIN;
+// 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 + 열차 대수 × 열차당 운영비
+export function monthlyOpex(stationCount, totalTrackKm, totalTrains) {
+  return (
+    stationCount * OPEX_PER_STATION + totalTrackKm * OPEX_PER_TRACK_KM + totalTrains * OPEX_PER_TRAIN
+  );
 }
 
 // 승객 한 명의 요금 (원). 서울 지하철처럼 탄 거리에 따라 오른다

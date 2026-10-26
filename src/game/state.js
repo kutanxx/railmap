@@ -6,6 +6,9 @@ import {
   START_MONEY,
   START_YEAR,
   START_MONTH,
+  DEBT_INTEREST_PER_MONTH,
+  DEBT_LIMIT,
+  BANKRUPT_GRACE_MONTHS,
 } from '../config.js';
 import { stationCost, trackCostForCoords } from './economy.js';
 import { createHistory } from './history.js';
@@ -36,8 +39,12 @@ const state = {
   year: START_YEAR,
   month: START_MONTH,
   monthProgress: 0,
-  // 지난달 정산 결과 { revenue, opex, net } (아직 없으면 null)
+  // 지난달 정산 결과 { revenue, opex, interest, net } (아직 없으면 null)
   lastSettlement: null,
+  // 자금이 빚 한도(DEBT_LIMIT)보다 낮은 채로 이어진 달 수. BANKRUPT_GRACE_MONTHS가 되면 파산
+  monthsOverDebtLimit: 0,
+  // 파산했는지. 파산하면 시간이 멈추고 아무것도 지을 수 없다
+  bankrupt: false,
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
@@ -46,6 +53,11 @@ const state = {
 
 const listeners = new Set();
 const history = createHistory();
+
+// 되돌리기 기록을 모두 지운다 (불러오기·새로 시작 때. game 폴더 안에서만 쓴다)
+export function clearHistory() {
+  history.clear();
+}
 
 export function getState() {
   return state;
@@ -56,14 +68,16 @@ export function subscribe(listener) {
   listeners.add(listener);
 }
 
-function notify() {
+// (game 폴더 안에서만 쓴다)
+export function notify() {
   for (const listener of listeners) listener(state);
 }
 
 // ── 되돌리기 ───────────────────────────
 // "철도망" = 플레이어가 지은 것과 그에 쓴 돈. 되돌리기는 이것만 바꾸고 날짜·시간은 그대로 둔다
 
-function snapshotNetwork() {
+// (game 폴더 안에서만 쓴다: 저장할 때)
+export function snapshotNetwork() {
   return structuredClone({
     stations: state.stations,
     tracks: state.tracks,
@@ -75,7 +89,8 @@ function snapshotNetwork() {
   });
 }
 
-function restoreNetwork(snapshot) {
+// (game 폴더 안에서만 쓴다: 불러올 때)
+export function restoreNetwork(snapshot) {
   const copy = structuredClone(snapshot);
   state.stations = copy.stations;
   state.tracks = copy.tracks;
@@ -89,6 +104,8 @@ function restoreNetwork(snapshot) {
 // action이 null을 돌려주면 (예: 자금 부족) 아무것도 바뀌지 않은 것으로 보고 기록하지 않는다
 // key가 같은 바뀜이 이어지면 한 번으로 합친다 (예: 이름을 한 글자씩 칠 때)
 export function change(key, action) {
+  // 파산하면 더는 아무것도 바꿀 수 없다
+  if (state.bankrupt) return null;
   const before = snapshotNetwork();
   const result = action();
   if (result === null) return null;
@@ -99,6 +116,7 @@ export function change(key, action) {
 
 // 되돌리기: 그때 쓴 공사비는 돌려받고, 그 뒤로 번 돈은 그대로 둔다
 export function undo() {
+  if (state.bankrupt) return false;
   const entry = history.undo();
   if (!entry) return false;
   const spent = entry.after.money - entry.before.money;
@@ -110,6 +128,7 @@ export function undo() {
 
 // 다시 하기: 되돌릴 때 돌려받은 공사비를 다시 낸다
 export function redo() {
+  if (state.bankrupt) return false;
   const entry = history.redo();
   if (!entry) return false;
   const spent = entry.after.money - entry.before.money;
@@ -123,82 +142,38 @@ export function redo() {
 
 // 시간 배속을 바꾼다
 export function setSpeed(speed) {
+  if (state.bankrupt) return;
   state.speed = speed;
   notify();
 }
 
-// 한 달을 마무리한다: 수입 − 운영비를 자금에 더하고 날짜를 한 달 넘긴다
+// 이 공사비를 낼 수 있는지: 자금이 모자라도 빚 한도(DEBT_LIMIT)까지는 빚을 내서 지을 수 있다
+export function canAfford(cost) {
+  return state.money - cost >= DEBT_LIMIT;
+}
+
+// 빚이 있으면 이번 달에 낼 이자 (억 원)
+export function monthlyInterest() {
+  return state.money < 0 ? -state.money * DEBT_INTEREST_PER_MONTH : 0;
+}
+
+// 한 달을 마무리한다: 수입 − 운영비 − 이자를 자금에 더하고 날짜를 한 달 넘긴다
+// 빚이 한도보다 깊은 달이 BANKRUPT_GRACE_MONTHS만큼 이어지면 파산한다
 export function settleMonth(revenue, opex) {
-  const net = revenue - opex;
+  const interest = monthlyInterest();
+  const net = revenue - opex - interest;
   state.money += net;
-  state.lastSettlement = { revenue, opex, net };
+  state.lastSettlement = { revenue, opex, interest, net };
+  state.monthsOverDebtLimit = state.money < DEBT_LIMIT ? state.monthsOverDebtLimit + 1 : 0;
+  if (state.monthsOverDebtLimit >= BANKRUPT_GRACE_MONTHS) {
+    state.bankrupt = true;
+    state.speed = 0;
+  }
   state.month += 1;
   if (state.month > 12) {
     state.month = 1;
     state.year += 1;
   }
-  notify();
-}
-
-// ── 저장과 불러오기 ─────────────────────
-
-const SAVE_VERSION = 1;
-
-// 저장할 내용 (열차 위치는 저장하지 않고, 불러올 때 노선에 맞춰 새로 놓는다)
-export function saveData() {
-  return {
-    version: SAVE_VERSION,
-    network: snapshotNetwork(),
-    speed: state.speed,
-    elapsedSeconds: state.elapsedSeconds,
-    year: state.year,
-    month: state.month,
-    monthProgress: state.monthProgress,
-    lastSettlement: state.lastSettlement,
-  };
-}
-
-// 저장한 내용을 불러온다. 형식이 맞지 않으면 이유를 담은 에러를 던진다
-export function loadData(data) {
-  const network = data?.network;
-  if (data?.version !== SAVE_VERSION || !network) {
-    throw new Error('레일맵 저장 파일이 아니거나, 지원하지 않는 버전이에요.');
-  }
-  for (const key of ['stations', 'tracks', 'routes']) {
-    if (!Array.isArray(network[key])) throw new Error(`저장 파일에 ${key} 목록이 없어요.`);
-  }
-  restoreNetwork(network);
-  state.money = network.money;
-  state.trains = [];
-  state.speed = data.speed;
-  state.elapsedSeconds = data.elapsedSeconds;
-  state.year = data.year;
-  state.month = data.month;
-  state.monthProgress = data.monthProgress;
-  state.lastSettlement = data.lastSettlement;
-  history.clear();
-  notify();
-}
-
-// 처음 상태로 돌아간다
-export function resetGame() {
-  restoreNetwork({
-    stations: [],
-    tracks: [],
-    routes: [],
-    nextStationNumber: 1,
-    nextTrackNumber: 1,
-    nextRouteNumber: 1,
-  });
-  state.trains = [];
-  state.money = START_MONEY;
-  state.speed = 1;
-  state.elapsedSeconds = 0;
-  state.year = START_YEAR;
-  state.month = START_MONTH;
-  state.monthProgress = 0;
-  state.lastSettlement = null;
-  history.clear();
   notify();
 }
 
@@ -209,11 +184,11 @@ export function findStation(id) {
 }
 
 // coord 자리에 새 역을 짓고, 지은 역을 돌려준다
-// 자금이 공사비보다 모자라면 짓지 않고 null을 돌려준다
+// 빚 한도 안에서도 공사비를 낼 수 없으면 짓지 않고 null을 돌려준다
 export function addStation(coord, { population, builtArea, cells }) {
   return change(null, () => {
     const cost = stationCost();
-    if (state.money < cost) return null;
+    if (!canAfford(cost)) return null;
     state.money -= cost;
     const number = state.nextStationNumber;
     state.nextStationNumber += 1;
@@ -267,12 +242,12 @@ export function findTrack(id) {
 }
 
 // 역 from에서 경유점들을 지나 역 to까지 선로를 깔고, 깐 선로를 돌려준다
-// 자금이 공사비보다 모자라면 깔지 않고 null을 돌려준다
+// 빚 한도 안에서도 공사비를 낼 수 없으면 깔지 않고 null을 돌려준다
 export function addTrack(from, to, waypoints) {
   return change(null, () => {
     const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
     const { cost } = trackCostForCoords(coords);
-    if (state.money < cost) return null;
+    if (!canAfford(cost)) return null;
     state.money -= cost;
     const number = state.nextTrackNumber;
     state.nextTrackNumber += 1;
@@ -293,13 +268,13 @@ export function rerouteCost(track, waypoints) {
   return { addedKm: after.km - before.km, cost: Math.max(0, after.cost - before.cost) };
 }
 
-// 선로의 경유점을 바꾼다 (끌어서 옮기기). 자금이 모자라면 바꾸지 않고 null
+// 선로의 경유점을 바꾼다 (끌어서 옮기기). 빚 한도 안에서도 낼 수 없으면 바꾸지 않고 null
 export function setTrackWaypoints(id, waypoints) {
   return change(null, () => {
     const track = findTrack(id);
     if (!track) return null;
     const { cost } = rerouteCost(track, waypoints);
-    if (state.money < cost) return null;
+    if (!canAfford(cost)) return null;
     state.money -= cost;
     track.waypoints = waypoints;
     return track;

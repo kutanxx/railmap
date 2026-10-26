@@ -6,7 +6,7 @@ import {
   MAX_TRAINS_PER_ROUTE,
   TRAIN_COST,
 } from '../config.js';
-import { getState, change, findStation, findTrackBetween, findRoute } from './state.js';
+import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
 
 // 노선을 만들 때 내는 돈: 기본 열차 값
 export function newRouteCost() {
@@ -15,11 +15,11 @@ export function newRouteCost() {
 
 // 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
 // 이름은 "1호선", "2호선" …, 색은 ROUTE_COLORS를 차례로 돌아가며 받는다
-// 기본 열차 값을 낼 돈이 모자라면 만들지 않고 null을 돌려준다
+// 기본 열차 값을 빚 한도 안에서 낼 수 없으면 만들지 않고 null을 돌려준다
 export function addRoute(stationIds) {
   return change(null, () => {
     const state = getState();
-    if (state.money < newRouteCost()) return null;
+    if (!canAfford(newRouteCost())) return null;
     state.money -= newRouteCost();
     const number = state.nextRouteNumber;
     state.nextRouteNumber += 1;
@@ -63,16 +63,15 @@ export function trainPurchaseCost(route, count) {
 }
 
 // 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)
-// 늘린 열차 값을 낼 돈이 모자라면 바꾸지 않고 null을 돌려준다
+// 늘린 열차 값을 빚 한도 안에서 낼 수 없으면 바꾸지 않고 null을 돌려준다
 export function setRouteTrainCount(id, count) {
   return change(null, () => {
     const route = findRoute(id);
     if (!route) return null;
     const next = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
     const cost = trainPurchaseCost(route, next);
-    const state = getState();
-    if (state.money < cost) return null;
-    state.money -= cost;
+    if (!canAfford(cost)) return null;
+    getState().money -= cost;
     route.trainCount = next;
     return route;
   });

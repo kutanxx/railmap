@@ -7,7 +7,7 @@ import { findTrack, trackCoords, rerouteCost, setTrackWaypoints } from '../game/
 import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
 
-export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, shortfall }) {
+export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, shortfall, costNote }) {
   // 끄는 중이면 { trackId, original: 원래 경유점, waypoints: 바뀐 경유점, index }
   let drag = null;
 
@@ -56,8 +56,8 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
     const { addedKm, cost } = rerouteCost(findTrack(drag.trackId), drag.waypoints);
     const sign = addedKm >= 0 ? '+' : '−';
     const text = `${sign}${Math.abs(addedKm).toFixed(2)} km · ${cost > 0 ? `공사비 +${formatMoney(cost)}` : '공사비 없음'}`;
-    const problem = shortfall(cost);
-    cursorTip.show(event.point.x, event.point.y, problem ? `${text} · ${problem}` : text, problem ? 'bad' : 'info');
+    const note = costNote(cost);
+    cursorTip.show(event.point.x, event.point.y, note ? `${text} · ${note.text}` : text, note?.tone ?? 'info');
   });
 
   map.on('mouseup', (event) => {

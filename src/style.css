@@ -725,3 +725,87 @@ body {
   color: #ffffff;
   font-size: 10px;
 }
+
+/* 위쪽 막대: 파산까지 n개월 */
+.status-danger {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #b0402f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-danger[hidden] {
+  display: none;
+}
+
+/* ── 화면 가운데 창 (파산) ── */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* 반투명으로 어둡게 하지 않는다 (아트 규칙: 완전히 플랫). 지도 클릭만 막는다 */
+  background: transparent;
+}
+
+.dialog-backdrop[hidden] {
+  display: none;
+}
+
+.dialog {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  border: 2px solid #1f3a55;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f3a55;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dialog-text {
+  margin: 10px 0 16px;
+  color: #6f6656;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-buttons button {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid #1f3a55;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dialog-buttons .dialog-primary {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+/* 빚을 내서 지을 때 (주황) */
+.cursor-tip-warn {
+  border-color: #c9772f;
+  color: #c9772f;
+}

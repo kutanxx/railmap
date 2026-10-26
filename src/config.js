@@ -69,16 +69,27 @@ export const CROWDED_WARNING = 0.8;
 export const TRAIN_LENGTH_M = 120;
 
 // ── 돈 (단위: 억 원) ────────────────────
-// 시작 자금
-export const START_MONEY = 500;
+// 시작 자금. 역 3개짜리 첫 노선(약 320억)을 지을 수 있을 만큼
+export const START_MONEY = 600;
 
 // 공사비 = 선로 길이(km) × TRACK_COST_PER_KM + 새 역 개수 × STATION_COST
-export const TRACK_COST_PER_KM = 22;
-export const STATION_COST = 15;
+// 서울 실제(km당 약 1,200억)보다 20배쯤 싸게 잡았다. 첫 노선이 2년쯤에 본전이 되도록 맞춘 값
+export const TRACK_COST_PER_KM = 60;
+export const STATION_COST = 40;
 
-// 매달 운영비 = 선로 km × OPEX_PER_TRACK_KM + 열차 대수 × OPEX_PER_TRAIN
-export const OPEX_PER_TRACK_KM = 0.1;
-export const OPEX_PER_TRAIN = 0.5;
+// 매달 운영비 = 역 개수 × OPEX_PER_STATION + 선로 km × OPEX_PER_TRACK_KM + 열차 대수 × OPEX_PER_TRAIN
+// 한적한 곳에 지은 노선은 이 운영비 때문에 적자가 난다
+export const OPEX_PER_STATION = 0.4;
+export const OPEX_PER_TRACK_KM = 0.2;
+export const OPEX_PER_TRAIN = 1.0;
+
+// ── 빚과 파산 ───────────────────────────
+// 자금이 마이너스면 매달 빚의 이만큼을 이자로 낸다 (0.01 = 1%)
+export const DEBT_INTEREST_PER_MONTH = 0.01;
+// 자금이 이보다 낮아지면 (예: −200억) 파산 경고가 시작된다
+export const DEBT_LIMIT = -200;
+// 한도 아래로 이만큼 달이 이어지면 파산해서 게임이 끝난다
+export const BANKRUPT_GRACE_MONTHS = 6;
 
 // ── 날짜 ───────────────────────────────
 // 1배속에서 한 달이 실제 몇 초인지
@@ -87,9 +98,9 @@ export const SECONDS_PER_MONTH = 20;
 // ── 승객 수요 (중력 모델) ─────────────────
 // 두 역 사이 하루 승객(명, 오가는 사람 모두) =
 //   RIDERS_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER
-// 43이면 전에 쓰던 수입 공식(월 0.02억 × …)과 비슷한 수입이 나온다
-export const RIDERS_FACTOR = 43;
-export const DEMAND_TIME_POWER = 0.8;
+// DEMAND_TIME_POWER: 클수록 먼 역끼리는 덜 오간다 (교통 연구에서 흔히 0.5~3, 1.5가 잘 맞았다는 연구도 있다)
+export const RIDERS_FACTOR = 55;
+export const DEMAND_TIME_POWER = 1.0;
 // 소요 시간이 이보다 짧아도 이 값(분)으로 친다. 아주 가까운 두 역의 수요가 터무니없이 커지지 않게
 export const MIN_TRIP_MINUTES = 3;
 // 갈아탈 때 더 걸리는 시간 (분). 기다리는 시간과 별개로 걸어서 옮기는 시간
