@@ -172,3 +172,56 @@ export function updateDraft(map, draft) {
   }
   map.getSource(DRAFT_SOURCE).setData({ type: 'FeatureCollection', features });
 }
+
+// ── 선로 손잡이 (고른 선로의 경유점을 끌어서 옮기기) ─────────
+// 진짜 경유점: 흰 원 + 남색 테두리. 두 점 사이 가운데: 작은 원 (끌면 경유점이 새로 생긴다)
+
+const HANDLE_SOURCE = 'track-handles';
+const HANDLE_LAYER = 'track-handles';
+
+// 손잡이는 맨 마지막에 추가해서 역·열차보다 위에 보이게 한다
+export function addHandleLayers(map) {
+  map.addSource(HANDLE_SOURCE, {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: HANDLE_LAYER,
+    type: 'circle',
+    source: HANDLE_SOURCE,
+    paint: {
+      'circle-radius': ['case', ['==', ['get', 'kind'], 'waypoint'], 6, 4],
+      'circle-color': '#FFFFFF',
+      'circle-stroke-color': ['case', ['==', ['get', 'kind'], 'waypoint'], '#1F3A55', '#9A8F7B'],
+      'circle-stroke-width': 2,
+    },
+  });
+}
+
+// handles = [{ coord, kind: 'waypoint' | 'midpoint', index }]
+export function updateHandles(map, handles) {
+  map.getSource(HANDLE_SOURCE).setData({
+    type: 'FeatureCollection',
+    features: handles.map(({ coord, kind, index }) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: coord },
+      properties: { kind, index },
+    })),
+  });
+}
+
+// 화면의 한 점(px) 근처의 손잡이 { kind, index }. 없으면 null
+export function handleAt(map, point) {
+  const pad = 6;
+  const features = map.queryRenderedFeatures(
+    [
+      [point.x - pad, point.y - pad],
+      [point.x + pad, point.y + pad],
+    ],
+    { layers: [HANDLE_LAYER] },
+  );
+  if (features.length === 0) return null;
+  // 진짜 경유점과 가운데 손잡이가 겹치면 진짜 경유점을 먼저 잡는다
+  const best = features.find((f) => f.properties.kind === 'waypoint') ?? features[0];
+  return { kind: best.properties.kind, index: best.properties.index };
+}

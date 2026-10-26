@@ -32,6 +32,8 @@ export function syncTrains() {
 
     const existing = state.trains.filter((train) => train.routeId === route.id);
     if (existing.length === route.trainCount) {
+      // 노선 모양이 바뀌었을 수 있으니 (되돌리기, 경유점 옮기기) 열차가 노선 밖에 있지 않게 당긴다
+      for (const train of existing) train.distance = Math.min(train.distance, path.length);
       trains.push(...existing);
     } else {
       // 열차 수가 바뀌면 그 노선의 열차를 새로 고르게 배치한다

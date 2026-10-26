@@ -6,7 +6,17 @@ import { formatSignedMoney } from './format.js';
 
 export function createRoutePanel(
   element,
-  { onSelect, onRename, onRecolor, onTrainCount, onDelete, onFinishDraft, onCancelDraft },
+  {
+    onSelect,
+    onRename,
+    onRecolor,
+    onTrainCount,
+    onDelete,
+    onRemoveStation,
+    onToggleInsert,
+    onFinishDraft,
+    onCancelDraft,
+  },
 ) {
   element.innerHTML = `
     <section class="route-draft">
@@ -40,8 +50,13 @@ export function createRoutePanel(
       <dl class="panel-facts">
         <dt>월 수입</dt><dd class="route-revenue"></dd>
         <dt>길이</dt><dd class="route-length"></dd>
-        <dt>역 순서</dt><dd class="route-stations"></dd>
       </dl>
+      <div class="panel-field">
+        <span>역 순서</span>
+        <ol class="route-stops"></ol>
+        <button type="button" class="route-insert">역 끼워넣기</button>
+        <p class="route-message route-edit-message"></p>
+      </div>
       <button type="button" class="panel-delete route-delete">노선 삭제</button>
     </section>
     <section class="route-list-section">
@@ -57,7 +72,9 @@ export function createRoutePanel(
   const messageText = element.querySelector('.route-message');
   const lengthText = element.querySelector('.route-length');
   const revenueText = element.querySelector('.route-revenue');
-  const stationsText = element.querySelector('.route-stations');
+  const stopList = element.querySelector('.route-stops');
+  const insertButton = element.querySelector('.route-insert');
+  const editMessage = element.querySelector('.route-edit-message');
   const list = element.querySelector('.route-list');
 
   const trainCountText = element.querySelector('.route-trains-count');
@@ -96,14 +113,18 @@ export function createRoutePanel(
   element.querySelector('.route-delete').addEventListener('click', () => {
     if (routeId) onDelete(routeId);
   });
+  insertButton.addEventListener('click', () => {
+    if (routeId) onToggleInsert(routeId);
+  });
 
   // view = {
   //   tool: 지금 도구 id,
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
   //   routes: [{ id, name, color, lengthKm, revenue }],
-  //   selected: { id, name, color, lengthKm, stationNames, trainCount, revenue } 또는 null,
+  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue } 또는 null,
+  //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
-  function show({ tool, draft, routes, selected }) {
+  function show({ tool, draft, routes, selected, inserting, message }) {
     const showDraft = tool === 'route';
     draftSection.hidden = !showDraft;
     detailSection.hidden = !selected;
@@ -130,7 +151,10 @@ export function createRoutePanel(
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
       revenueText.textContent =
         selected.trainCount > 0 ? `${formatSignedMoney(selected.revenue)} / 월` : '열차가 없어 운행 안 함';
-      stationsText.textContent = selected.stationNames.join(' → ');
+      renderStops(selected.stops);
+      insertButton.classList.toggle('active', inserting);
+      insertButton.textContent = inserting ? '끼워넣기 끝내기' : '역 끼워넣기';
+      editMessage.textContent = message;
     } else {
       routeName.clear();
     }
@@ -138,7 +162,25 @@ export function createRoutePanel(
     renderList(routes, routeId);
   }
 
-  // 노선 목록: 색 점 + 이름 + 길이. 누르면 그 노선을 고른다
+  // 역 순서: 역 이름 + [빼기] 버튼
+  function renderStops(stops) {
+    stopList.replaceChildren(
+      ...stops.map((stop) => {
+        const item = document.createElement('li');
+        const name = document.createElement('span');
+        name.textContent = stop.name;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'route-stop-remove';
+        remove.textContent = '빼기';
+        remove.addEventListener('click', () => onRemoveStation(routeId, stop.id));
+        item.append(name, remove);
+        return item;
+      }),
+    );
+  }
+
+  // 노선 목록: 색 점 + 이름 + 월 수입. 누르면 그 노선을 고른다
   function renderList(routes, selectedId) {
     if (routes.length === 0) {
       const empty = document.createElement('p');

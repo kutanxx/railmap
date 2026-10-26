@@ -1,15 +1,14 @@
-// 게임 상태: 역, 선로 등. 화면 코드와 분리되어 있고,
+// 게임 상태: 역, 선로, 노선, 돈, 날짜. 화면 코드와 분리되어 있고,
 // 상태가 바뀌면 subscribe로 등록한 함수들을 불러서 화면이 다시 그리게 한다.
+// 플레이어가 바꾼 것은 모두 change()를 거쳐서 되돌리기 기록에 남는다.
 import { length, lineString } from '@turf/turf';
 import {
-  ROUTE_COLORS,
-  DEFAULT_TRAINS_PER_ROUTE,
-  MAX_TRAINS_PER_ROUTE,
   START_MONEY,
   START_YEAR,
   START_MONTH,
 } from '../config.js';
 import { stationCost, trackCostForCoords } from './economy.js';
+import { createHistory } from './history.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea }
@@ -44,6 +43,7 @@ const state = {
 };
 
 const listeners = new Set();
+const history = createHistory();
 
 export function getState() {
   return state;
@@ -57,6 +57,67 @@ export function subscribe(listener) {
 function notify() {
   for (const listener of listeners) listener(state);
 }
+
+// ── 되돌리기 ───────────────────────────
+// "철도망" = 플레이어가 지은 것과 그에 쓴 돈. 되돌리기는 이것만 바꾸고 날짜·시간은 그대로 둔다
+
+function snapshotNetwork() {
+  return structuredClone({
+    stations: state.stations,
+    tracks: state.tracks,
+    routes: state.routes,
+    nextStationNumber: state.nextStationNumber,
+    nextTrackNumber: state.nextTrackNumber,
+    nextRouteNumber: state.nextRouteNumber,
+    money: state.money,
+  });
+}
+
+function restoreNetwork(snapshot) {
+  const copy = structuredClone(snapshot);
+  state.stations = copy.stations;
+  state.tracks = copy.tracks;
+  state.routes = copy.routes;
+  state.nextStationNumber = copy.nextStationNumber;
+  state.nextTrackNumber = copy.nextTrackNumber;
+  state.nextRouteNumber = copy.nextRouteNumber;
+}
+
+// 플레이어의 바뀜 하나를 실행하고 되돌리기 기록에 남긴다 (game 폴더 안에서만 쓴다)
+// action이 null을 돌려주면 (예: 자금 부족) 아무것도 바뀌지 않은 것으로 보고 기록하지 않는다
+// key가 같은 바뀜이 이어지면 한 번으로 합친다 (예: 이름을 한 글자씩 칠 때)
+export function change(key, action) {
+  const before = snapshotNetwork();
+  const result = action();
+  if (result === null) return null;
+  history.record(key, before, snapshotNetwork());
+  notify();
+  return result;
+}
+
+// 되돌리기: 그때 쓴 공사비는 돌려받고, 그 뒤로 번 돈은 그대로 둔다
+export function undo() {
+  const entry = history.undo();
+  if (!entry) return false;
+  const spent = entry.after.money - entry.before.money;
+  restoreNetwork(entry.before);
+  state.money -= spent;
+  notify();
+  return true;
+}
+
+// 다시 하기: 되돌릴 때 돌려받은 공사비를 다시 낸다
+export function redo() {
+  const entry = history.redo();
+  if (!entry) return false;
+  const spent = entry.after.money - entry.before.money;
+  restoreNetwork(entry.after);
+  state.money += spent;
+  notify();
+  return true;
+}
+
+// ── 시간 ──────────────────────────────
 
 // 시간 배속을 바꾼다
 export function setSpeed(speed) {
@@ -77,6 +138,68 @@ export function settleMonth(revenue, opex) {
   notify();
 }
 
+// ── 저장과 불러오기 ─────────────────────
+
+const SAVE_VERSION = 1;
+
+// 저장할 내용 (열차 위치는 저장하지 않고, 불러올 때 노선에 맞춰 새로 놓는다)
+export function saveData() {
+  return {
+    version: SAVE_VERSION,
+    network: snapshotNetwork(),
+    speed: state.speed,
+    elapsedSeconds: state.elapsedSeconds,
+    year: state.year,
+    month: state.month,
+    monthProgress: state.monthProgress,
+    lastSettlement: state.lastSettlement,
+  };
+}
+
+// 저장한 내용을 불러온다. 형식이 맞지 않으면 이유를 담은 에러를 던진다
+export function loadData(data) {
+  const network = data?.network;
+  if (data?.version !== SAVE_VERSION || !network) {
+    throw new Error('레일맵 저장 파일이 아니거나, 지원하지 않는 버전이에요.');
+  }
+  for (const key of ['stations', 'tracks', 'routes']) {
+    if (!Array.isArray(network[key])) throw new Error(`저장 파일에 ${key} 목록이 없어요.`);
+  }
+  restoreNetwork(network);
+  state.money = network.money;
+  state.trains = [];
+  state.speed = data.speed;
+  state.elapsedSeconds = data.elapsedSeconds;
+  state.year = data.year;
+  state.month = data.month;
+  state.monthProgress = data.monthProgress;
+  state.lastSettlement = data.lastSettlement;
+  history.clear();
+  notify();
+}
+
+// 처음 상태로 돌아간다
+export function resetGame() {
+  restoreNetwork({
+    stations: [],
+    tracks: [],
+    routes: [],
+    nextStationNumber: 1,
+    nextTrackNumber: 1,
+    nextRouteNumber: 1,
+  });
+  state.trains = [];
+  state.money = START_MONEY;
+  state.speed = 1;
+  state.elapsedSeconds = 0;
+  state.year = START_YEAR;
+  state.month = START_MONTH;
+  state.monthProgress = 0;
+  state.lastSettlement = null;
+  history.clear();
+  notify();
+}
+
 // ── 역 ──────────────────────────────
 
 export function findStation(id) {
@@ -86,45 +209,52 @@ export function findStation(id) {
 // coord 자리에 새 역을 짓고, 지은 역을 돌려준다
 // 자금이 공사비보다 모자라면 짓지 않고 null을 돌려준다
 export function addStation(coord, { population, builtArea }) {
-  const cost = stationCost();
-  if (state.money < cost) return null;
-  state.money -= cost;
-  const number = state.nextStationNumber;
-  state.nextStationNumber += 1;
-  const station = {
-    id: `s${number}`,
-    name: `역 ${number}`,
-    coord,
-    angle: 0,
-    population,
-    builtArea,
-  };
-  state.stations.push(station);
-  notify();
-  return station;
+  return change(null, () => {
+    const cost = stationCost();
+    if (state.money < cost) return null;
+    state.money -= cost;
+    const number = state.nextStationNumber;
+    state.nextStationNumber += 1;
+    const station = {
+      id: `s${number}`,
+      name: `역 ${number}`,
+      coord,
+      angle: 0,
+      population,
+      builtArea,
+    };
+    state.stations.push(station);
+    return station;
+  });
 }
 
 export function renameStation(id, name) {
-  const station = findStation(id);
-  if (!station) return;
-  station.name = name;
-  notify();
+  change(`rename-station:${id}`, () => {
+    const station = findStation(id);
+    if (!station) return null;
+    station.name = name;
+    return station;
+  });
 }
 
 // 승강장 방향을 바꾼다 (0~179도)
 export function rotateStation(id, angle) {
-  const station = findStation(id);
-  if (!station) return;
-  station.angle = angle;
-  notify();
+  change(`rotate-station:${id}`, () => {
+    const station = findStation(id);
+    if (!station) return null;
+    station.angle = angle;
+    return station;
+  });
 }
 
 // 역을 지우면 그 역에 이어진 선로도 함께 지운다 (끊긴 노선도 지운다)
 export function removeStation(id) {
-  state.stations = state.stations.filter((station) => station.id !== id);
-  state.tracks = state.tracks.filter((track) => track.from !== id && track.to !== id);
-  removeBrokenRoutes();
-  notify();
+  change(null, () => {
+    state.stations = state.stations.filter((station) => station.id !== id);
+    state.tracks = state.tracks.filter((track) => track.from !== id && track.to !== id);
+    removeBrokenRoutes();
+    return true;
+  });
 }
 
 // ── 선로 ─────────────────────────────
@@ -136,23 +266,50 @@ export function findTrack(id) {
 // 역 from에서 경유점들을 지나 역 to까지 선로를 깔고, 깐 선로를 돌려준다
 // 자금이 공사비보다 모자라면 깔지 않고 null을 돌려준다
 export function addTrack(from, to, waypoints) {
-  const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
-  const { cost } = trackCostForCoords(coords);
-  if (state.money < cost) return null;
-  state.money -= cost;
-  const number = state.nextTrackNumber;
-  state.nextTrackNumber += 1;
-  const track = { id: `t${number}`, from, to, waypoints };
-  state.tracks.push(track);
-  notify();
-  return track;
+  return change(null, () => {
+    const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
+    const { cost } = trackCostForCoords(coords);
+    if (state.money < cost) return null;
+    state.money -= cost;
+    const number = state.nextTrackNumber;
+    state.nextTrackNumber += 1;
+    const track = { id: `t${number}`, from, to, waypoints };
+    state.tracks.push(track);
+    return track;
+  });
+}
+
+// 경유점을 바꿨을 때 더 내야 하는 공사비 (길어진 만큼만. 짧아지면 0)
+export function rerouteCost(track, waypoints) {
+  const before = trackCostForCoords(trackCoords(track));
+  const after = trackCostForCoords([
+    findStation(track.from).coord,
+    ...waypoints,
+    findStation(track.to).coord,
+  ]);
+  return { addedKm: after.km - before.km, cost: Math.max(0, after.cost - before.cost) };
+}
+
+// 선로의 경유점을 바꾼다 (끌어서 옮기기). 자금이 모자라면 바꾸지 않고 null
+export function setTrackWaypoints(id, waypoints) {
+  return change(null, () => {
+    const track = findTrack(id);
+    if (!track) return null;
+    const { cost } = rerouteCost(track, waypoints);
+    if (state.money < cost) return null;
+    state.money -= cost;
+    track.waypoints = waypoints;
+    return track;
+  });
 }
 
 // 선로를 지우면 그 선로가 있어야 하는 노선도 지운다
 export function removeTrack(id) {
-  state.tracks = state.tracks.filter((track) => track.id !== id);
-  removeBrokenRoutes();
-  notify();
+  change(null, () => {
+    state.tracks = state.tracks.filter((track) => track.id !== id);
+    removeBrokenRoutes();
+    return true;
+  });
 }
 
 // 두 역을 바로 잇는 선로를 찾는다 (방향은 상관없다). 없으면 undefined
@@ -176,50 +333,6 @@ export function trackLengthKm(track) {
 
 export function findRoute(id) {
   return state.routes.find((route) => route.id === id);
-}
-
-// 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
-// 이름은 "1호선", "2호선" …, 색은 ROUTE_COLORS를 차례로 돌아가며 받는다
-export function addRoute(stationIds) {
-  const number = state.nextRouteNumber;
-  state.nextRouteNumber += 1;
-  const route = {
-    id: `r${number}`,
-    name: `${number}호선`,
-    color: ROUTE_COLORS[(number - 1) % ROUTE_COLORS.length].color,
-    stations: stationIds,
-    trainCount: DEFAULT_TRAINS_PER_ROUTE,
-  };
-  state.routes.push(route);
-  notify();
-  return route;
-}
-
-export function renameRoute(id, name) {
-  const route = findRoute(id);
-  if (!route) return;
-  route.name = name;
-  notify();
-}
-
-export function recolorRoute(id, color) {
-  const route = findRoute(id);
-  if (!route) return;
-  route.color = color;
-  notify();
-}
-
-// 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)
-export function setRouteTrainCount(id, count) {
-  const route = findRoute(id);
-  if (!route) return;
-  route.trainCount = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
-  notify();
-}
-
-export function removeRoute(id) {
-  state.routes = state.routes.filter((route) => route.id !== id);
-  notify();
 }
 
 // 노선이 지나는 선로들 (역 순서대로)

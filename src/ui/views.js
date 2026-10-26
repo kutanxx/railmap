@@ -36,11 +36,13 @@ export function infoPanelView(selected) {
 }
 
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
-export function routePanelView({ selected, tool, draft, routes }) {
+export function routePanelView({ selected, tool, draft, routes, inserting, message }) {
   const route = selected?.type === 'route' ? findRoute(selected.id) : null;
   const { routeRevenue } = getEconomy();
   return {
     tool,
+    inserting,
+    message,
     draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },
     routes: routes.map((r) => ({
       id: r.id,
@@ -54,7 +56,7 @@ export function routePanelView({ selected, tool, draft, routes }) {
       name: route.name,
       color: route.color,
       lengthKm: routeLengthKm(route),
-      stationNames: stationNames(route.stations),
+      stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,
       revenue: routeRevenue.get(route.id) ?? 0,
     },
