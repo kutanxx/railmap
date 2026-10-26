@@ -5,6 +5,7 @@ import { getState } from '../game/state.js';
 import { stepSimulation, trainFeatures } from '../game/sim.js';
 import { updateTrains } from '../map/trainLayers.js';
 import { METERS_PER_PIXEL_Z0 } from '../map/stationLayers.js';
+import { playSound } from './sounds.js';
 
 // 지금 줌에서 그릴 열차 길이 (km): 실제 길이, 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게
 function shownTrainLengthKm(map) {
@@ -24,7 +25,8 @@ export function startAnimation(map) {
     const { speed, trains } = getState();
     // 시간이 흐르면 달력·정산을 위해 매 프레임 계산하지만,
     // 열차를 다시 그리는 건 움직이는 열차가 있거나 열차가 바뀌었을 때만 한다 (지도가 쉴 수 있게)
-    stepSimulation(realSeconds * speed);
+    // 열차가 역에 서면 작은 소리 (sounds.js가 너무 잦지 않게 거른다)
+    if (stepSimulation(realSeconds * speed) > 0) playSound('arrive');
     if ((speed > 0 && trains.length > 0) || trainsChanged) {
       updateTrains(map, trainFeatures(shownTrainLengthKm(map)));
       trainsChanged = false;

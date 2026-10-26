@@ -1,8 +1,5 @@
-// 조작 안내 카드: 처음 켤 때 한 번, 그리고 위쪽 [?] 버튼으로 다시 연다.
+// 조작 안내 카드: 위쪽 [?] 버튼으로 연다. (처음 온 사람에게는 튜토리얼이 먼저 나온다, tutorial.js)
 // 브라우저 alert 대신 화면 안의 카드로 만든다. [알겠어요], 바깥 클릭, Esc로 닫힌다.
-
-// 한 번 본 뒤에는 처음 켤 때 다시 띄우지 않는다 (브라우저 저장 공간에 표시만 해 둔다)
-const SEEN_KEY = 'railmap-help-seen';
 
 // [키, 하는 일]
 const ITEMS = [
@@ -10,6 +7,7 @@ const ITEMS = [
   ['Space', '시간 멈춤 / 다시 가기'],
   ['C', '혼잡도 보기 켜고 끄기 (선로를 여유·붐빔·넘침 색으로)'],
   ['T', '지형(등고선) 켜고 끄기 · 가상 지도에서만. 산을 뚫으면 터널, 강을 건너면 교량이 돼요'],
+  ['M', '소리 켜고 끄기'],
   ['Ctrl+Z / Ctrl+Y', '되돌리기 / 다시 하기 (쓴 돈도 돌려받아요)'],
   ['Esc · 오른쪽 클릭', '그리던 선로·노선 취소, 고른 것 놓기'],
   ['Backspace', '그리던 선로·노선의 마지막 점 빼기'],
@@ -20,12 +18,14 @@ const ITEMS = [
   ['선로 경유점', '흰 점을 끌어 옮기고, 두 번 클릭해 지워요. 선 가운데 작은 점을 끌면 새로 생겨요'],
 ];
 
-export function createHelpCard(element, button) {
+// onTutorial: [튜토리얼 다시 하기]를 눌렀을 때
+export function createHelpCard(element, button, { onTutorial }) {
   element.innerHTML = `
     <div class="dialog help-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <div class="dialog-title" id="help-title">조작 안내</div>
       <dl class="help-list"></dl>
       <div class="dialog-buttons">
+        <button type="button" class="help-tutorial">튜토리얼 다시 하기</button>
         <button type="button" class="dialog-primary help-close">알겠어요</button>
       </div>
     </div>
@@ -49,6 +49,10 @@ export function createHelpCard(element, button) {
 
   button.addEventListener('click', open);
   element.querySelector('.help-close').addEventListener('click', close);
+  element.querySelector('.help-tutorial').addEventListener('click', () => {
+    close();
+    onTutorial();
+  });
   // 카드 바깥(빈 곳)을 누르면 닫는다
   element.addEventListener('click', (event) => {
     if (event.target === element) close();
@@ -64,9 +68,4 @@ export function createHelpCard(element, button) {
     true,
   );
 
-  // 처음 켰을 때 한 번 띄운다
-  if (!localStorage.getItem(SEEN_KEY)) {
-    localStorage.setItem(SEEN_KEY, '1');
-    open();
-  }
 }

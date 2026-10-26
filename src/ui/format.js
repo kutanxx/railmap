@@ -10,8 +10,10 @@ export function formatMoney(amount) {
 
 // 부호를 붙인 돈: 4.81 → "+4.8억", -1.2 → "−1.2억"
 export function formatSignedMoney(amount) {
-  const sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
-  return `${sign}${formatMoney(Math.abs(amount))}`;
+  const text = formatMoney(Math.abs(amount));
+  // 반올림해서 0이 되면 부호를 붙이지 않는다 (−0.03 → "0억", "−0억"이 아니라)
+  if (text === '0억') return text;
+  return `${amount > 0 ? '+' : '−'}${text}`;
 }
 
 // 짧은 사람 수 (말풍선처럼 좁은 곳): 23400 → "2.3만", 4000 → "4,000"

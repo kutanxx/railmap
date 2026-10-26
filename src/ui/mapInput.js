@@ -10,13 +10,14 @@ import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
 import { showCallout } from './callouts.js';
 import { TOOLS } from './toolbar.js';
+import { playSound } from './sounds.js';
 import { formatMoney, formatPopulation } from './format.js';
 
 // 너무 멀리서 역을 놓으려 할 때 안내
 const TOO_FAR = '더 확대해야 역을 놓을 수 있어요';
 
 export function bindMapInput(ctx) {
-  const { map, ui, select, render, chooseTool, deleteSelected, toggleCongestion, toggleTerrain } = ctx;
+  const { map, ui, select, render, chooseTool, deleteSelected, toggleCongestion, toggleTerrain, toggleSound } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
 
   // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
@@ -98,7 +99,10 @@ export function bindMapInput(ctx) {
         return;
       }
       const station = addStation(coord, estimatePopulation(map, coord));
-      if (station) select({ type: 'station', id: station.id });
+      if (station) {
+        select({ type: 'station', id: station.id });
+        playSound('station');
+      }
       else showCallout(map, coord, shortfall(stationCost()), 'bad');
     } else {
       const trackId = trackIdAt(map, event.point);
@@ -185,7 +189,7 @@ export function bindMapInput(ctx) {
   // Space로 멈췄다가 다시 갈 때 쓸 배속 (멈추기 전 배속)
   let resumeSpeed = 1;
 
-  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기
+  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   document.addEventListener('keydown', (event) => {
@@ -221,6 +225,8 @@ export function bindMapInput(ctx) {
       toggleCongestion();
     } else if (event.key.toLowerCase() === 't') {
       toggleTerrain();
+    } else if (event.key.toLowerCase() === 'm') {
+      toggleSound();
     } else if (event.key === 'Escape') {
       cancelWork();
     } else if (event.key === 'Backspace') {

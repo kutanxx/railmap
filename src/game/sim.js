@@ -45,17 +45,18 @@ export function syncTrains() {
   state.trains = trains;
 }
 
-// 시간을 흘린다. seconds = 실제 흐른 초 × 배속
+// 시간을 흘린다. seconds = 실제 흐른 초 × 배속. 결과: 이번에 역에 도착한 열차 수 (효과음용)
 // - 열차는 TIME_SCALE배 빠른 게임 시간으로 움직인다 (1배에서 실제 1초 = 게임 TIME_SCALE초)
 // - 달력은 SECONDS_PER_MONTH초마다 한 달씩 넘어가고, 넘어갈 때 정산한다
 export function stepSimulation(seconds) {
-  if (seconds <= 0) return;
+  if (seconds <= 0) return 0;
   const state = getState();
   const gameSeconds = seconds * TIME_SCALE;
   const startTime = state.elapsedSeconds;
   state.elapsedSeconds += gameSeconds;
+  let arrivals = 0;
   for (const train of state.trains) {
-    moveTrain(train, paths.get(train.routeId), gameSeconds, startTime);
+    arrivals += moveTrain(train, paths.get(train.routeId), gameSeconds, startTime);
   }
 
   state.monthProgress += seconds / SECONDS_PER_MONTH;
@@ -64,6 +65,7 @@ export function stepSimulation(seconds) {
     const { revenue, opex } = getEconomy();
     settleMonth(revenue, opex);
   }
+  return arrivals;
 }
 
 // 지도에 그릴 열차 모양: 노선을 따라 휘는 짧은 선 (캡슐)
@@ -131,9 +133,11 @@ function placeTrains(route, path) {
 
 // 열차 하나를 seconds초만큼 움직인다. 역에 닿으면 멈추고, 끝 역에서는 방향을 바꾼다
 // startTime: 이번 움직임이 시작된 게임 시각 (종점에서 배차 간격을 잴 때 쓴다)
+// 결과: 이번에 역에 도착한 횟수
 function moveTrain(train, path, seconds, startTime) {
   const last = path.stops.length - 1;
   let remaining = seconds;
+  let arrivals = 0;
   while (remaining > 0) {
     if (train.dwell > 0) {
       const waited = Math.min(train.dwell, remaining);
@@ -172,7 +176,7 @@ function moveTrain(train, path, seconds, startTime) {
     if (left > remaining) {
       train.legTime += remaining;
       train.distance = legPosition(path, train);
-      return;
+      return arrivals;
     }
 
     // 역 도착
@@ -182,9 +186,11 @@ function moveTrain(train, path, seconds, startTime) {
     train.leg = null;
     train.legTime = 0;
     train.dwell = STATION_DWELL_SECONDS;
+    arrivals += 1;
     if (stop === 0) train.direction = 1;
     if (stop === last) train.direction = -1;
   }
+  return arrivals;
 }
 
 // 역에 딱 서 있으면 그 역 번호, 아니면 −1

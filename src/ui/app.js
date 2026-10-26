@@ -59,11 +59,13 @@ import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
+import { createTutorial } from './tutorial.js';
 import { createCongestionToggle } from './congestionToggle.js';
 import { createTerrainToggle } from './terrainToggle.js';
 import { hasTerrain, terrainGrid } from '../game/terrain.js';
 import { addContourLayers, setContoursVisible } from '../map/contours.js';
 import { createProfilePanel } from './profilePanel.js';
+import { playSound, createSoundToggle } from './sounds.js';
 import { trackProfile } from '../game/trackProfile.js';
 
 export function startApp(map, loadMessage) {
@@ -129,7 +131,11 @@ export function startApp(map, loadMessage) {
   }
 
   const speedControl = createSpeedControl(document.getElementById('speed'), setSpeed);
-  createHelpCard(document.getElementById('help'), document.getElementById('help-button'));
+  // 튜토리얼 (처음 온 사람에게 저절로) 과 조작 안내 카드 ([?])
+  const tutorial = createTutorial(document.getElementById('tutorial'));
+  createHelpCard(document.getElementById('help'), document.getElementById('help-button'), {
+    onTutorial: tutorial.start,
+  });
   // 혼잡도 보기 켜고 끄기 (버튼, C 키)
   const toggleCongestion = () => {
     ui.congestion = !ui.congestion;
@@ -147,6 +153,8 @@ export function startApp(map, loadMessage) {
   terrainElement.hidden = !hasTerrain();
   const terrainToggle = createTerrainToggle(terrainElement, toggleTerrain);
   const status = createStatus(document.getElementById('status'));
+  // [소리] 버튼 (M 키)
+  const soundToggle = createSoundToggle(document.getElementById('sound-button'));
   // 화면 아래 종단면도 (땅 높이가 있는 가상 지도만): 선로를 그리는 중이면 그리는 선로, 아니면 고른 선로·노선
   const profilePanel = createProfilePanel(document.getElementById('profile'));
   const showDraftProfile = (coords) => {
@@ -175,6 +183,7 @@ export function startApp(map, loadMessage) {
       }
       select({ type: 'track', id: track.id });
       render();
+      playSound('track');
       return true;
     },
   });
@@ -210,6 +219,7 @@ export function startApp(map, loadMessage) {
       // 노선 가운데쯤 역 위에 개통 말풍선을 띄운다
       const middle = stationIds[Math.floor(stationIds.length / 2)];
       showCallout(map, findStation(middle).coord, `${route.name} 개통`);
+      playSound('open');
     },
   });
 
@@ -320,6 +330,7 @@ export function startApp(map, loadMessage) {
     toggleCongestion,
     toggleTerrain,
     showDraftProfile,
+    toggleSound: soundToggle.toggle,
     renderTracks,
     trackTool,
     routeTool,

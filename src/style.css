@@ -488,6 +488,18 @@ body {
   background: #efe7d6;
 }
 
+/* [소리] 버튼: 글자가 들어가서 조금 넓게. 꺼져 있으면 흐리게 */
+.sound-button {
+  width: auto;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #9a8f7b;
+}
+
+.sound-button.active {
+  color: #1f3a55;
+}
+
 /* [혼잡도 보기] 버튼과 색 설명 (배속 버튼 옆) */
 .congestion {
   display: flex;
@@ -615,6 +627,77 @@ body {
   font-size: 12px;
   font-weight: 700;
   color: #c9772f;
+}
+
+/* ── 튜토리얼 말풍선 (도구 막대 아래) ── */
+.tutorial {
+  position: fixed;
+  top: 116px;
+  left: 16px;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+}
+
+.tutorial[hidden] {
+  display: none;
+}
+
+.tutorial-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 단계 번호: 노란 배지 */
+.tutorial-step {
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #f2c230;
+  color: #1f3a55;
+  font-size: 12px;
+}
+
+.tutorial-text {
+  margin: 6px 0 8px;
+  color: #6f6656;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tutorial-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tutorial-skip {
+  padding: 3px 10px;
+  border: 1px solid #d6c9af;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #6f6656;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tutorial-skip:hover {
+  border-color: #1f3a55;
+  color: #1f3a55;
+}
+
+/* 튜토리얼이 눌러 보라고 강조하는 버튼 */
+.tutorial-target {
+  outline: 3px solid #f2c230;
+  outline-offset: 1px;
 }
 
 /* 조작 안내 카드: 키(굵게) + 하는 일 */

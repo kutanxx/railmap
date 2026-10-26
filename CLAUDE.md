@@ -27,6 +27,7 @@
 
 ```
 index.html
+vite.config.js        빌드 설정 (base './': 어느 주소 아래에 올려도 열리게)
 src/
   main.js             시작점. 시작 화면에서 지도 고르기 → 그 지도의 저장 불러오기 → 지도 만들기 → 게임 화면 시작
   config.js           모든 숫자 설정 (지도 목록, 공사비, 운영비, 수요·요금, 정원, 빚 한도, 시간, 역 모양)
@@ -74,6 +75,8 @@ src/
     profilePanel.js   화면 아래 종단면도 (땅·선로 높이, 터널·교량)
     helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
     startScreen.js    시작 화면 (지도 고르기, 지도별 저장 날짜)
+    tutorial.js       처음 온 사람 튜토리얼 (역 → 선로 → 노선 → 열차 출발)
+    sounds.js         효과음 (Web Audio)과 [소리] 버튼
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기
     trackEditor.js    선로 경유점 끌기·지우기
@@ -99,7 +102,8 @@ src/
     sollae-height.json 솔내 지방 땅 높이 격자 (60m 간격). 같은 프로그램으로 만든다
 tools/
   make-sollae.mjs     솔내 지방 GeoJSON 만들기 (node tools/make-sollae.mjs, 프로토타입 배치를 옮김)
-docs/                 정리한 문서 (economy-research.md: 다른 게임 경제 비교)
+docs/                 정리한 문서 (조사 보고서들, deploy.md: 웹 데모 올리는 법)
+.github/workflows/    deploy.yml: GitHub Pages에 웹 데모를 저절로 올리기
 reports/, research_notes/  조사 보고서 원본과 조사 메모
 reference/            참고 자료. 게임 코드에서 불러오지 않는다
 ```

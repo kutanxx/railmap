@@ -228,6 +228,12 @@ export const MIN_STATION_POPULATION = 1000;
 // 지도 위 말풍선 알림이 떠 있는 시간 (실제 초)
 export const CALLOUT_SECONDS = 4;
 
+// ── 소리 ──────────────────────────────
+// 효과음 크기 (0 ~ 1)
+export const SOUND_VOLUME = 0.15;
+// 열차가 역에 서는 소리는 열차가 많아도 이만큼(실제 초)에 한 번만 낸다
+export const ARRIVAL_SOUND_GAP_SECONDS = 1.5;
+
 // ── 요금 (서울 지하철 거리 비례 요금, 2025-06-28 기준) ──
 // 기본 거리까지는 기본요금, 그 뒤로는 일정 거리마다 추가요금
 export const FARE_BASE_WON = 1550; // 기본요금 (원)

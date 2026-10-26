@@ -22,6 +22,8 @@ export async function createMap(containerId, region, virtualData) {
     // 가상 지도는 자료가 있는 곳만 보이게 움직일 수 있는 범위를 막는다
     const [west, south, east, north] = virtualData.bbox;
     options.style = sollaeStyle(virtualData);
+    // 가상 지도는 실제 지도 자료를 쓰지 않지만, 글꼴은 OpenFreeMap에서 받아 쓰므로 밝혀 둔다
+    options.attributionControl = { customAttribution: '가상 지도 · 글꼴 OpenFreeMap' };
     options.maxBounds = [
       [west - VIRTUAL_MARGIN, south - VIRTUAL_MARGIN],
       [east + VIRTUAL_MARGIN, north + VIRTUAL_MARGIN],
