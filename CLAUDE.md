@@ -71,6 +71,8 @@ src/
     stationMover.js   역 끌어서 옮기기
     panel.js          오른쪽 위 역·선로 정보 패널
     routePanel.js     오른쪽 노선 패널 (새 노선, 노선 정보, 목록)
+    routeControls.js  노선 패널 버튼을 노선 바꾸기로 잇기 (복제, 순서, 열차 수 등)
+    trackView.js      선로 그리기 (끌기 미리보기, 혼잡도 색, 지우기 미리보기)
     nameInput.js      이름 입력 칸 공통 동작
     status.js         위쪽 자금·월 수지·하루 승객
     badge.js          왼쪽 위 날짜 배지

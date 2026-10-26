@@ -1,21 +1,15 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
-// 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js
-import { REGION_NAME, BANKRUPT_GRACE_MONTHS, CROWDED_WARNING } from '../config.js';
+// 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
+// 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js
+import { REGION_NAME, BANKRUPT_GRACE_MONTHS } from '../config.js';
 import {
   addStationLayers,
   updateStations,
   addCatchmentLayer,
   updateCatchment,
 } from '../map/stationLayers.js';
-import {
-  addTrackLayers,
-  updateTracks,
-  addDraftLayers,
-  updateDraft,
-  addHandleLayers,
-  LOAD_COLORS,
-} from '../map/trackLayers.js';
+import { addTrackLayers, addDraftLayers, updateDraft, addHandleLayers } from '../map/trackLayers.js';
 import { addTrainLayers } from '../map/trainLayers.js';
 import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
@@ -26,7 +20,6 @@ import {
   findStation,
   findTrackBetween,
   routeCoords,
-  routeTracks,
   monthlyInterest,
 } from '../game/state.js';
 import {
@@ -35,20 +28,8 @@ import {
   removeStation,
   addTrack,
   removeTrack,
-  removalPreview,
 } from '../game/build.js';
-import {
-  addRoute,
-  renameRoute,
-  recolorRoute,
-  setRouteTrainCount,
-  removeRoute,
-  removeStationFromRoute,
-  duplicateRoute,
-  moveRouteStop,
-  newRouteCost,
-  trainPurchaseCost,
-} from '../game/routes.js';
+import { addRoute, removeRoute, newRouteCost } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { trackCostForCoords, setWaterMeasure } from '../game/economy.js';
 import { waterKm } from '../map/water.js';
@@ -59,8 +40,9 @@ import { createSpeedControl } from './speedControl.js';
 import { createPanel } from './panel.js';
 import { createTrackTool } from './trackTool.js';
 import { createRouteTool } from './routeTool.js';
-import { createRoutePanel } from './routePanel.js';
-import { infoPanelView, routePanelView, routeColors, highlightedTracks } from './views.js';
+import { createRouteControls } from './routeControls.js';
+import { drawTracks } from './trackView.js';
+import { infoPanelView, routePanelView, routeColors } from './views.js';
 import { createStatus } from './status.js';
 import { createCursorTip } from './cursorTip.js';
 import { showCallout } from './callouts.js';
@@ -157,52 +139,6 @@ export function startApp(map, loadMessage) {
     onDeletePreview: previewDelete,
   });
 
-  const routePanel = createRoutePanel(document.getElementById('routes'), {
-    onSelect: (id) => {
-      select({ type: 'route', id });
-      render();
-    },
-    onRename: (id, name) => renameRoute(id, name),
-    onRecolor: (id, color) => recolorRoute(id, color),
-    // 열차를 늘릴 돈이 모자라면 이유를 알려준다
-    onTrainCount: (id, count) => {
-      if (setRouteTrainCount(id, count)) return;
-      const route = getState().routes.find((r) => r.id === id);
-      notice(shortfall(trainPurchaseCost(route, count)), 'bad');
-    },
-    onDelete: deleteSelected,
-    onDeletePreview: previewDelete,
-    // 노선에서 역 빼기: 못 빼면 이유를 패널에 보여준다
-    // [노선 복제]: 같은 역 순서로 새 노선. 열차 값이 모자라면 이유를 알려준다
-    onDuplicate: (id) => {
-      const copy = duplicateRoute(id);
-      if (!copy) {
-        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
-        return;
-      }
-      select({ type: 'route', id: copy.id });
-      render();
-      notice(`${copy.name}을(를) 만들었어요`);
-    },
-    // 역 순서 끌어서 바꾸기: 못 바꾸면 이유를 패널에 보여준다
-    onMoveStop: (routeId, from, to) => {
-      ui.routeMessage = moveRouteStop(routeId, from, to) ?? '';
-      render();
-    },
-    onRemoveStation: (routeId, stationId) => {
-      ui.routeMessage = removeStationFromRoute(routeId, stationId) ?? '';
-      render();
-    },
-    // [역 끼워넣기]: 켜면 지도에서 역을 클릭해 넣는다 (mapInput.js가 처리)
-    onToggleInsert: (routeId) => {
-      ui.insertingInto = ui.insertingInto === routeId ? null : routeId;
-      ui.routeMessage = ui.insertingInto ? '노선에 넣을 역을 지도에서 클릭하세요. (Esc로 끝내기)' : '';
-      render();
-    },
-    onFinishDraft: () => routeTool.finish(),
-    onCancelDraft: () => routeTool.cancel(),
-  });
-
   const trackTool = createTrackTool({
     onChange: (draft) => updateDraft(map, draft),
     onComplete: (from, to, waypoints) => {
@@ -253,6 +189,17 @@ export function startApp(map, loadMessage) {
     },
   });
 
+  // 오른쪽 노선 패널 (routeControls.js)
+  const routePanel = createRouteControls(document.getElementById('routes'), {
+    ui,
+    select,
+    render,
+    notice,
+    routeTool,
+    deleteSelected,
+    previewDelete,
+  });
+
   // 끌고 있는 역은 끄는 자리에 있는 것처럼 보여준다
   const shownCoord = (station) =>
     ui.stationPreview?.id === station.id ? ui.stationPreview.coord : station.coord;
@@ -261,45 +208,9 @@ export function startApp(map, loadMessage) {
       ui.stationPreview?.id === station.id ? { ...station, coord: ui.stationPreview.coord } : station,
     );
 
-  // 선로만 다시 그린다 (선로를 끄는 동안 매 마우스 움직임마다 부르므로 가볍게)
-  // 끌고 있는 경유점·역이 있으면 그 모양대로 그린다
+  // 선로만 다시 그린다 (선로를 끄는 동안 매 마우스 움직임마다 부르므로 가볍게, trackView.js)
   function renderTracks() {
-    const { tracks, routes } = getState();
-    const { trackColor } = routeColors(routes);
-    // 혼잡도 보기를 켜면 가운데 줄을 노선 색 대신 구간 혼잡도 색으로 (열차가 다니지 않는 선로는 칠하지 않는다)
-    const { trackLoad } = getEconomy();
-    const centerColor = (track) => {
-      if (!ui.congestion) return trackColor.get(track.id) ?? null;
-      const load = trackLoad.get(track.id);
-      if (load === undefined) return null;
-      if (load > 1) return LOAD_COLORS.over;
-      return load >= CROWDED_WARNING ? LOAD_COLORS.busy : LOAD_COLORS.ok;
-    };
-    const preview = ui.trackPreview;
-    const coordsOf = (track) => [
-      shownCoord(findStation(track.from)),
-      ...(preview?.id === track.id ? preview.waypoints : track.waypoints),
-      shownCoord(findStation(track.to)),
-    ];
-    // 지우기 미리보기: 함께 지워질 선로는 'gone', 사라질 노선이 지나는 선로는 'route'
-    const removing = new Map();
-    if (ui.removing) {
-      const { trackIds, routes: lostRoutes } = removalPreview(ui.removing);
-      for (const route of lostRoutes) {
-        for (const track of routeTracks(route)) if (track) removing.set(track.id, 'route');
-      }
-      for (const id of trackIds) removing.set(id, 'gone');
-    }
-    updateTracks(
-      map,
-      tracks.map((track) => ({
-        id: track.id,
-        coords: coordsOf(track),
-        routeColor: centerColor(track),
-        removing: removing.get(track.id) ?? null,
-      })),
-      highlightedTracks(ui.selected),
-    );
+    drawTracks(map, ui, shownCoord);
     trackEditor.showHandles();
   }
 
