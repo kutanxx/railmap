@@ -20,7 +20,7 @@ export function createStationExits(map) {
     for (const station of stations) {
       const band = bands.get(station.id);
       if (station.id === skipId || !band) continue;
-      const key = JSON.stringify([band.heading, band.parts]);
+      const key = JSON.stringify([band.headings, band.parts]);
       let entry = remembered.get(station.id);
       if (entry?.key !== key) {
         remembered.delete(station.id);
@@ -28,7 +28,7 @@ export function createStationExits(map) {
         surroundings ??= readSurroundings(map);
         if (!surroundings) continue; // 지도 타일을 아직 불러오는 중
         const found = findExits(surroundings, station.coord, band.parts);
-        const names = nameExits(found, band.heading);
+        const names = nameExits(found, band.headings);
         entry = { key, exits: found.map((exit, i) => ({ ...exit, name: names[i] })) };
         remembered.set(station.id, entry);
       }

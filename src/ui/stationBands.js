@@ -21,8 +21,10 @@ import {
 } from '../config.js';
 import { localProjection, inverseProjection } from '../map/population.js';
 
-// 결과: Map(역 id → { parts: [{ kind: 'platform' | 'concourse', coords: [[경도, 위도], …], width: 폭(미터) }],
-//                     heading: 상행(노선의 앞 역 쪽) 방향, 나침반 각도(북쪽 0°, 시계 방향) — 출구 번호를 매길 때 쓴다 })
+// 결과: Map(역 id → { parts: [{ kind: 'platform' | 'concourse', coords: [[경도, 위도], …], width: 폭(미터),
+//                                group: 몇 번째 띠(노선 묶음)의 조각인지 }],
+//                     headings: 띠마다 상행(노선의 앞 역 쪽) 방향, 나침반 각도(북쪽 0°, 시계 방향) })
+// 띠는 먼저 만든 노선 순서로 놓는다 (0번 띠 = 이 역을 지나는 가장 오래된 노선). 출구 번호를 이 순서로 이어 매긴다
 // stations: 화면에 보일 역들 (끌어서 옮기는 중이면 그 자리), shapes: stationShapes()의 결과 (방향)
 export function stationBands(stations, tracks, routes, shapes) {
   const coordOf = new Map(stations.map((station) => [station.id, station.coord]));
@@ -52,7 +54,7 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
 
   const random = seededRandom(station.id);
   const parts = [];
-  let heading = 0;
+  const headings = [];
   const groups = platformGroups(station, arms, tracks, routes);
   if (groups.length === 0) {
     // 선로가 없는 역: 정한 방향(0 = 가로, 시계 방향)으로 곧게
@@ -61,10 +63,10 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
     const dx = Math.cos(radians) * half;
     const dy = -Math.sin(radians) * half; // 북쪽이 +y라서 시계 방향은 −
     addPlatform(parts, [[-dx, -dy], [dx, dy]], 1, 'through', random);
-    heading = compassBearing([dx, dy]);
+    headings.push(compassBearing([dx, dy]));
   }
   const directions = []; // 띠마다 역 자리에서의 방향 (환승역 큰 대합실을 돌릴 때 쓴다)
-  for (const group of groups) {
+  groups.forEach((group, index) => {
     let points;
     let origin; // 띠 위에서 역이 있는 곳 (처음부터 몇 미터)
     if (group.armIds.length === 2) {
@@ -78,15 +80,14 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
       points = sliceFrom(arms.get(group.armIds[0]), PLATFORM_LENGTH_M);
       origin = 0;
     }
+    const start = parts.length;
     addPlatform(parts, points, group.count, group.armIds.length === 2 ? 'through' : 'terminal', random);
+    for (const part of parts.slice(start)) part.group = index;
     directions.push(directionAt(points, origin));
-  }
-  if (groups.length > 0) {
-    // 상행: 첫 띠의 앞 역 쪽 선로 방향. 노선의 첫 역이라 앞 역이 없으면 뒤 역 쪽의 반대
-    const [first] = groups;
-    const [x, y] = directionAt(arms.get(first.armIds[0]), 15);
-    heading = compassBearing(first.up ? [x, y] : [-x, -y]);
-  }
+    // 상행: 앞 역 쪽 선로 방향. 노선의 첫 역이라 앞 역이 없으면 뒤 역 쪽의 반대
+    const [x, y] = directionAt(arms.get(group.armIds[0]), 15);
+    headings.push(compassBearing(group.up ? [x, y] : [-x, -y]));
+  });
   if (groups.length >= 2) {
     // 환승역: 선로가 만나는 역 자리에 큰 대합실 (첫 띠 방향으로 놓은 정사각형)
     const [ux, uy] = directions[0];
@@ -95,6 +96,7 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
       kind: 'concourse',
       width: TRANSFER_HALL_M,
       points: [[-ux * half, -uy * half], [ux * half, uy * half]],
+      group: 0,
     });
   }
 
@@ -103,20 +105,21 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
       kind: part.kind,
       width: part.width,
       coords: part.points.map(toLngLat),
+      group: part.group ?? 0,
     })),
-    heading,
+    headings,
   };
 }
 
 // 띠 묶음 정하기. 결과: [{ armIds: [선로 id 1~2개], count: 이 띠를 함께 쓰는 노선 수,
-//                         up: armIds[0]이 앞 역(상행) 쪽 선로인지 }]
+//                         up: armIds[0]이 앞 역(상행) 쪽 선로인지 }] — 먼저 만든 노선의 띠가 앞에 온다
 function platformGroups(station, arms, tracks, routes) {
   const between = (a, b) =>
     tracks.find((t) => (t.from === a && t.to === b) || (t.from === b && t.to === a));
 
   // 노선마다 이 역 앞뒤로 지나는 선로
-  const byKey = new Map(); // "선로id+선로id" → { armIds, routeIds }
-  for (const route of routes) {
+  const byKey = new Map(); // "선로id+선로id" → { armIds, up, routeIds, oldest: 가장 먼저 만든 노선의 순번 }
+  routes.forEach((route, routeIndex) => {
     route.stations.forEach((id, i) => {
       if (id !== station.id) return;
       const armOf = (other) => {
@@ -128,13 +131,16 @@ function platformGroups(station, arms, tracks, routes) {
       if (armIds.length === 0) return;
       // 같은 두 선로를 쓰면 지나는 방향이 달라도 같은 띠다
       const key = [...armIds].sort().join('+');
-      const group = byKey.get(key) ?? { armIds, up: previous !== null, routeIds: new Set() };
+      const group = byKey.get(key) ?? { armIds, up: previous !== null, routeIds: new Set(), oldest: routeIndex };
       group.routeIds.add(route.id);
       byKey.set(key, group);
     });
-  }
+  });
   if (byKey.size > 0) {
-    return [...byKey.values()].map(({ armIds, up, routeIds }) => ({ armIds, up, count: routeIds.size }));
+    // 노선 목록은 만든 순서대로라서, 순번이 작을수록 먼저 만든 노선이다
+    return [...byKey.values()]
+      .sort((a, b) => a.oldest - b.oldest)
+      .map(({ armIds, up, routeIds }) => ({ armIds, up, count: routeIds.size }));
   }
 
   // 노선이 없으면: 선로가 하나면 그 하나, 여럿이면 가장 곧게 이어지는 두 개

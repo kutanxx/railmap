@@ -56,8 +56,8 @@ export const ROAD_HALF_WIDTH_M = {
 export const CORNER_EXIT_REACH_M = 60;
 // 사거리로 치는 큰 길 종류 (ROAD_HALF_WIDTH_M의 이름)
 export const CORNER_ROAD_CLASSES = ['trunk', 'primary', 'secondary', 'tertiary'];
-// 역 하나의 출구 수 상한, 이보다 가까운 출구는 하나로 합친다 (미터)
-export const MAX_EXITS_PER_STATION = 8;
+// 역 하나의 출구 수 상한 (큰 환승역은 노선마다 출구가 늘어서 넉넉하게), 이보다 가까운 출구는 하나로 합친다 (미터)
+export const MAX_EXITS_PER_STATION = 12;
 export const EXIT_MIN_GAP_M = 25;
 // 통로 폭 (미터)
 export const PASSAGE_WIDTH_M = 4;

@@ -60,7 +60,7 @@ export function readSurroundings(map) {
 }
 
 // 결과: [{ coord: 출구 [경도, 위도], passage: [대합실 가운데, 출구], building: 건물 연결인지,
-//          bearing: 역에서 출구 쪽 나침반 방향(도) }]
+//          bearing: 역에서 출구 쪽 나침반 방향(도), group: 출구를 낸 대합실이 몇 번째 띠(노선 묶음)인지 }]
 // parts: 역 모양 조각들 (ui/stationBands.js). 대합실마다 양옆으로 하나씩 찾는다
 export function findExits(surroundings, stationCoord, parts) {
   const toMeters = localProjection(stationCoord);
@@ -149,16 +149,17 @@ export function findExits(surroundings, stationCoord, parts) {
       middle: [(first[0] + last[0]) / 2, (first[1] + last[1]) / 2],
       along: [(last[0] - first[0]) / length, (last[1] - first[1]) / length],
       width: part.width,
+      group: part.group,
     });
   }
 
   const exits = [];
   // 이미 찾은 출구와 너무 가까우면 하나로 친다
-  const add = (found, from) => {
+  const add = (found, concourse) => {
     const close = exits.some(
       (exit) => Math.hypot(exit.point[0] - found.point[0], exit.point[1] - found.point[1]) < EXIT_MIN_GAP_M,
     );
-    if (!close) exits.push({ ...found, from });
+    if (!close) exits.push({ ...found, from: concourse.middle, group: concourse.group });
     return !close;
   };
 
@@ -174,7 +175,7 @@ export function findExits(surroundings, stationCoord, parts) {
         for (let t = 4; t <= CORNER_EXIT_REACH_M; t += 2) {
           const p = [point[0] + out[0] * t, point[1] + out[1] * t];
           if (underStation(p) || roadEdge(p) < CORNER_MARGIN_M) continue;
-          cornerCount += add({ point: p, building: false }, concourse.middle) ? 1 : 0;
+          cornerCount += add({ point: p, building: false }, concourse) ? 1 : 0;
           break;
         }
       }
@@ -186,15 +187,16 @@ export function findExits(surroundings, stationCoord, parts) {
     if (concourse === crossing?.concourse && cornerCount >= 2) continue;
     const { middle, along, width } = concourse;
     for (const side of [1, -1]) {
-      add(walk(middle, [-along[1] * side, along[0] * side], width / 2), middle);
+      add(walk(middle, [-along[1] * side, along[0] * side], width / 2), concourse);
     }
   }
 
-  return exits.slice(0, MAX_EXITS_PER_STATION).map(({ point, building, from }) => ({
+  return exits.slice(0, MAX_EXITS_PER_STATION).map(({ point, building, from, group }) => ({
     coord: toLngLat(point),
     passage: [toLngLat(from), toLngLat(point)],
     building,
     bearing: ((Math.atan2(point[0], point[1]) * 180) / Math.PI + 360) % 360,
+    group,
   }));
 }
 
