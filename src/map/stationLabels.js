@@ -1,17 +1,18 @@
 // 역 이름 말풍선: 흰 말풍선 + 남색 테두리 + 노란 점 + 지시선.
-// 이름 옆에는 그 역을 지나는 노선 색 점과 하루 이용객(예: "2.3만")을 작게 붙인다.
+// 이름 옆에는 "환승"·"종착" 표시, 그 역을 지나는 노선 색 점, 하루 이용객(예: "2.3만")을 작게 붙인다.
 // MapLibre Marker(지도 좌표에 붙어 다니는 HTML 조각)로 만들어서
 // 확대·이동해도 역 위치에 붙어 있다.
 import { Marker } from 'maplibre-gl';
 import { formatPeopleShort } from '../ui/format.js';
 
-// 역 id → { marker, name, dots, colorsKey, riders, coordKey }
+// 역 id → { marker, name, tag, dots, colorsKey, riders, coordKey }
 const labels = new Map();
 
 // 상태의 역 목록에 맞춰 말풍선을 추가·수정·삭제한다
 // routeColors = Map(역 id → 그 역을 지나는 노선 색 배열)
 // riders = Map(역 id → 하루 이용객)
-export function updateStationLabels(map, stations, routeColors, riders) {
+// shapes = Map(역 id → { tag: '환승' | '종착' | '' }) (ui/stationShapes.js)
+export function updateStationLabels(map, stations, routeColors, riders, shapes) {
   const aliveIds = new Set();
 
   for (const station of stations) {
@@ -30,6 +31,8 @@ export function updateStationLabels(map, stations, routeColors, riders) {
     if (label.name.textContent !== station.name) {
       label.name.textContent = station.name;
     }
+    const tag = shapes.get(station.id)?.tag ?? '';
+    if (label.tag.textContent !== tag) label.tag.textContent = tag;
     // 노선 색이 바뀌었을 때만 점을 다시 만든다
     const colors = routeColors.get(station.id) ?? [];
     const colorsKey = colors.join(',');
@@ -69,14 +72,16 @@ function createLabel(map, coord) {
   const bubble = document.createElement('div');
   bubble.className = 'station-label-bubble';
   const name = document.createElement('span');
+  const tag = document.createElement('span');
+  tag.className = 'station-label-tag';
   const dots = document.createElement('span');
   dots.className = 'station-label-routes';
   const ridersCount = document.createElement('span');
   ridersCount.className = 'station-label-riders';
-  bubble.append(name, dots, ridersCount);
+  bubble.append(name, tag, dots, ridersCount);
 
   element.append(line, dot, bubble);
 
   const marker = new Marker({ element, anchor: 'center' }).setLngLat(coord).addTo(map);
-  return { marker, name, dots, colorsKey: '', riders: ridersCount, coordKey: coord.join(',') };
+  return { marker, name, tag, dots, colorsKey: '', riders: ridersCount, coordKey: coord.join(',') };
 }

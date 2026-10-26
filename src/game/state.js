@@ -16,6 +16,7 @@ import { createHistory } from './history.js';
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea, cells }
   // angle: 승강장 방향(도). 0 = 가로, 90 = 세로
+  // autoAngle: true면 angle 대신 이어진 선로 방향을 따라간다 (ui/stationShapes.js)
   // population: 반경 안 전체 인구 (이웃 역과 나누기 전), builtArea: 반경 안 건물 면적 ㎡ (못 쟀으면 null)
   // cells: 반경 안 건물 면적을 칸마다 적은 것 [[경도, 위도, 면적㎡], …] (못 쟀으면 null)
   //        이웃 역과 인구를 나눌 때 쓴다 (game/catchment.js)
@@ -197,6 +198,7 @@ export function addStation(coord, { population, builtArea, cells }) {
       name: `역 ${number}`,
       coord,
       angle: 0,
+      autoAngle: true,
       population,
       builtArea,
       cells,
@@ -245,12 +247,23 @@ export function moveStation(id, coord, { population, builtArea, cells }) {
   });
 }
 
-// 승강장 방향을 바꾼다 (0~179도)
+// 승강장 방향을 직접 정한다 (0~179도). 이제부터는 선로 방향을 따라가지 않는다
 export function rotateStation(id, angle) {
   change(`rotate-station:${id}`, () => {
     const station = findStation(id);
     if (!station) return null;
     station.angle = angle;
+    station.autoAngle = false;
+    return station;
+  });
+}
+
+// 승강장 방향을 다시 선로 방향에 맡긴다
+export function setStationAutoAngle(id) {
+  change(null, () => {
+    const station = findStation(id);
+    if (!station) return null;
+    station.autoAngle = true;
     return station;
   });
 }

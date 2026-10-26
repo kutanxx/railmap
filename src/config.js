@@ -24,6 +24,8 @@ export const START_MONTH = 3;
 // (실제 지하철 승강장은 길이 150~200m쯤이고, 폭은 잘 보이게 조금 넓게 잡았다)
 export const PLATFORM_LENGTH_M = 160;
 export const PLATFORM_WIDTH_M = 40;
+// 환승역(노선 2개 이상) 승강장은 이 배만큼 넓게 그린다 (승강장 두 개를 붙인 모양)
+export const TRANSFER_PLATFORM_WIDTH_RATIO = 1.8;
 
 // 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 그림으로 대신 보여준다
 export const PLATFORM_REAL_SIZE_ZOOM = 14;

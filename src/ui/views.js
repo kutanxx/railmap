@@ -9,11 +9,13 @@ import {
   trackLengthKm,
 } from '../game/state.js';
 import { getEconomy } from '../game/demand.js';
+import { isAutoAngle } from './stationShapes.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 
 // 오른쪽 위 패널 (고른 역 또는 선로). 고른 게 없거나 지워졌으면 null
-export function infoPanelView(selected) {
+// shapes: stationShapes()의 결과 (화면에 보이는 승강장 방향)
+export function infoPanelView(selected, shapes) {
   if (selected?.type === 'station') {
     const station = findStation(selected.id);
     if (!station) return null;
@@ -26,6 +28,8 @@ export function infoPanelView(selected) {
       sharedPopulation: shared,
       riders: stationRiders.get(station.id) ?? 0,
       averageRiders: averageStationRiders(),
+      angle: shapes.get(station.id)?.angle ?? station.angle,
+      autoAngle: isAutoAngle(station),
     };
   }
   if (selected?.type === 'track') {

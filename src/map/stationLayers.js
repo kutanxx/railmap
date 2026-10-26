@@ -5,6 +5,7 @@ import {
   POPULATION_RADIUS_M,
   PLATFORM_LENGTH_M,
   PLATFORM_WIDTH_M,
+  TRANSFER_PLATFORM_WIDTH_RATIO,
   PLATFORM_REAL_SIZE_ZOOM,
   START_CENTER,
 } from '../config.js';
@@ -17,6 +18,8 @@ const PLATFORM_SOURCE = 'station-platforms';
 const ICON_LAYER = 'station-icons';
 const FILL_LAYER = 'station-platform-fill';
 const OUTLINE_LAYER = 'station-platform-outline';
+const CENTERLINE_SOURCE = 'station-centerlines';
+const CENTERLINE_LAYER = 'station-platform-centerline';
 const SELECTED_LAYER = 'station-platform-selected';
 
 const ICON_IMAGE = 'station-icon';
@@ -29,7 +32,19 @@ const COLORS = {
 };
 
 // 멀리서 보이는 그림의 크기 배율 (줌 → 배율). 줌 14에서 1이면 실제 크기 사각형과 같은 크기
-const ICON_SIZE = ['interpolate', ['linear'], ['zoom'], 10, 0.4, PLATFORM_REAL_SIZE_ZOOM, 1];
+// 환승역은 조금 크게 그린다
+const IS_TRANSFER = ['get', 'transfer'];
+const ICON_SIZE = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  10,
+  ['case', IS_TRANSFER, 0.55, 0.4],
+  PLATFORM_REAL_SIZE_ZOOM,
+  ['case', IS_TRANSFER, 1.35, 1],
+];
+// 승강장 가운데 흰 점선 굵기 (줌 → px)
+const CENTERLINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 14, 1, 18, 2.5];
 // 사각형 테두리 굵기 (줌 → px)
 const OUTLINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 14, 1.5, 18, 3];
 const SELECTED_WIDTH = ['interpolate', ['linear'], ['zoom'], 14, 7, 18, 12];
@@ -41,6 +56,7 @@ export function addStationLayers(map) {
   const empty = { type: 'FeatureCollection', features: [] };
   map.addSource(POINT_SOURCE, { type: 'geojson', data: empty });
   map.addSource(PLATFORM_SOURCE, { type: 'geojson', data: empty });
+  map.addSource(CENTERLINE_SOURCE, { type: 'geojson', data: empty });
 
   // ── 멀리서: 작은 그림 ──
   map.addLayer({
@@ -84,16 +100,33 @@ export function addStationLayers(map) {
     minzoom: PLATFORM_REAL_SIZE_ZOOM,
     paint: { 'line-color': COLORS.border, 'line-width': OUTLINE_WIDTH },
   });
+  // 승강장 가운데 흰 점선 (환승역은 두 줄: 승강장 두 개)
+  map.addLayer({
+    id: CENTERLINE_LAYER,
+    type: 'line',
+    source: CENTERLINE_SOURCE,
+    minzoom: PLATFORM_REAL_SIZE_ZOOM,
+    paint: {
+      'line-color': '#FFFFFF',
+      'line-width': CENTERLINE_WIDTH,
+      'line-dasharray': [2, 2],
+    },
+  });
 }
 
 // 역 목록 전체를 한 번에 다시 그린다
-export function updateStations(map, stations, selectedId) {
+// shapes = Map(역 id → { angle: 승강장 방향, transfer: 환승역인지 }) (ui/stationShapes.js)
+export function updateStations(map, stations, selectedId, shapes) {
   const points = [];
   const platforms = [];
+  const centerlines = [];
   for (const station of stations) {
+    const { angle, transfer } = shapes.get(station.id) ?? { angle: station.angle, transfer: false };
+    const width = PLATFORM_WIDTH_M * (transfer ? TRANSFER_PLATFORM_WIDTH_RATIO : 1);
     const properties = {
       id: station.id,
-      angle: station.angle,
+      angle,
+      transfer,
       selected: station.id === selectedId,
     };
     points.push({
@@ -103,12 +136,18 @@ export function updateStations(map, stations, selectedId) {
     });
     platforms.push({
       type: 'Feature',
-      geometry: platformPolygon(station.coord, station.angle),
+      geometry: platformPolygon(station.coord, angle, width),
       properties,
+    });
+    centerlines.push({
+      type: 'Feature',
+      geometry: platformCenterlines(station.coord, angle, width, transfer ? 2 : 1),
+      properties: { id: station.id },
     });
   }
   map.getSource(POINT_SOURCE).setData({ type: 'FeatureCollection', features: points });
   map.getSource(PLATFORM_SOURCE).setData({ type: 'FeatureCollection', features: platforms });
+  map.getSource(CENTERLINE_SOURCE).setData({ type: 'FeatureCollection', features: centerlines });
 }
 
 // 화면의 한 점(px) 근처에 있는 역의 id를 돌려준다. 없으면 null
@@ -124,21 +163,38 @@ export function stationIdAt(map, point) {
   return features.length > 0 ? features[0].properties.id : null;
 }
 
-// 역 중심에서 실제 크기(미터) 사각형의 네 꼭짓점을 계산한다.
+// 승강장 안의 한 점: 역 중심에서 긴 쪽으로 lengthM, 짧은 쪽으로 widthM 미터 간 자리
 // angle 0 = 가로(동서), 90 = 세로(남북). 시계 방향으로 돈다
-function platformPolygon(center, angle) {
+function platformPoint(center, angle, lengthM, widthM) {
   const along = 90 + angle; // 긴 쪽 방향 (북쪽 0°, 시계 방향 나침반 각도)
   const across = along + 90; // 짧은 쪽 방향
-  const halfLength = PLATFORM_LENGTH_M / 2000; // km
-  const halfWidth = PLATFORM_WIDTH_M / 2000; // km
+  const end = destination(center, lengthM / 1000, along);
+  return destination(end, widthM / 1000, across).geometry.coordinates;
+}
 
-  const corner = (lengthSign, widthSign) => {
-    const end = destination(center, halfLength * lengthSign, along);
-    return destination(end, halfWidth * widthSign, across).geometry.coordinates;
-  };
+// 역 중심에서 실제 크기(미터) 사각형의 네 꼭짓점을 계산한다. width: 승강장 폭(미터)
+function platformPolygon(center, angle, width) {
+  const halfLength = PLATFORM_LENGTH_M / 2;
+  const halfWidth = width / 2;
+  const corner = (lengthSign, widthSign) =>
+    platformPoint(center, angle, halfLength * lengthSign, halfWidth * widthSign);
   const ring = [corner(1, 1), corner(1, -1), corner(-1, -1), corner(-1, 1)];
   ring.push(ring[0]);
   return { type: 'Polygon', coordinates: [ring] };
+}
+
+// 승강장 가운데 점선: count개를 폭에 고르게 놓는다 (보통 1줄, 환승역 2줄). 양 끝은 조금 안쪽까지만
+function platformCenterlines(center, angle, width, count) {
+  const halfLength = (PLATFORM_LENGTH_M / 2) * 0.85;
+  const lines = [];
+  for (let i = 0; i < count; i++) {
+    const offset = width * ((i + 0.5) / count - 0.5);
+    lines.push([
+      platformPoint(center, angle, -halfLength, offset),
+      platformPoint(center, angle, halfLength, offset),
+    ]);
+  }
+  return { type: 'MultiLineString', coordinates: lines };
 }
 
 // 멀리서 보일 승강장 그림. 줌 14에서 실제 크기 사각형과 같은 px 크기로 만든다
