@@ -6,6 +6,8 @@
 // name: 왼쪽 위 배지에 보일 지역 이름, title·description: 시작 화면 글,
 // center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
 // bounds: 실제 지도에서 움직일 수 있는 범위 [서쪽 경도, 남쪽 위도, 동쪽 경도, 북쪽 위도] (도시 경계쯤. 가상 지도는 자료 범위로 정해진다)
+// 실제 도시의 populationScale은 역 자리 일곱 곳쯤의 주변 인구를 재서, 평균이 서울(약 2.3만 명)과 비슷해지게 맞췄다 (2026-10-27).
+// 지도(OpenStreetMap)에 건물이 얼마나 그려져 있는지가 도시마다 달라서다
 // 지도마다 다른 돈 계산 (밸런스):
 //   startMoney: 시작 자금 (억)
 //   populationScale: 건물 면적으로 잰 인구에 곱하는 배율 (1 = PEOPLE_PER_BUILT_M2 그대로)
@@ -19,7 +21,8 @@ export const REGIONS = {
     description: 'OpenStreetMap의 실제 서울 위에 노선을 깔아요',
     center: [126.9895, 37.5615],
     zoom: 14,
-    bounds: [126.76, 37.41, 127.19, 37.72],
+    // 서울 시 경계쯤. 남쪽은 분당(정자·오리)까지 들어오게 조금 더 내렸다
+    bounds: [126.76, 37.38, 127.19, 37.72],
     startMoney: 600,
     populationScale: 1,
     trackCostScale: 1,
@@ -41,6 +44,66 @@ export const REGIONS = {
     populationScale: 1.8,
     trackCostScale: 1,
     soundStyle: 'bell',
+    riderGoalScale: 1,
+  },
+  incheon: {
+    name: '인천',
+    title: '실제 지도 · 인천',
+    description: '바다를 낀 항구 도시, 부평·주안에서 송도까지 실제 인천 위에 노선을 깔아요',
+    // 부평·주안·인천시청 사이
+    center: [126.7, 37.47],
+    zoom: 14,
+    bounds: [126.42, 37.36, 126.8, 37.62],
+    startMoney: 600,
+    // 역 주변 인구(1배)가 서울보다 조금 적다: 부평 3.7만, 주안 3.7만, 인천시청 2.0만, 송도 1.7만
+    populationScale: 1.1,
+    trackCostScale: 1,
+    soundStyle: 'bell',
+    riderGoalScale: 1,
+  },
+  daegu: {
+    name: '대구',
+    title: '실제 지도 · 대구',
+    description: '산으로 둘러싸인 분지, 반월당을 가운데 둔 실제 대구 위에 노선을 깔아요',
+    // 반월당과 중앙로 사이
+    center: [128.6, 35.868],
+    zoom: 14,
+    bounds: [128.42, 35.76, 128.78, 36.0],
+    startMoney: 600,
+    // 지도에 건물이 촘촘해서 1배면 서울보다 많다: 반월당 5.0만, 동대구 4.7만, 범어 2.4만, 상인 1.8만
+    populationScale: 0.8,
+    trackCostScale: 1,
+    soundStyle: 'gugak',
+    riderGoalScale: 1,
+  },
+  daejeon: {
+    name: '대전',
+    title: '실제 지도 · 대전',
+    description: '대전역 옛 도심과 둔산 새 도심이 떨어져 있는 실제 대전 위에 노선을 깔아요',
+    // 둔산 새 도심 (시청·정부청사). 옛 도심(대전역)은 동쪽으로 4km쯤
+    center: [127.385, 36.355],
+    zoom: 14,
+    bounds: [127.26, 36.21, 127.56, 36.49],
+    startMoney: 600,
+    // 지도에 건물이 성겨서 1배면 서울의 70%쯤: 정부청사 2.5만, 시청 2.4만, 대전역 1.0만, 중앙로 0.9만
+    populationScale: 1.4,
+    trackCostScale: 1,
+    soundStyle: 'marimba',
+    riderGoalScale: 1,
+  },
+  gwangju: {
+    name: '광주',
+    title: '실제 지도 · 광주',
+    description: '금남로 옛 도심과 상무지구가 있는 실제 광주 위에 노선을 깔아요',
+    // 금남로 옛 도심. 상무지구는 서쪽으로 6km쯤
+    center: [126.912, 35.149],
+    zoom: 14,
+    bounds: [126.66, 35.06, 127.02, 35.26],
+    startMoney: 600,
+    // 1배면 서울보다 조금 많다: 상무 4.3만, 금남로4가 4.2만, 운천 2.6만, 양동시장 0.8만
+    populationScale: 0.9,
+    trackCostScale: 1,
+    soundStyle: 'gugak',
     riderGoalScale: 1,
   },
   sollae: {

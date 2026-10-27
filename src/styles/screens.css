@@ -18,7 +18,9 @@
 
 .start-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 760px;
+  max-height: 100%;
+  overflow-y: auto;
   color: #1f3a55;
 }
 
@@ -34,9 +36,10 @@
 }
 
 .start-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  /* 지도가 여럿이라 넓은 화면에서는 두 줄로, 좁은 화면에서는 한 줄로 */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
 }
 
 .start-choice {
@@ -272,6 +275,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* 같은 줄의 지도 카드는 높이를 맞춘다 */
+.start-choice-row .start-choice {
+  flex: 1;
 }
 
 .start-sandbox {
