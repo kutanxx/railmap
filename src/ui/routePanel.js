@@ -1,8 +1,10 @@
-// 오른쪽 노선 패널: 새 노선 만들기 안내, 고른 노선 정보, 노선 목록.
+// 오른쪽 노선 패널: 한 번에 하나만 보여준다 — 새 노선 만들기 안내('draft'), 고른 노선 정보('detail'), 노선 목록('list').
+// 노선 정보 맨 위의 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose). 목록의 [▸]는 패널을 접는다 (onFold).
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
-import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE, TRAIN_COST, CROWDED_WARNING } from '../config.js';
+import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
 import { bindNameInput } from './nameInput.js';
-import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
+import { formatMoney, formatSignedMoney, formatPopulation } from './format.js';
+import { renderRouteList, loadTone } from './routeList.js';
 
 export function createRoutePanel(
   element,
@@ -19,6 +21,8 @@ export function createRoutePanel(
     onToggleInsert,
     onFinishDraft,
     onCancelDraft,
+    onClose,
+    onFold,
   },
 ) {
   element.innerHTML = `
@@ -33,6 +37,10 @@ export function createRoutePanel(
       </div>
     </section>
     <section class="route-detail">
+      <div class="panel-head">
+        <button type="button" class="panel-back">← 노선 목록</button>
+        <button type="button" class="panel-close" title="닫기 (Esc)" aria-label="닫기">✕</button>
+      </div>
       <div class="panel-title">노선 정보</div>
       <label class="panel-field">
         <span>이름</span>
@@ -69,13 +77,19 @@ export function createRoutePanel(
       <p class="panel-removal route-removal"></p>
     </section>
     <section class="route-list-section">
-      <div class="panel-title">노선 목록</div>
+      <div class="panel-head">
+        <span class="panel-title">노선 목록</span>
+        <button type="button" class="panel-fold" title="접기 (노선 번호만 남겨요)" aria-label="접기">▸</button>
+      </div>
       <div class="route-list"></div>
     </section>
   `;
 
   const draftSection = element.querySelector('.route-draft');
   const detailSection = element.querySelector('.route-detail');
+  const listSection = element.querySelector('.route-list-section');
+  for (const button of element.querySelectorAll('.panel-back, .panel-close')) button.addEventListener('click', onClose);
+  element.querySelector('.panel-fold').addEventListener('click', () => onFold(true));
   const hintText = element.querySelector('.route-hint');
   const sequenceText = element.querySelector('.route-sequence');
   const messageText = element.querySelector('.route-message');
@@ -139,18 +153,19 @@ export function createRoutePanel(
   });
 
   // view = {
-  //   tool: 지금 도구 id,
+  //   mode: 'draft' | 'detail' | 'list' | null (숨김),
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
   //   routes: [{ id, name, color, lengthKm, revenue, riders, load }],
   //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm, load, lost } 또는 null,
   //   (load: 혼잡도, 1 = 100%. lost: 자리가 없어 놓친 하루 승객)
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
-  function show({ tool, draft, routes, selected, inserting, message }) {
-    const showDraft = tool === 'route';
+  function show({ mode, draft, routes, selected, inserting, message }) {
+    const showDraft = mode === 'draft';
     draftSection.hidden = !showDraft;
-    detailSection.hidden = !selected;
-    element.hidden = !showDraft && !selected && routes.length === 0;
+    detailSection.hidden = mode !== 'detail';
+    listSection.hidden = mode !== 'list';
+    element.hidden = mode === null;
 
     if (showDraft) {
       hintText.textContent = draft
@@ -160,8 +175,8 @@ export function createRoutePanel(
       messageText.textContent = draft?.message ?? '';
     }
 
-    routeId = selected?.id ?? null;
-    if (selected) {
+    routeId = mode === 'detail' ? selected.id : null;
+    if (routeId) {
       routeName.show(selected.id, selected.name);
       for (const button of swatchButtons) {
         button.classList.toggle('active', button.dataset.color === selected.color);
@@ -185,7 +200,7 @@ export function createRoutePanel(
       routeName.clear();
     }
 
-    renderList(routes, routeId);
+    if (mode === 'list') renderRouteList(list, routes, onSelect);
   }
 
   // 혼잡도: 가장 붐비는 한 시간 기준. 넘치면 놓친 승객도 알려준다
@@ -242,52 +257,5 @@ export function createRoutePanel(
     );
   }
 
-  // 노선 목록: 번호 배지(노선 색) + 이름 + 월 수입. 누르면 그 노선을 고른다
-  function renderList(routes, selectedId) {
-    if (routes.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'route-empty';
-      empty.textContent = '아직 노선이 없어요.';
-      list.replaceChildren(empty);
-      return;
-    }
-    list.replaceChildren(
-      ...routes.map((route) => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'route-item';
-        item.classList.toggle('active', route.id === selectedId);
-        const dot = document.createElement('span');
-        dot.className = 'route-item-dot';
-        dot.style.background = route.color;
-        dot.textContent = route.number;
-        const name = document.createElement('span');
-        name.className = 'route-item-name';
-        name.textContent = route.name;
-        const length = document.createElement('span');
-        length.className = 'route-item-length';
-        length.textContent = `${formatPeopleShort(route.riders)}명 · ${formatSignedMoney(route.revenue)}`;
-        // 넘치는 노선은 목록에서도 빨간 "혼잡"으로 알려준다
-        if (route.load > 1) {
-          const crowded = document.createElement('span');
-          crowded.className = 'route-item-crowded';
-          crowded.textContent = '혼잡';
-          name.append(crowded);
-        }
-        length.title = `하루 승객 · 월 수입 (길이 ${route.lengthKm.toFixed(1)} km)`;
-        item.append(dot, name, length);
-        item.addEventListener('click', () => onSelect(route.id));
-        return item;
-      }),
-    );
-  }
-
   return { show };
-}
-
-// 혼잡도 색: 여유(초록) / 붐빔(주황) / 넘침(빨강)
-function loadTone(load) {
-  if (load > 1) return 'load-over';
-  if (load >= CROWDED_WARNING) return 'load-busy';
-  return 'load-ok';
 }

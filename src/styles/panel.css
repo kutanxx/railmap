@@ -188,3 +188,179 @@
   font-size: var(--text-small);
   line-height: 1.5;
 }
+
+/* ── 패널 맨 위 줄: [← 노선 목록] … [✕], 또는 목록 제목 … [▸ 접기] (UI 4단계: 오른쪽은 패널 하나) ── */
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px -6px 8px;
+}
+
+.panel-head .panel-title {
+  flex: 1;
+  margin: 0;
+  padding-left: 6px;
+}
+
+.panel-back,
+.panel-close,
+.panel-fold {
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-back {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.panel-back[hidden] {
+  display: none;
+}
+
+.panel-back:hover,
+.panel-close:hover,
+.panel-fold:hover {
+  background: var(--land);
+}
+
+/* 역 카드: 이름(눌러서 고치는 칸이지만 평소엔 제목처럼) + 환승·종착 */
+.panel-station-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-name-title {
+  min-width: 0;
+  flex: 1;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-color: transparent;
+  font-size: var(--text-title);
+}
+
+.panel-name-title:hover {
+  border-color: var(--divider);
+}
+
+.panel-station-tag {
+  flex: none;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 지나는 노선 번호 배지 */
+.panel-badges {
+  display: flex;
+  gap: 4px;
+  min-height: 22px;
+  margin: 4px 0 12px;
+}
+
+/* 큰 숫자 셋: 이용객 · 주변 인구 · 가장 붐빔 */
+.panel-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.panel-stat {
+  padding: 8px 4px;
+  border: 1px solid var(--info-border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.panel-stat small {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.panel-stat b {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-strong);
+}
+
+.panel-station-note {
+  margin: 0 0 12px;
+}
+
+/* 접힌 "자세히": 승강장 방향, 인구를 센 근거, 위치 */
+.panel-more {
+  margin-top: 12px;
+}
+
+.panel-more summary {
+  color: var(--muted);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.panel-more[open] summary {
+  margin-bottom: 10px;
+}
+
+/* ── 접은 오른쪽 패널: 노선 번호 띠 ── */
+.route-strip {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 44px;
+  padding: 4px 0 8px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+}
+
+.route-strip[hidden] {
+  display: none;
+}
+
+.route-strip-open {
+  width: 34px;
+  padding: 4px 0;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-strip-open:hover {
+  background: var(--land);
+}
+
+.route-strip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-strip-badge {
+  border: none;
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}

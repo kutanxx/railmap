@@ -1,6 +1,7 @@
 // 게임 상태를 읽어서 패널과 지도에 보여줄 내용으로 바꾸는 함수들.
 // 상태를 고치지 않고 읽기만 한다.
 import {
+  getState,
   findStation,
   findTrack,
   findRoute,
@@ -25,11 +26,23 @@ export function infoPanelView(selected, shapes) {
     const station = findStation(selected.id);
     if (!station) return null;
     // 패널에는 이웃 역과 나눈 뒤의 인구와 하루 이용객을 보여준다
-    const { stationPopulation, stationRiders } = getEconomy();
+    const { stationPopulation, stationRiders, trackLoad } = getEconomy();
     const shared = stationPopulation.get(station.id) ?? station.population;
+    const { routes, tracks } = getState();
+    // 이 역에 닿은 선로들 중 가장 붐비는 구간 (열차가 다니는 선로가 없으면 null)
+    const loads = tracks
+      .filter((track) => track.from === station.id || track.to === station.id)
+      .map((track) => trackLoad.get(track.id))
+      .filter((load) => load !== undefined);
     return {
       type: 'station',
       station,
+      hasRoutes: routes.length > 0,
+      tag: shapes.get(station.id)?.tag ?? '',
+      routes: routes
+        .filter((route) => route.stations.includes(station.id))
+        .map((route) => ({ number: routeNumber(route), color: route.color })),
+      maxLoad: loads.length > 0 ? Math.max(...loads) : null,
       sharedPopulation: shared,
       riders: stationRiders.get(station.id) ?? 0,
       averageRiders: averageStationRiders(),
@@ -43,6 +56,7 @@ export function infoPanelView(selected, shapes) {
     if (!track) return null;
     return {
       type: 'track',
+      hasRoutes: getState().routes.length > 0,
       track: {
         id: track.id,
         lengthKm: trackLengthKm(track),
@@ -91,11 +105,12 @@ export function profilePanelView(selected) {
 }
 
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
-export function routePanelView({ selected, tool, draft, routes, inserting, message }) {
+// mode: 'draft' | 'detail' | 'list' | null (app.js가 오른쪽에 무엇을 보여줄지 정한다)
+export function routePanelView({ mode, selected, draft, routes, inserting, message }) {
   const route = selected?.type === 'route' ? findRoute(selected.id) : null;
   const { routeRevenue, routeRiders, routeAvgKm, routeLoad, routeLost } = getEconomy();
   return {
-    tool,
+    mode: mode === 'detail' && !route ? 'list' : mode,
     inserting,
     message,
     draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },

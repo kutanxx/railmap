@@ -26,6 +26,7 @@ import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
 import { createPanel } from './panel.js';
+import { createRouteStrip } from './routeStrip.js';
 import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
 import { infoPanelView, routePanelView, profilePanelView, routeColors } from './views.js';
@@ -50,6 +51,9 @@ import { hasTerrain, terrainGrid } from '../game/terrain.js';
 import { addContourLayers } from '../map/contours.js';
 import { createProfilePanel } from './profilePanel.js';
 
+// 오른쪽 패널을 접었는지 기억하는 브라우저 저장 이름
+const PANEL_FOLDED_KEY = 'railmap-panel-folded';
+
 export function startApp(map, loadMessage) {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구, 선택한 것, 진행 중인 편집
   const ui = {
@@ -63,6 +67,7 @@ export function startApp(map, loadMessage) {
     removing: null, // 삭제 버튼에 마우스를 올려서 지도에 미리 보여줄 것 { type, id } 또는 null
     congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
     terrain: false, // 지형 보기: 켜면 등고선이 보인다 (땅 높이가 있는 가상 지도만)
+    panelFolded: localStorage.getItem(PANEL_FOLDED_KEY) === '1', // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
@@ -134,12 +139,32 @@ export function startApp(map, loadMessage) {
 
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
+  // 오른쪽에는 늘 하나만: 노선 만들기 안내 > 고른 노선·역·선로 카드 > 노선 목록 (접었으면 노선 번호 띠)
+  // 카드의 [← 노선 목록]·[✕]는 고른 것을 놓는다 (Esc와 같다)
+  const closeCard = () => {
+    select(null);
+    render();
+  };
+  // 접은 상태는 브라우저에 기억한다
+  const setPanelFolded = (folded) => {
+    ui.panelFolded = folded;
+    localStorage.setItem(PANEL_FOLDED_KEY, folded ? '1' : '0');
+    render();
+  };
   const panel = createPanel(document.getElementById('panel'), {
     onRename: (id, name) => renameStation(id, name),
     onRotate: (id, angle) => rotateStation(id, angle),
     onDeleteStation: deleteSelected,
     onDeleteTrack: deleteSelected,
     onDeletePreview: previewDelete,
+    onClose: closeCard,
+  });
+  const routeStrip = createRouteStrip(document.getElementById('route-strip'), {
+    onUnfold: () => setPanelFolded(false),
+    onSelect: (id) => {
+      select({ type: 'route', id });
+      render();
+    },
   });
 
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
@@ -154,6 +179,8 @@ export function startApp(map, loadMessage) {
     routeTool,
     deleteSelected,
     previewDelete,
+    onClose: closeCard,
+    onFold: setPanelFolded,
   });
 
   // 끌고 있는 역은 끄는 자리에 있는 것처럼 보여준다
@@ -212,17 +239,25 @@ export function startApp(map, loadMessage) {
     updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
     updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
     updateStationExits();
-    panel.show(infoPanelView(ui.selected, shapes));
-    routePanel.show(
-      routePanelView({
-        selected: ui.selected,
-        tool: ui.tool,
-        draft: routeTool.getDraft(),
-        routes,
-        inserting: ui.insertingInto !== null,
-        message: ui.routeMessage,
-      }),
-    );
+    // 오른쪽 패널은 하나만 보여준다
+    const drafting = ui.tool === 'route';
+    const card = drafting ? null : infoPanelView(ui.selected, shapes);
+    let mode = null;
+    if (drafting) mode = 'draft';
+    else if (ui.selected?.type === 'route') mode = 'detail';
+    else if (!card && routes.length > 0 && !ui.panelFolded) mode = 'list';
+    panel.show(card);
+    const routeView = routePanelView({
+      mode,
+      selected: ui.selected,
+      draft: routeTool.getDraft(),
+      routes,
+      inserting: ui.insertingInto !== null,
+      message: ui.routeMessage,
+    });
+    routePanel.show(routeView);
+    const folded = !drafting && !card && mode !== 'detail' && ui.panelFolded && routes.length > 0;
+    routeStrip.show(folded ? routeView.routes : null);
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);

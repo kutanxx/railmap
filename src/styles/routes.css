@@ -244,16 +244,19 @@
   color: #6f6656;
 }
 
-/* ── 노선 패널: 혼잡도 ── */
-.route-load.load-ok {
+/* ── 노선 패널·역 카드: 혼잡도 색 (여유 초록, 붐빔 주황, 넘침 빨강) ── */
+.route-load.load-ok,
+.panel-load.load-ok {
   color: #3f7d3f;
 }
 
-.route-load.load-busy {
+.route-load.load-busy,
+.panel-load.load-busy {
   color: #c9772f;
 }
 
-.route-load.load-over {
+.route-load.load-over,
+.panel-load.load-over {
   color: #b0402f;
 }
 

@@ -15,8 +15,14 @@ import { createRoutePanel } from './routePanel.js';
 import { shortfall } from './costText.js';
 
 // ctx: app.js가 넘겨주는 화면 상태와 도구들
-export function createRouteControls(element, { ui, select, render, notice, routeTool, deleteSelected, previewDelete }) {
+// onClose: 노선 정보를 닫고 목록으로, onFold(true | false): 패널 접기·펼치기
+export function createRouteControls(
+  element,
+  { ui, select, render, notice, routeTool, deleteSelected, previewDelete, onClose, onFold },
+) {
   return createRoutePanel(element, {
+    onClose,
+    onFold,
     onSelect: (id) => {
       select({ type: 'route', id });
       render();
