@@ -38,8 +38,9 @@ export const REGIONS = {
     // 이 두 값으로 솔내–가람 첫 노선(열차 1대)이 서울 첫 노선처럼 200개월쯤에 본전이 된다
     trackCostScale: 0.5,
     soundStyle: 'marimba',
-    // 지방이라 승객이 서울보다 훨씬 적어서, 하루 승객 목표를 이만큼 줄인다 (GOALS)
-    riderGoalScale: 0.1,
+    // 지방이라 승객이 서울보다 적어서, 하루 승객 목표를 이만큼 줄인다 (GOALS).
+    // 0.4면 8천 → 2만 → 4만 → 12만 명. 솔내–가람 첫 노선(열차 1대)이 약 7,800명, 네 마을 한 줄이 약 3.6만 명
+    riderGoalScale: 0.4,
   },
 };
 
@@ -265,17 +266,21 @@ export const NOTICE_LOG_SIZE = 20;
 // ── 게임 목표 (game/goals.js) ─────────────
 // 위에서부터 차례로 보여주고, 이루면 말풍선과 함께 보상(억)을 준다. 샌드박스에는 목표가 없다
 // kind: 'routes' 노선 수, 'stations' 역 수, 'transfers' 환승역 수, 'riders' 하루 승객 (지도의 riderGoalScale을 곱한다),
-//       'net' 월 수지(억, 이 값을 넘으면), 'money' 자금(억)
+//       'net' 월 수지(억, 이 값을 넘으면. 0이면 "흑자"), 'money' 자금(억)
+// 보상은 "다음 목표로 가는 한 걸음" 값에 맞췄다. 서울 기준으로 잰 값 (2026-10-27):
+//   첫 노선(역 6개·열차 1대): 공사비 약 450억, 하루 승객 약 1.4만, 수지 +2억/월 → 열차를 늘리면 2만
+//   노선 3개(역 30개): 승객 약 10만, 수지 +22억/월 / 역 50개·노선 8개·환승 15곳: 승객 약 28만, 수지 +76억/월
+// 역 하나 40억, 선로 1km 60억, 열차 한 대 5억이니 첫 보상들은 역 한두 개, 뒤 보상들은 노선 하나쯤을 지을 수 있다
 export const GOALS = [
-  { kind: 'routes', value: 1, reward: 20 },
-  { kind: 'riders', value: 10000, reward: 30 },
-  { kind: 'net', value: 0, reward: 30 },
-  { kind: 'transfers', value: 1, reward: 30 },
-  { kind: 'routes', value: 3, reward: 50 },
-  { kind: 'riders', value: 50000, reward: 80 },
-  { kind: 'stations', value: 20, reward: 80 },
-  { kind: 'riders', value: 100000, reward: 120 },
-  { kind: 'money', value: 2000, reward: 150 },
+  { kind: 'routes', value: 1, reward: 30 },
+  { kind: 'riders', value: 20000, reward: 40 },
+  { kind: 'transfers', value: 1, reward: 80 },
+  { kind: 'net', value: 10, reward: 50 },
+  { kind: 'routes', value: 3, reward: 100 },
+  { kind: 'riders', value: 50000, reward: 100 },
+  { kind: 'stations', value: 20, reward: 120 },
+  { kind: 'riders', value: 100000, reward: 150 },
+  { kind: 'net', value: 50, reward: 200 },
   { kind: 'riders', value: 300000, reward: 300 },
 ];
 

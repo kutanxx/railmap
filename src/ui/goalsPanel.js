@@ -15,7 +15,7 @@ function goalText({ goal, target }) {
   if (goal.kind === 'riders') {
     return `하루 승객 ${target % 10000 === 0 ? `${target / 10000}만 명` : formatPopulation(target)}`;
   }
-  if (goal.kind === 'net') return '월 수지 흑자';
+  if (goal.kind === 'net') return target === 0 ? '월 수지 흑자' : `월 수지 +${formatMoney(target)}`;
   if (goal.kind === 'money') return `자금 ${formatMoney(target)}`;
   return '';
 }
