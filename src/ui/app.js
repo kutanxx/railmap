@@ -208,7 +208,7 @@ export function startApp(map, loadMessage) {
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
     updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
-    updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes);
+    updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
     updateStationExits();
     panel.show(infoPanelView(ui.selected, shapes));
     routePanel.show(

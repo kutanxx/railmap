@@ -4,12 +4,16 @@
 // MapLibre Marker(지도 좌표에 붙어 다니는 HTML 조각)로 만들어서
 // 확대·이동해도 역 위치에 붙어 있다.
 // 말풍선은 역 둘레 여러 자리 중 출구 배지와 다른 말풍선을 덮지 않는 곳에 놓는다 (arrangeStationLabels).
+// 멀리서 볼수록 말풍선을 줄인다 (config.js LABEL_NAME_ZOOM, LABEL_DETAIL_ZOOM, showForZoom).
 import { Marker } from 'maplibre-gl';
-import { EXIT_DOT_ZOOM, EXIT_LABEL_ZOOM } from '../config.js';
+import { EXIT_DOT_ZOOM, EXIT_LABEL_ZOOM, LABEL_NAME_ZOOM, LABEL_DETAIL_ZOOM } from '../config.js';
 import { formatPeopleShort } from '../ui/format.js';
 
-// 역 id → { marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, coordKey }
+// 역 id → { element, marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, coordKey,
+//          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양 }
 const labels = new Map();
+// 줌을 바꿀 때마다 말풍선 모양을 맞추도록 지도에 한 번만 등록한다
+const watchedMaps = new WeakSet();
 
 // 말풍선 자리 후보: 역에서 지시선을 length(px)만큼 angle(도, 0 = 오른쪽, 시계 방향) 쪽으로 긋고
 // 그 끝에 말풍선을 붙인다. 앞쪽일수록 먼저 고른다 (기본은 오른쪽 위)
@@ -32,7 +36,12 @@ const OVERLAP = 3;
 // stationRoutes = Map(역 id → 그 역을 지나는 노선 [{ color, number }])
 // riders = Map(역 id → 하루 이용객)
 // shapes = Map(역 id → { tag: '환승' | '종착' | '' }) (ui/stationShapes.js)
-export function updateStationLabels(map, stations, stationRoutes, riders, shapes) {
+// selectedId = 고른 역 id (없으면 null). 고른 역은 줌과 상관없이 말풍선을 전부 보여준다
+export function updateStationLabels(map, stations, stationRoutes, riders, shapes, selectedId) {
+  if (!watchedMaps.has(map)) {
+    watchedMaps.add(map);
+    map.on('zoom', () => showForZoom(map));
+  }
   const aliveIds = new Set();
 
   for (const station of stations) {
@@ -53,6 +62,8 @@ export function updateStationLabels(map, stations, stationRoutes, riders, shapes
     }
     const tag = shapes.get(station.id)?.tag ?? '';
     if (label.tag.textContent !== tag) label.tag.textContent = tag;
+    label.important = tag !== '';
+    label.selected = station.id === selectedId;
     // 지나는 노선이 바뀌었을 때만 배지를 다시 만든다
     const routes = stationRoutes.get(station.id) ?? [];
     const routesKey = routes.map((route) => `${route.number}${route.color}`).join(',');
@@ -80,6 +91,22 @@ export function updateStationLabels(map, stations, stationRoutes, riders, shapes
       labels.delete(id);
     }
   }
+  showForZoom(map);
+}
+
+// 줌에 맞춰 말풍선을 줄인다: 'dot'(노란 점만) · 'brief'(이름과 노선 번호) · 'full'(이용객 숫자까지)
+// 줌을 바꾸는 동안 매 프레임 불리므로, 모양이 바뀐 말풍선만 고친다
+function showForZoom(map) {
+  const zoom = map.getZoom();
+  for (const label of labels.values()) {
+    let mode = 'full';
+    if (!label.selected && zoom < LABEL_DETAIL_ZOOM) mode = 'brief';
+    if (!label.selected && !label.important && zoom < LABEL_NAME_ZOOM) mode = 'dot';
+    if (label.mode === mode) continue;
+    label.mode = mode;
+    label.element.classList.toggle('station-label-dot-only', mode === 'dot');
+    label.element.classList.toggle('station-label-brief', mode === 'brief');
+  }
 }
 
 // 말풍선 자리를 다시 고른다: 출구 배지와 먼저 놓인 다른 말풍선을 되도록 덮지 않는 곳으로
@@ -94,6 +121,8 @@ export function arrangeStationLabels(map, exitCoords) {
   const placed = []; // 먼저 자리를 정한 말풍선들 (화면 네모)
 
   for (const label of labels.values()) {
+    // 노란 점만 보이는 역은 자리를 차지하지 않는다
+    if (label.mode === 'dot') continue;
     const at = map.project(label.marker.getLngLat());
     if (at.x < -200 || at.y < -200 || at.x > clientWidth + 200 || at.y > clientHeight + 200) continue;
     const width = label.bubble.offsetWidth;
@@ -181,6 +210,7 @@ function createLabel(map, coord) {
 
   const marker = new Marker({ element, anchor: 'center' }).setLngLat(coord).addTo(map);
   return {
+    element,
     marker,
     line,
     bubble,
@@ -191,5 +221,8 @@ function createLabel(map, coord) {
     routesKey: '',
     riders: ridersCount,
     coordKey: coord.join(','),
+    important: false,
+    selected: false,
+    mode: 'full',
   };
 }

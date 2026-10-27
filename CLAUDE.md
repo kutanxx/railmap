@@ -58,7 +58,7 @@ src/
     trainLayers.js    열차 레이어 (GeoJSON source 하나)
     exitFinder.js     역 출구 자리 찾기 (건물을 피해 가까운 길가로, 큰 사거리는 네 모퉁이로)
     exitLayers.js     출구 통로와 노란 출구 번호 배지
-    stationLabels.js  역 이름 말풍선
+    stationLabels.js  역 이름 말풍선 (멀리서 보면 환승역·종착역만, 가까이서 보면 이용객 숫자까지)
     population.js     역 주변 인구 재기 (건물 면적), 역을 놓을 만큼 확대했는지
     water.js          점들이 물 위인지 재기 (교량 판정)
     contours.js       등고선 (가상 지도, [지형] 버튼)

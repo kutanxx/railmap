@@ -18,8 +18,10 @@ const TRACK_COLORS = {
 };
 
 // 혼잡도 보기를 켰을 때 선로 가운데 줄 색 (노선 패널의 혼잡도 글자색과 같은 뜻)
+// 색만으로 나누지 않고 굵기로도 나눈다: 여유는 가늘게, 붐빔은 중간, 넘침은 선로를 거의 채우게 굵게 + "128%" 글자.
+// 여유는 밝은 초록이라, 빨강·초록을 잘 구별하지 못해도 밝기로 넘침(진한 빨강)과 구별된다
 export const LOAD_COLORS = {
-  ok: '#4F8F5B', // 여유
+  ok: '#A9CBA0', // 여유
   busy: '#D9A031', // 붐빔 (CROWDED_WARNING 이상)
   over: '#B0402F', // 넘침 (100% 넘음)
 };
@@ -40,12 +42,26 @@ export const zoomWidth = (z10, z14, z18) => [
 const TRACK_SELECTED_WIDTH = zoomWidth(7, 13, 26);
 const TRACK_CASING_WIDTH = zoomWidth(3.5, 8, 20);
 const TRACK_BODY_WIDTH = zoomWidth(2, 5.5, 15);
-// 가운데 줄: 노선이 지나는 선로는 노선 색으로 조금 더 굵게, 아니면 베이지로 얇게
+// 가운데 줄: 노선이 지나는 선로는 노선 색으로 조금 더 굵게, 아니면 베이지로 얇게.
+// 혼잡도 보기를 켜면 혼잡도 단계(load: 'ok' | 'busy' | 'over')마다 굵기가 다르다
 const HAS_ROUTE = ['!=', ['get', 'routeColor'], null];
+const LOAD = ['get', 'load'];
+const centerWidth = ({ route, none, ok, busy, over }) => [
+  'case',
+  ['==', LOAD, 'over'],
+  over,
+  ['==', LOAD, 'busy'],
+  busy,
+  ['==', LOAD, 'ok'],
+  ok,
+  HAS_ROUTE,
+  route,
+  none,
+];
 const TRACK_CENTER_WIDTH = zoomWidth(
-  ['case', HAS_ROUTE, 1.2, 0.5],
-  ['case', HAS_ROUTE, 2.5, 1],
-  ['case', HAS_ROUTE, 6, 2.5],
+  centerWidth({ route: 1.2, none: 0.5, ok: 0.8, busy: 1.4, over: 1.9 }),
+  centerWidth({ route: 2.5, none: 1, ok: 1.5, busy: 3, over: 4.6 }),
+  centerWidth({ route: 6, none: 2.5, ok: 3.5, busy: 7.5, over: 12.5 }),
 );
 const TRACK_CENTER_COLOR = ['coalesce', ['get', 'routeColor'], TRACK_COLORS.center];
 
@@ -97,6 +113,25 @@ export function addTrackLayers(map) {
     layout: ROUND_LINE,
     paint: { 'line-color': TRACK_CENTER_COLOR, 'line-width': TRACK_CENTER_WIDTH },
   });
+  // 혼잡도 보기에서 넘친 구간 가운데에 혼잡도 숫자 ("128%"). 굵은 빨간 줄 위에 흰 글자 + 빨간 테두리라
+  // 선로 위에 빨간 이름표처럼 보인다 (말풍선에 가리지 않게 선 위에 바로 쓴다)
+  map.addLayer({
+    id: 'track-load-label',
+    type: 'symbol',
+    source: TRACK_SOURCE,
+    filter: ['==', LOAD, 'over'],
+    layout: {
+      'symbol-placement': 'line-center',
+      'text-field': ['get', 'loadLabel'],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': 13,
+    },
+    paint: {
+      'text-color': '#FFFFFF',
+      'text-halo-color': LOAD_COLORS.over,
+      'text-halo-width': 3,
+    },
+  });
   // 지우기 미리보기: 함께 지워질 선로는 빨간 몸통, 사라질 노선이 지나는 선로는 빨간 점선
   map.addLayer({
     id: 'track-removing-gone',
@@ -121,6 +156,7 @@ export function addTrackLayers(map) {
 
 // 선로 전체를 다시 그린다
 // lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null,
+//            load: 혼잡도 보기의 단계 'ok' | 'busy' | 'over' 또는 null, loadLabel: 넘친 구간에 쓸 글자 ("128%"),
 //            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null,
 //            tunnels: 터널 구간들 [[[경도, 위도], …], …] (없으면 빈 목록) }]
 // selectedIds = 노란색으로 강조할 선로 id들 (Set)
@@ -133,6 +169,8 @@ export function updateTracks(map, lines, selectedIds) {
       properties: {
         id: line.id,
         routeColor: line.routeColor,
+        load: line.load ?? null,
+        loadLabel: line.loadLabel ?? '',
         selected: selectedIds.has(line.id),
         removing: line.removing ?? null,
       },

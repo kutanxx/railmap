@@ -207,6 +207,13 @@ body {
   pointer-events: none;
 }
 
+/* 멀리서 볼 때 (map/stationLabels.js): 말풍선 없이 노란 점만, 또는 이용객 숫자를 뺀 짧은 말풍선 */
+.station-label-dot-only .station-label-line,
+.station-label-dot-only .station-label-bubble,
+.station-label-brief .station-label-riders {
+  display: none;
+}
+
 /* 역 위치의 노란 점 */
 .station-label-dot {
   position: absolute;
@@ -580,11 +587,29 @@ body {
   display: none;
 }
 
+/* 혼잡도 설명의 막대: 지도의 선로처럼 여유는 가늘게, 넘침은 굵게 (색을 못 봐도 구별되게) */
 .congestion-legend i {
-  width: 10px;
-  height: 10px;
+  width: 16px;
   margin-left: 4px;
-  border-radius: 50%;
+  border-radius: 2px;
+}
+
+.congestion-legend .load-ok {
+  height: 3px;
+}
+
+.congestion-legend .load-busy {
+  height: 6px;
+}
+
+.congestion-legend .load-over {
+  height: 10px;
+}
+
+/* 넘친 구간 수 */
+.congestion-over-count {
+  margin-left: 4px;
+  color: #1f3a55;
 }
 
 /* ── 시작 화면: 지도 고르기 (게임 화면 전체를 덮는다) ── */

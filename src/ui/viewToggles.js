@@ -4,6 +4,7 @@ import { hasTerrain } from '../game/terrain.js';
 import { setContoursVisible } from '../map/contours.js';
 import { createCongestionToggle } from './congestionToggle.js';
 import { createTerrainToggle } from './terrainToggle.js';
+import { getEconomy } from '../game/demand.js';
 import { createSoundToggle } from './sounds.js';
 import { createMusicToggle } from './music.js';
 
@@ -38,7 +39,8 @@ export function createViewToggles({ map, ui, render }) {
     toggleTerrain,
     toggleSound: sound.toggle,
     show() {
-      congestion.setActive(ui.congestion);
+      const over = [...getEconomy().trackLoad.values()].filter((load) => load > 1).length;
+      congestion.setActive(ui.congestion, over);
       terrain.setActive(ui.terrain);
     },
   };

@@ -99,17 +99,26 @@ export const EXIT_DOT_ZOOM = 15;
 export const EXIT_LABEL_ZOOM = 16;
 // 출구 이름 붙이는 방식. 지금은 'seoul'(상행 오른쪽 앞이 1번, 시계 방향)만 있다 (ui/exitNames.js)
 export const EXIT_NAMING = 'seoul';
+// 역 이름 말풍선은 줌에 따라 줄인다 (멀리서 보면 지도가 말풍선으로 덮이지 않게)
+// - LABEL_NAME_ZOOM보다 멀리: 환승역·종착역만 말풍선, 나머지 역은 노란 점만
+// - LABEL_NAME_ZOOM ~ LABEL_DETAIL_ZOOM: 모든 역의 이름과 노선 번호 (하루 이용객 숫자는 숨김)
+// - LABEL_DETAIL_ZOOM부터: 전부 (이용객 숫자까지)
+// 고른 역은 줌과 상관없이 전부 보인다. 서울은 줌 14, 솔내 지방은 줌 12로 시작한다
+export const LABEL_NAME_ZOOM = 13.5;
+export const LABEL_DETAIL_ZOOM = 15;
 
 
 // ── 노선 색 ────────────────────────────
 // 노선마다 고를 수 있는 차분한 색 6가지. 새 노선은 이 순서대로 돌아가며 받는다
+// 순서는 색약(빨강·초록을 잘 구별하지 못함)인 사람에게 비슷해 보이는 색끼리 멀리 떨어지게 정했다
+// (파랑과 보라가 특히 비슷해 보여서 맨 처음과 맨 끝에 둔다). 노선 번호 배지가 있어서 색이 비슷해도 구별된다
 export const ROUTE_COLORS = [
   { name: '파랑', color: '#3F6E9A' },
-  { name: '초록', color: '#5E8C61' },
   { name: '벽돌', color: '#B0574A' },
-  { name: '보라', color: '#7E6A9E' },
-  { name: '청록', color: '#3E8A8A' },
+  { name: '초록', color: '#5E8C61' },
   { name: '자두', color: '#9C5B7A' },
+  { name: '청록', color: '#3E8A8A' },
+  { name: '보라', color: '#7E6A9E' },
 ];
 
 // ── 시간과 열차 ─────────────────────────
