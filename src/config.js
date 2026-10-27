@@ -7,9 +7,6 @@
 // 실제 지도의 기본 지도 데이터 주소 (OpenFreeMap positron, 가입·키 없음)
 export const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 
-// 미터를 화면 px로 바꿀 때 쓰는 위도. 서울과 솔내 지방 모두 이 위도에 있다
-export const GROUND_LATITUDE = 37.56;
-
 // 게임 시작 날짜
 export const START_YEAR = 2026;
 export const START_MONTH = 3;

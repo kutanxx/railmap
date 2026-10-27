@@ -6,7 +6,7 @@
 // name: 왼쪽 위 배지에 보일 지역 이름, title·description: 시작 화면 글,
 // center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
 // bounds: 실제 지도에서 움직일 수 있는 범위 [서쪽 경도, 남쪽 위도, 동쪽 경도, 북쪽 위도] (도시 경계쯤. 가상 지도는 자료 범위로 정해진다)
-// 실제 도시의 populationScale은 역 자리 일곱 곳쯤의 주변 인구를 재서, 평균이 서울(약 2.3만 명)과 비슷해지게 맞췄다 (2026-10-27).
+// 실제 도시의 populationScale은 역 자리 일곱 곳쯤의 주변 인구(1배로 잰 값)를 재서, 평균이 서울(약 2.3만 명)과 비슷해지게 맞췄다 (2026-10-27).
 // 지도(OpenStreetMap)에 건물이 얼마나 그려져 있는지가 도시마다 달라서다
 // 지도마다 다른 돈 계산 (밸런스):
 //   startMoney: 시작 자금 (억)
@@ -55,8 +55,8 @@ export const REGIONS = {
     zoom: 14,
     bounds: [126.42, 37.36, 126.8, 37.62],
     startMoney: 600,
-    // 역 주변 인구(1배)가 서울보다 조금 적다: 부평 3.7만, 주안 3.7만, 인천시청 2.0만, 송도 1.7만
-    populationScale: 1.1,
+    // 1배면 평균 1.2만 명으로 서울의 절반: 주안 2.1만, 부평 2.0만, 인천시청 1.1만, 송도 0.9만
+    populationScale: 2,
     trackCostScale: 1,
     soundStyle: 'bell',
     riderGoalScale: 1,
@@ -70,8 +70,8 @@ export const REGIONS = {
     zoom: 14,
     bounds: [128.42, 35.76, 128.78, 36.0],
     startMoney: 600,
-    // 지도에 건물이 촘촘해서 1배면 서울보다 많다: 반월당 5.0만, 동대구 4.7만, 범어 2.4만, 상인 1.8만
-    populationScale: 0.8,
+    // 1배면 평균 1.6만 명: 반월당 2.8만, 동대구 2.6만, 범어 1.3만, 상인 1.0만
+    populationScale: 1.4,
     trackCostScale: 1,
     soundStyle: 'gugak',
     riderGoalScale: 1,
@@ -85,8 +85,8 @@ export const REGIONS = {
     zoom: 14,
     bounds: [127.26, 36.21, 127.56, 36.49],
     startMoney: 600,
-    // 지도에 건물이 성겨서 1배면 서울의 70%쯤: 정부청사 2.5만, 시청 2.4만, 대전역 1.0만, 중앙로 0.9만
-    populationScale: 1.4,
+    // 지도에 건물이 성겨서 1배면 평균 0.9만 명: 정부청사 1.4만, 시청 1.4만, 대전역 0.6만, 중앙로 0.5만
+    populationScale: 2.5,
     trackCostScale: 1,
     soundStyle: 'marimba',
     riderGoalScale: 1,
@@ -100,10 +100,70 @@ export const REGIONS = {
     zoom: 14,
     bounds: [126.66, 35.06, 127.02, 35.26],
     startMoney: 600,
-    // 1배면 서울보다 조금 많다: 상무 4.3만, 금남로4가 4.2만, 운천 2.6만, 양동시장 0.8만
-    populationScale: 0.9,
+    // 1배면 평균 1.4만 명: 상무 2.4만, 금남로4가 2.3만, 운천 1.5만, 양동시장 0.4만
+    populationScale: 1.6,
     trackCostScale: 1,
     soundStyle: 'gugak',
+    riderGoalScale: 1,
+  },
+  tokyo: {
+    name: '도쿄',
+    title: '실제 지도 · 도쿄',
+    description: '세계에서 철도가 가장 붐비는 도시, 실제 도쿄 23구 위에 노선을 깔아요',
+    // 도쿄역. 신주쿠는 서쪽으로 6km쯤
+    center: [139.767, 35.681],
+    zoom: 14,
+    bounds: [139.56, 35.52, 139.92, 35.82],
+    startMoney: 600,
+    // 지도에 건물이 아주 촘촘해서 1배면 평균 4.0만 명: 이케부쿠로 4.7만, 도쿄역 4.6만, 신주쿠 4.5만, 우에노 2.9만
+    populationScale: 0.6,
+    trackCostScale: 1,
+    soundStyle: 'marimba',
+    riderGoalScale: 1,
+  },
+  newyork: {
+    name: '뉴욕',
+    title: '실제 지도 · 뉴욕',
+    description: '바둑판 거리의 맨해튼과 다리 건너 브루클린·퀸스, 실제 뉴욕 위에 노선을 깔아요',
+    // 맨해튼 미드타운 (타임스스퀘어 근처)
+    center: [-73.985, 40.754],
+    zoom: 14,
+    bounds: [-74.26, 40.49, -73.7, 40.92],
+    startMoney: 600,
+    // 큰 건물이 많아 1배면 평균 5.5만 명: 그랜드센트럴 9.0만, 타임스스퀘어 7.4만, 브루클린 애틀랜틱 3.8만, 퀸스 잭슨하이츠 3.2만
+    populationScale: 0.4,
+    trackCostScale: 1,
+    soundStyle: 'bell',
+    riderGoalScale: 1,
+  },
+  london: {
+    name: '런던',
+    title: '실제 지도 · 런던',
+    description: '템스강을 따라 펼쳐진 세계 첫 지하철의 도시, 실제 런던 위에 노선을 깔아요',
+    // 채링크로스 (트래펄가 광장 근처)
+    center: [-0.125, 51.508],
+    zoom: 14,
+    bounds: [-0.51, 51.28, 0.33, 51.7],
+    startMoney: 600,
+    // 1배면 평균 4.5만 명: 뱅크 7.4만, 옥스퍼드서커스 5.7만, 킹스크로스 4.1만, 브릭스턴 2.5만
+    populationScale: 0.5,
+    trackCostScale: 1,
+    soundStyle: 'bell',
+    riderGoalScale: 1,
+  },
+  paris: {
+    name: '파리',
+    title: '실제 지도 · 파리',
+    description: '센강과 순환도로 안쪽에 건물이 빽빽한, 실제 파리 위에 노선을 깔아요',
+    // 샤틀레 (시내 한가운데)
+    center: [2.347, 48.859],
+    zoom: 14,
+    bounds: [2.15, 48.75, 2.55, 48.96],
+    startMoney: 600,
+    // 1배면 평균 4.7만 명: 라데팡스 6.2만, 몽파르나스 5.1만, 샤틀레 4.4만, 이탈리광장 3.5만
+    populationScale: 0.5,
+    trackCostScale: 1,
+    soundStyle: 'marimba',
     riderGoalScale: 1,
   },
   sollae: {

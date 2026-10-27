@@ -5,13 +5,13 @@ import { getState, findRoute, findStation } from '../game/state.js';
 import { routeNumber } from '../game/routes.js';
 import { stepSimulation, trainFeatures } from '../game/sim.js';
 import { updateTrains } from '../map/trainLayers.js';
-import { METERS_PER_PIXEL_Z0 } from '../map/stationLayers.js';
+import { metersPerPixelZ0 } from '../map/stationLayers.js';
 import { playArrivals, playSound } from './sounds.js';
 import { updateRailClack } from './railClack.js';
 
 // 지금 줌에서 그릴 열차 길이 (km): 실제 길이, 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게
 function shownTrainLengthKm(map) {
-  const metersPerPixel = METERS_PER_PIXEL_Z0 / 2 ** map.getZoom();
+  const metersPerPixel = metersPerPixelZ0() / 2 ** map.getZoom();
   return Math.max(TRAIN_LENGTH_M, TRAIN_MIN_SCREEN_PX * metersPerPixel) / 1000;
 }
 

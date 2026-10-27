@@ -4,9 +4,9 @@ import { circle } from '@turf/turf';
 import {
   POPULATION_RADIUS_M,
   PLATFORM_REAL_SIZE_ZOOM,
-  GROUND_LATITUDE,
   STATION_CAPSULE_MIN_ZOOM,
 } from '../config.js';
+import { getRegion } from '../game/region.js';
 import { ensureCapsuleImage } from './stationIcons.js';
 
 // 역은 줌에 따라 다르게 그린다 (근거: reports/나라별 노선도 역 표기.md)
@@ -54,8 +54,9 @@ const CIRCLE_STROKE = ['interpolate', ['linear'], ['zoom'], 10, 1.5, 13, 2];
 // 캡슐 그림 배율 (줌 → 배율). 그림은 줌 15 바로 아래 크기로 만든다
 const CAPSULE_SIZE = ['interpolate', ['linear'], ['zoom'], STATION_CAPSULE_MIN_ZOOM, 0.55, 13, 0.75, PLATFORM_REAL_SIZE_ZOOM, 1];
 
-// 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 지도들이 있는 위도로 한 번만 계산한다
-export const METERS_PER_PIXEL_Z0 = (40075016.686 * Math.cos((GROUND_LATITUDE * Math.PI) / 180)) / 512;
+// 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 북쪽 도시일수록 1px이 짧아지므로
+// 지금 지도의 위도(처음 화면 가운데)로 계산한다. 서울 37.6°와 런던 51.5°는 20% 넘게 다르다
+export const metersPerPixelZ0 = () => (40075016.686 * Math.cos((getRegion().center[1] * Math.PI) / 180)) / 512;
 // 띠의 테두리 굵기 (줌 → px): 줌 14에서 1.5, 18부터 3
 export const outlinePx = (zoom) => Math.min(3, 1.5 + (zoom - PLATFORM_REAL_SIZE_ZOOM) * 0.375);
 // 실제 폭(미터, 지물 속성 width)을 화면 굵기(px)로 바꾸는 식. extraPx(줌)만큼 더 굵게 (통로도 같이 쓴다)
@@ -66,12 +67,13 @@ export const metersWide = (extraPx) => [
   ['zoom'],
   ...[14, 16, 18, 20, 22].flatMap((zoom) => [
     zoom,
-    ['+', ['*', ['get', 'width'], 2 ** zoom / METERS_PER_PIXEL_Z0], extraPx(zoom)],
+    ['+', ['*', ['get', 'width'], 2 ** zoom / metersPerPixelZ0()], extraPx(zoom)],
   ]),
 ];
-const FILL_WIDTH = metersWide(() => 0);
-const CASING_WIDTH = metersWide((zoom) => outlinePx(zoom) * 2);
-const SELECTED_WIDTH = metersWide((zoom) => outlinePx(zoom) * 2 + 8);
+// 지도를 고른 뒤(레이어를 올릴 때) 만들어야 그 지도의 위도가 들어간다
+const fillWidth = () => metersWide(() => 0);
+const casingWidth = () => metersWide((zoom) => outlinePx(zoom) * 2);
+const selectedWidth = () => metersWide((zoom) => outlinePx(zoom) * 2 + 8);
 // 승강장 가운데 흰 점선 굵기 (줌 → px)
 const CENTERLINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 14, 1, 18, 2.5];
 const BAND_LAYOUT = { 'line-join': 'round', 'line-cap': 'butt' };
@@ -157,7 +159,7 @@ export function addStationLayers(map) {
     minzoom: PLATFORM_REAL_SIZE_ZOOM,
     filter: ['get', 'selected'],
     layout: BAND_LAYOUT,
-    paint: { 'line-color': COLORS.selected, 'line-width': SELECTED_WIDTH },
+    paint: { 'line-color': COLORS.selected, 'line-width': selectedWidth() },
   });
   map.addLayer({
     id: CASING_LAYER,
@@ -165,7 +167,7 @@ export function addStationLayers(map) {
     source: BAND_SOURCE,
     minzoom: PLATFORM_REAL_SIZE_ZOOM,
     layout: BAND_LAYOUT,
-    paint: { 'line-color': COLORS.border, 'line-width': CASING_WIDTH },
+    paint: { 'line-color': COLORS.border, 'line-width': casingWidth() },
   });
   map.addLayer({
     id: FILL_LAYER,
@@ -173,7 +175,7 @@ export function addStationLayers(map) {
     source: BAND_SOURCE,
     minzoom: PLATFORM_REAL_SIZE_ZOOM,
     layout: BAND_LAYOUT,
-    paint: { 'line-color': COLORS.platform, 'line-width': FILL_WIDTH },
+    paint: { 'line-color': COLORS.platform, 'line-width': fillWidth() },
   });
   // 승강장 가운데 흰 점선 (나란한 승강장은 띠마다 한 줄)
   map.addLayer({
