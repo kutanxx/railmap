@@ -15,6 +15,7 @@ import { removalPreview } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
+import { routeHeadway } from '../game/sim.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 const pick = (object, keys) => Object.fromEntries(keys.map((key) => [key, object[key]]));
@@ -137,6 +138,7 @@ export function routePanelView({ mode, selected, draft, routes, inserting, messa
       avgKm: routeAvgKm.get(route.id) ?? 0,
       load: routeLoad.get(route.id) ?? 0,
       lost: routeLost.get(route.id) ?? 0,
+      headwayMinutes: routeHeadway(route.id) / 60,
     },
   };
 }

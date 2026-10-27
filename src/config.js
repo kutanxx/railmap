@@ -160,6 +160,9 @@ export const CROWDED_WARNING = 0.8;
 export const TRAIN_LENGTH_M = 120;
 // 멀리서 볼 때도 열차가 점처럼 작아지지 않게, 화면에서 적어도 이만큼(px) 길게 그린다
 export const TRAIN_MIN_SCREEN_PX = 24;
+// 이 줌부터 열차 위에 번호표("3-1" = 3호선 1번 열차)를 붙인다 (실제 관제실의 열차 번호처럼).
+// 멀리서는 열차가 많아 글자로 덮이므로 가까이 볼 때만. 열차 글자는 매 프레임 자리를 다시 잡아서, 줌을 낮추면 느려질 수 있다
+export const TRAIN_LABEL_MIN_ZOOM = 15.5;
 
 // ── 돈 (단위: 억 원) ────────────────────
 // 시작 자금은 지도마다 다르다: 위의 REGIONS의 startMoney (서울 600억 = 역 3개짜리 첫 노선 약 320억 + 여유)

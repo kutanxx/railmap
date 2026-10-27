@@ -236,3 +236,51 @@
   font-size: 12px;
   font-weight: 400;
 }
+
+/* ── 고른 역 둘레 모서리 괄호 (map/selectionBracket.js). 남색 L자 네 개, 지도 클릭을 막지 않는다 ── */
+.selection-bracket {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.selection-bracket[hidden] {
+  display: none;
+}
+
+.selection-bracket i {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--navy);
+}
+
+.selection-bracket .tl {
+  top: 0;
+  left: 0;
+  border-top-width: 3px;
+  border-left-width: 3px;
+}
+
+.selection-bracket .tr {
+  top: 0;
+  right: 0;
+  border-top-width: 3px;
+  border-right-width: 3px;
+}
+
+.selection-bracket .bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+}
+
+.selection-bracket .br {
+  right: 0;
+  bottom: 0;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
+}

@@ -94,6 +94,11 @@ export function trainFeatures(lengthKm) {
   return features;
 }
 
+// 노선의 배차 간격: 종점에서 열차가 몇 초(게임 시간)마다 떠나는지 = 왕복 시간 ÷ 열차 수. 열차가 없으면 0
+export function routeHeadway(routeId) {
+  return paths.get(routeId)?.headway ?? 0;
+}
+
 // 열차마다 지금 자리와 빠르기 (효과음용: 레일 덜컹 소리, ui/railClack.js)
 // 결과: [{ coord: [경도, 위도], speedRatio: 최고 속도 대비 0~1 (서 있으면 0) }]
 export function trainMotion() {

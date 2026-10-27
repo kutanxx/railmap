@@ -27,6 +27,7 @@ import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
 import { createPanel } from './panel.js';
 import { createRouteStrip } from './routeStrip.js';
+import { updateSelectionBracket } from '../map/selectionBracket.js';
 import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
 import { infoPanelView, routePanelView, profilePanelView, routeColors } from './views.js';
@@ -69,6 +70,7 @@ export function startApp(map, loadMessage) {
     congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
     terrain: false, // 지형 보기: 켜면 등고선이 보인다 (땅 높이가 있는 가상 지도만)
     panelFolded: localStorage.getItem(PANEL_FOLDED_KEY) === '1', // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지
+    trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
@@ -99,6 +101,7 @@ export function startApp(map, loadMessage) {
   // 도구 바꾸기 (도구 버튼, 숫자키 1~4)
   function chooseTool(toolId) {
     ui.tool = toolId;
+    ui.trackPanelOpen = false;
     select(null); // 도구를 바꾸면 선택도 푼다
     // 도구를 바꾸면 그리던 선로·고르던 노선은 취소
     trackTool.cancel();
@@ -165,7 +168,10 @@ export function startApp(map, loadMessage) {
     onClose: closeCard,
   });
   const routeStrip = createRouteStrip(document.getElementById('route-strip'), {
-    onUnfold: () => setPanelFolded(false),
+    onUnfold: () => {
+      if (ui.tool === 'track') ui.trackPanelOpen = true;
+      setPanelFolded(false);
+    },
     onSelect: (id) => {
       select({ type: 'route', id });
       render();
@@ -247,15 +253,22 @@ export function startApp(map, loadMessage) {
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
     updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
+    // 고른 역 둘레 모서리 괄호: 역 모양(띠·대합실)의 점들과 역 자리를 감싼다
+    const bracketPoints = selectedStation
+      ? [selectedCoord, ...(bands.get(selectedStation.id)?.parts ?? []).flatMap((part) => part.coords)]
+      : null;
+    updateSelectionBracket(map, bracketPoints);
     updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
     updateStationExits();
     // 오른쪽 패널은 하나만 보여준다
+    // 선로 도구를 쓰는 동안은 노선 목록을 번호 띠로 잠깐 접어 지도를 넓게 쓴다 (도구를 바꾸면 다시 펼친다)
     const drafting = ui.tool === 'route';
+    const folded = ui.panelFolded || (ui.tool === 'track' && !ui.trackPanelOpen);
     const card = drafting ? null : infoPanelView(ui.selected, shapes);
     let mode = null;
     if (drafting) mode = 'draft';
     else if (ui.selected?.type === 'route') mode = 'detail';
-    else if (!card && routes.length > 0 && !ui.panelFolded) mode = 'list';
+    else if (!card && routes.length > 0 && !folded) mode = 'list';
     panel.show(card);
     const routeView = routePanelView({
       mode,
@@ -266,8 +279,8 @@ export function startApp(map, loadMessage) {
       message: ui.routeMessage,
     });
     routePanel.show(routeView);
-    const folded = !drafting && !card && mode !== 'detail' && ui.panelFolded && routes.length > 0;
-    routeStrip.show(folded ? routeView.routes : null);
+    const showStrip = !drafting && !card && mode !== 'detail' && folded && routes.length > 0;
+    routeStrip.show(showStrip ? routeView.routes : null);
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);

@@ -62,7 +62,8 @@ src/
     mapFeatures.js    건물·도로·물 읽기 (실제: 지도 타일, 가상: GeoJSON)
     stationLayers.js  역(승강장) 레이어, 500m 역세권 원
     trackLayers.js    선로 레이어, 그리는 중인 선로 미리보기, 선로 손잡이
-    trainLayers.js    열차 레이어 (GeoJSON source 하나)
+    trainLayers.js    열차 레이어 (GeoJSON source 하나), 가까이 보면 열차 번호표 ("3-1")
+    selectionBracket.js 고른 역 둘레 남색 모서리 괄호
     exitFinder.js     역 출구 자리 찾기 (건물을 피해 가까운 길가로, 큰 사거리는 네 모퉁이로)
     exitLayers.js     출구 통로와 노란 출구 번호 배지
     stationLabels.js  역 이름 말풍선 (멀리서 보면 환승역·종착역만, 가까이서 보면 이용객 숫자까지)

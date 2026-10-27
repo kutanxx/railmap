@@ -274,3 +274,43 @@
   color: #ffffff;
   font-size: var(--text-small);
 }
+
+/* 노선 정보의 판독값 줄: 계기판처럼 한 줄에 승객 · 혼잡 · 배차 · 열차 (디비전 작전 화면에서 빌린 조각) */
+.route-readout {
+  display: flex;
+  margin: -4px 0 14px;
+  border: 1px solid var(--info-border);
+  border-radius: 8px;
+}
+
+.route-readout span {
+  flex: 1;
+  padding: 6px 2px;
+  border-left: 1px solid var(--divider);
+  color: var(--muted);
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.route-readout span:first-child {
+  border-left: none;
+}
+
+.route-readout b {
+  display: block;
+  color: var(--navy);
+  font-size: var(--text-body);
+  white-space: nowrap;
+}
+
+.readout-load.load-ok {
+  color: #3f7d3f;
+}
+
+.readout-load.load-busy {
+  color: #c9772f;
+}
+
+.readout-load.load-over {
+  color: var(--danger);
+}

@@ -1,4 +1,5 @@
 // 열차를 지도 레이어로 그린다.
+import { TRAIN_LABEL_MIN_ZOOM } from '../config.js';
 import { zoomWidth } from './trackLayers.js';
 
 // 모든 열차를 GeoJSON source 하나에 담고, 매 프레임 setData로 한 번에 바꾼다.
@@ -34,6 +35,27 @@ export function addTrainLayers(map) {
     source: TRAIN_SOURCE,
     layout: TRAIN_CAPSULE,
     paint: { 'line-color': ['get', 'routeColor'], 'line-width': zoomWidth(1, 2.5, 6) },
+  });
+  // 가까이 보면 열차 위에 번호표: 열차 id "r3-1"에서 앞의 r을 뺀 "3-1", 노선 색 바탕에 흰 글자
+  // 같은 source를 쓰므로 열차 위치를 한 번에 갱신하는 규칙은 그대로다
+  map.addLayer({
+    id: 'train-label',
+    type: 'symbol',
+    source: TRAIN_SOURCE,
+    minzoom: TRAIN_LABEL_MIN_ZOOM,
+    layout: {
+      'symbol-placement': 'line-center',
+      'text-field': ['slice', ['get', 'id'], 1],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': 12,
+      'text-offset': [0, -1.4],
+      'text-rotation-alignment': 'viewport',
+    },
+    paint: {
+      'text-color': '#FFFFFF',
+      'text-halo-color': ['get', 'routeColor'],
+      'text-halo-width': 3,
+    },
   });
 }
 

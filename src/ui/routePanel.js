@@ -3,7 +3,7 @@
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
 import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
 import { bindNameInput } from './nameInput.js';
-import { formatMoney, formatSignedMoney, formatPopulation } from './format.js';
+import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
 import { renderRouteList, loadTone } from './routeList.js';
 
 export function createRoutePanel(
@@ -42,6 +42,12 @@ export function createRoutePanel(
         <button type="button" class="panel-close" title="닫기 (Esc)" aria-label="닫기">✕</button>
       </div>
       <div class="panel-title">노선 정보</div>
+      <div class="route-readout">
+        <span>승객<b class="readout-riders"></b></span>
+        <span>혼잡<b class="readout-load"></b></span>
+        <span>배차<b class="readout-headway"></b></span>
+        <span>열차<b class="readout-trains"></b></span>
+      </div>
       <label class="panel-field">
         <span>이름</span>
         <input class="panel-name route-name" type="text" maxlength="20" />
@@ -103,6 +109,13 @@ export function createRoutePanel(
   const insertButton = element.querySelector('.route-insert');
   const editMessage = element.querySelector('.route-edit-message');
   const list = element.querySelector('.route-list');
+  // 판독값 줄: 계기판처럼 한 줄에 승객 · 혼잡 · 배차 간격 · 열차 수
+  const readout = {
+    riders: element.querySelector('.readout-riders'),
+    load: element.querySelector('.readout-load'),
+    headway: element.querySelector('.readout-headway'),
+    trains: element.querySelector('.readout-trains'),
+  };
 
   const trainCountText = element.querySelector('.route-trains-count');
   const minusButton = element.querySelector('.route-trains-minus');
@@ -156,7 +169,7 @@ export function createRoutePanel(
   //   mode: 'draft' | 'detail' | 'list' | null (숨김),
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
   //   routes: [{ id, name, color, lengthKm, revenue, riders, load }],
-  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm, load, lost } 또는 null,
+  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm, load, lost, headwayMinutes } 또는 null,
   //   (load: 혼잡도, 1 = 100%. lost: 자리가 없어 놓친 하루 승객)
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
@@ -192,6 +205,7 @@ export function createRoutePanel(
       avgKmText.textContent = selected.riders > 0 ? `${selected.avgKm.toFixed(1)} km` : '-';
       revenueText.textContent =
         selected.trainCount > 0 ? `${formatSignedMoney(selected.revenue)} / 월` : '열차가 없어 운행 안 함';
+      showReadout(selected);
       renderStops(selected.stops);
       insertButton.classList.toggle('active', inserting);
       insertButton.textContent = inserting ? '끼워넣기 끝내기' : '역 끼워넣기';
@@ -201,6 +215,16 @@ export function createRoutePanel(
     }
 
     if (mode === 'list') renderRouteList(list, routes, onSelect);
+  }
+
+  // 판독값 줄. 열차가 없으면 승객·혼잡·배차는 "-"
+  function showReadout({ trainCount, riders, load, headwayMinutes }) {
+    const running = trainCount > 0;
+    readout.riders.textContent = running ? formatPeopleShort(riders) : '-';
+    readout.load.textContent = running ? `${Math.round(load * 100)}%` : '-';
+    readout.load.className = `readout-load ${running ? loadTone(load) : ''}`;
+    readout.headway.textContent = running ? `${Math.max(1, Math.round(headwayMinutes))}분` : '-';
+    readout.trains.textContent = `${trainCount}대`;
   }
 
   // 혼잡도: 가장 붐비는 한 시간 기준. 넘치면 놓친 승객도 알려준다
