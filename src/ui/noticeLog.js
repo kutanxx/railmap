@@ -17,6 +17,9 @@ export function logNotice({ text, tone, coord }) {
   refresh();
 }
 
+// 지금까지 기억한 알림 수 ([알림] 버튼을 언제 보일지 정할 때 쓴다, reveal.js)
+export const noticeCount = () => log.length;
+
 // button: [알림] 버튼, panel: 목록을 넣을 펼침 판, map: 알림 자리로 날아갈 지도
 export function createNoticeLog(button, panel, map) {
   createPopover(button, panel);

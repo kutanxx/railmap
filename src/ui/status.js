@@ -11,10 +11,10 @@ export function createStatus(element) {
   element.innerHTML = `
     <span class="status-label">자금</span>
     <b class="status-money"></b>
-    <span class="status-label"><span class="status-long">월 수지</span><span class="status-short">월</span></span>
-    <b class="status-net"></b>
-    <span class="status-label"><span class="status-long">하루 승객</span><span class="status-short">승객</span></span>
-    <b class="status-riders"><span class="status-riders-number"></span><span class="status-long"></span></b>
+    <span class="status-label status-flow"><span class="status-long">월 수지</span><span class="status-short">월</span></span>
+    <b class="status-net status-flow"></b>
+    <span class="status-label status-flow"><span class="status-long">하루 승객</span><span class="status-short">승객</span></span>
+    <b class="status-riders status-flow"><span class="status-riders-number"></span><span class="status-long"></span></b>
     <span class="status-danger" hidden></span>
   `;
   const moneyText = element.querySelector('.status-money');
@@ -26,7 +26,9 @@ export function createStatus(element) {
 
   // money: 지금 자금, net: 이번 달 예상 수지 (수입 − 운영비 − 이자), riders: 하루 승객 전체
   // monthsLeft: 파산까지 남은 달 (빚이 한도 안이면 null)
-  function show({ money, net, riders, monthsLeft }) {
+  // flow: 월 수지·하루 승객을 보일지 (첫 노선을 열기 전에는 둘 다 0이라 숨긴다, reveal.js)
+  function show({ money, net, riders, monthsLeft, flow }) {
+    element.classList.toggle('status-money-only', !flow);
     dangerText.hidden = monthsLeft === null;
     if (monthsLeft !== null) dangerText.textContent = `파산까지 ${monthsLeft}개월`;
     // "1.3만 명"에서 "명"은 넓은 창에서만 붙인다

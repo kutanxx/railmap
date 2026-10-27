@@ -31,6 +31,7 @@ import { bindMapInput } from './mapInput.js';
 import { createWarnings } from './warnings.js';
 import { createNoticeLog } from './noticeLog.js';
 import { createGoalsPanel } from './goalsPanel.js';
+import { createReveal } from './reveal.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -125,6 +126,8 @@ export function startApp(map, loadMessage) {
   // [혼잡도 보기]·[지형]·[소리] 버튼 (viewToggles.js)
   const toggles = createViewToggles({ map, ui, render });
   const status = createStatus(document.getElementById('status'));
+  // 단계적 공개: 쓸 일이 생기면 버튼이 하나씩 나타난다 (reveal.js)
+  const reveal = createReveal({ notice });
   // 위쪽 [알림]: 지난 알림 목록
   createNoticeLog(document.getElementById('notice-button'), document.getElementById('notice-log'), map);
   // 달이 바뀌면 정산 숫자를 자금 옆에 띄운다 (불러온 첫 화면에서는 띄우지 않는다)
@@ -181,6 +184,7 @@ export function startApp(map, loadMessage) {
     const shapes = stationShapes(stations, getState().tracks, routes);
     const bands = stationBands(stations, getState().tracks, routes, shapes);
     lastBands = { stations, bands };
+    reveal.update();
 
     renderBadge(document.getElementById('badge'), {
       year,
@@ -194,6 +198,7 @@ export function startApp(map, loadMessage) {
       money,
       net: economy.net - monthlyInterest(),
       riders: economy.dailyRiders,
+      flow: reveal.shown('flow'),
       monthsLeft:
         monthsOverDebtLimit > 0 && !bankrupt ? BANKRUPT_GRACE_MONTHS - monthsOverDebtLimit : null,
     });

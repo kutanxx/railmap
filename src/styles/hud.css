@@ -133,6 +133,16 @@
   margin-left: 6px;
 }
 
+/* 첫 노선을 열기 전에는 자금만 (월 수지·하루 승객은 단계적 공개, ui/reveal.js) */
+.status-money-only .status-flow {
+  display: none;
+}
+
+/* 단계적 공개로 안의 버튼이 모두 숨으면 빈 버튼 묶음 테두리도 숨긴다 */
+.hud-group:not(:has(> :not([hidden]))) {
+  display: none;
+}
+
 /* 월 수지: +는 초록, −는 빨강 */
 .status .positive {
   color: #3f7d3f;
