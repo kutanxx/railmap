@@ -33,3 +33,35 @@ export function createToolbar(element, onSelect) {
 
   return { setActive };
 }
+
+// [선로] 도구를 고른 동안 도구 막대 옆에 [직선][곡선] (V 키로도 바꾼다). 새로 그리는 선로 모양을 정한다
+// onChoose(curve): 곡선을 골랐으면 true
+export function createTrackShapeToggle(element, onChoose) {
+  const make = (label, curve, key) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'hud-button';
+    button.textContent = label;
+    if (key) {
+      const shortcut = document.createElement('span');
+      shortcut.className = 'tool-key';
+      shortcut.textContent = key;
+      button.append(shortcut);
+    }
+    button.title = curve ? '경유점을 지나는 부드러운 곡선으로 그리기 (V 키)' : '경유점에서 꺾이는 직선으로 그리기 (V 키)';
+    button.addEventListener('click', () => onChoose(curve));
+    element.append(button);
+    return button;
+  };
+  const straight = make('직선', false, null);
+  const curved = make('곡선', true, 'V');
+
+  // visible: [선로] 도구를 쓰는 중인지, curve: 지금 곡선으로 그리는지
+  function show(visible, curve) {
+    element.hidden = !visible;
+    straight.classList.toggle('active', !curve);
+    curved.classList.toggle('active', curve);
+  }
+
+  return { show };
+}

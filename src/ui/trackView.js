@@ -11,6 +11,7 @@ import { getEconomy } from '../game/demand.js';
 import { routeColors, highlightedTracks } from './views.js';
 import { hasTerrain } from '../game/terrain.js';
 import { trackProfile } from '../game/trackProfile.js';
+import { shapeCoords } from '../game/trackShape.js';
 
 // 선로 id → { key: 선로 모양, tunnels }. 모양이 그대로면 높이 분석을 다시 하지 않는다 (끄는 동안 매번 부르므로)
 const tunnelCache = new Map();
@@ -53,11 +54,16 @@ export function drawTracks(map, ui, shownCoord) {
   };
   const centerColor = (track, level) => (level ? LOAD_COLORS[level] : (trackColor.get(track.id) ?? null));
   const preview = ui.trackPreview;
-  const coordsOf = (track) => [
-    shownCoord(findStation(track.from)),
-    ...(preview?.id === track.id ? preview.waypoints : track.waypoints),
-    shownCoord(findStation(track.to)),
-  ];
+  // 그릴 모양: 끌어 옮기는 중인 역·경유점을 반영하고, 곡선 선로는 곡선으로
+  const coordsOf = (track) =>
+    shapeCoords(
+      [
+        shownCoord(findStation(track.from)),
+        ...(preview?.id === track.id ? preview.waypoints : track.waypoints),
+        shownCoord(findStation(track.to)),
+      ],
+      track.curve,
+    );
   // 지우기 미리보기: 함께 지워질 선로는 'gone', 사라질 노선이 지나는 선로는 'route'
   const removing = new Map();
   if (ui.removing) {

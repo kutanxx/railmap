@@ -1,7 +1,8 @@
-// 역과 선로 짓기·고치기: 역 짓기·이름·옮기기·방향·지우기, 선로 깔기·경유점 바꾸기·지우기.
+// 역과 선로 짓기·고치기: 역 짓기·이름·옮기기·방향·지우기, 선로 깔기·경유점 바꾸기·직선/곡선 바꾸기·지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
 // 공사비는 빚 한도 안에서만 낼 수 있다 (canAfford).
 import { stationCost, stationMoveFee, trackCostForCoords } from './economy.js';
+import { shapeCoords } from './trackShape.js';
 import {
   getState,
   change,
@@ -59,7 +60,7 @@ export function moveStationCost(id, coord) {
     const before = trackCostForCoords(trackCoords(track));
     const from = track.from === id ? coord : findStation(track.from).coord;
     const to = track.to === id ? coord : findStation(track.to).coord;
-    const after = trackCostForCoords([from, ...track.waypoints, to]);
+    const after = trackCostForCoords(shapeCoords([from, ...track.waypoints, to], track.curve));
     addedKm += after.km - before.km;
     trackCost += Math.max(0, after.cost - before.cost);
   }
@@ -101,17 +102,17 @@ export function removeStation(id) {
 
 // ── 선로 ─────────────────────────────
 
-// 역 from에서 경유점들을 지나 역 to까지 선로를 깔고, 깐 선로를 돌려준다
+// 역 from에서 경유점들을 지나 역 to까지 선로를 깔고, 깐 선로를 돌려준다. curve: 곡선으로 깔지
 // 빚 한도 안에서도 공사비를 낼 수 없으면 깔지 않고 null을 돌려준다
-export function addTrack(from, to, waypoints) {
+export function addTrack(from, to, waypoints, curve = false) {
   return change(null, () => {
-    const coords = [findStation(from).coord, ...waypoints, findStation(to).coord];
+    const coords = shapeCoords([findStation(from).coord, ...waypoints, findStation(to).coord], curve);
     const { cost } = trackCostForCoords(coords);
     if (!canAfford(cost)) return null;
     state.money -= cost;
     const number = state.nextTrackNumber;
     state.nextTrackNumber += 1;
-    const track = { id: `t${number}`, from, to, waypoints };
+    const track = { id: `t${number}`, from, to, waypoints, curve };
     state.tracks.push(track);
     return track;
   });
@@ -120,12 +121,30 @@ export function addTrack(from, to, waypoints) {
 // 경유점을 바꿨을 때 더 내야 하는 공사비 (길어진 만큼만. 짧아지면 0)
 export function rerouteCost(track, waypoints) {
   const before = trackCostForCoords(trackCoords(track));
-  const after = trackCostForCoords([
-    findStation(track.from).coord,
-    ...waypoints,
-    findStation(track.to).coord,
-  ]);
+  const after = trackCostForCoords(
+    shapeCoords([findStation(track.from).coord, ...waypoints, findStation(track.to).coord], track.curve),
+  );
   return { addedKm: after.km - before.km, cost: Math.max(0, after.cost - before.cost) };
+}
+
+// 직선 ↔ 곡선으로 바꿀 때 더 내야 하는 공사비 (길어진 만큼만. 곡선은 경유점 바깥으로 부풀어 1~2% 길다)
+export function curveChangeCost(track, curve) {
+  const before = trackCostForCoords(trackCoords(track));
+  const after = trackCostForCoords(trackCoords({ ...track, curve }));
+  return { addedKm: after.km - before.km, cost: Math.max(0, after.cost - before.cost) };
+}
+
+// 선로를 직선 또는 곡선으로 바꾼다. 빚 한도 안에서도 낼 수 없으면 바꾸지 않고 null
+export function setTrackCurve(id, curve) {
+  return change(null, () => {
+    const track = findTrack(id);
+    if (!track) return null;
+    const { cost } = curveChangeCost(track, curve);
+    if (!canAfford(cost)) return null;
+    state.money -= cost;
+    track.curve = curve;
+    return track;
+  });
 }
 
 // 선로의 경유점을 바꾼다 (끌어서 옮기기). 빚 한도 안에서도 낼 수 없으면 바꾸지 않고 null

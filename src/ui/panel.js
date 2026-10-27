@@ -6,12 +6,13 @@ import { loadTone } from './routeList.js';
 // 맨 위 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose, Esc와 같다).
 // 역 카드: 이름(눌러서 고치기) · 환승/종착 · 지나는 노선 번호, 큰 숫자 셋(이용객, 주변 인구, 가장 붐빔),
 // 한 줄 설명, [역 삭제], 접힌 "자세히"(승강장 방향, 인구를 센 근거, 위치)
-// 상태를 직접 고치지 않고 onRename, onRotate, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
+// 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]
+// 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
 
 // onDeletePreview(true | false): 삭제 버튼에 마우스를 올리고 내릴 때 (지도에 사라질 것을 보여준다)
 export function createPanel(
   element,
-  { onRename, onRotate, onDeleteStation, onDeleteTrack, onDeletePreview, onClose },
+  { onRename, onRotate, onSetCurve, onDeleteStation, onDeleteTrack, onDeletePreview, onClose },
 ) {
   const head = `
       <div class="panel-head">
@@ -57,6 +58,11 @@ export function createPanel(
         <dt>구간</dt><dd class="panel-track-ends"></dd>
         <dt>경유점</dt><dd class="panel-track-waypoints"></dd>
       </dl>
+      <div class="panel-angle-presets panel-track-shape">
+        <button type="button" data-curve="0">직선</button>
+        <button type="button" data-curve="1">곡선</button>
+      </div>
+      <p class="panel-hint panel-track-shape-hint"></p>
       <p class="panel-hint">흰 점을 끌어서 경유점을 옮기고, 두 번 클릭해 지워요. 선 중간의 작은 점을 끌면 경유점이 생겨요.</p>
       <button type="button" class="panel-delete panel-delete-track">선로 삭제</button>
       <p class="panel-removal panel-track-removal"></p>
@@ -114,6 +120,13 @@ export function createPanel(
   const lengthText = element.querySelector('.panel-track-length');
   const endsText = element.querySelector('.panel-track-ends');
   const waypointsText = element.querySelector('.panel-track-waypoints');
+  const shapeButtons = [...element.querySelectorAll('.panel-track-shape button')];
+  const shapeHint = element.querySelector('.panel-track-shape-hint');
+  for (const button of shapeButtons) {
+    button.addEventListener('click', () => {
+      if (track) onSetCurve(track.id, button.dataset.curve === '1');
+    });
+  }
 
   element.querySelector('.panel-delete-track').addEventListener('click', () => {
     if (track) onDeleteTrack(track.id);
@@ -168,7 +181,7 @@ export function createPanel(
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }
 
-  // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount }, removal: 지우면 사라지는 것
+  // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지 }, removal: 지우면 사라지는 것
   function showTrack(info, removal) {
     track = { id: info.id };
     trackRemoval.textContent = removal;
@@ -180,6 +193,12 @@ export function createPanel(
     lengthText.textContent = `${info.lengthKm.toFixed(2)} km${detail}`;
     endsText.textContent = `${info.fromName} ↔ ${info.toName}`;
     waypointsText.textContent = `${info.waypointCount}개`;
+    // 지금 모양은 남색으로 채운다. 곡선은 경유점이 있어야 휜다
+    for (const button of shapeButtons) button.classList.toggle('active', (button.dataset.curve === '1') === info.curve);
+    shapeHint.textContent =
+      info.curve && info.waypointCount === 0
+        ? '경유점이 없으면 곡선도 곧게 이어져요. 선 가운데 작은 점을 끌어 경유점을 만들어 보세요.'
+        : '곡선은 경유점을 모두 지나는 부드러운 선이에요. 좁게 휠수록 열차가 느려져요.';
   }
 
   // view = { type: 'station', station } | { type: 'track', track: info } | null (숨김)

@@ -15,15 +15,15 @@ import { addTrackLayers, addDraftLayers, addHandleLayers } from '../map/trackLay
 import { addTrainLayers } from '../map/trainLayers.js';
 import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
-import { getState, subscribe, setSpeed, findStation, monthlyInterest } from '../game/state.js';
-import { renameStation, rotateStation, removeStation, removeTrack } from '../game/build.js';
+import { getState, subscribe, setSpeed, findStation, findTrack, monthlyInterest } from '../game/state.js';
+import { renameStation, rotateStation, removeStation, removeTrack, setTrackCurve, curveChangeCost } from '../game/build.js';
 import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
-import { createToolbar } from './toolbar.js';
+import { createToolbar, createTrackShapeToggle } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
 import { createPanel } from './panel.js';
 import { createRouteStrip } from './routeStrip.js';
@@ -168,6 +168,10 @@ export function startApp(map, loadMessage) {
     onDeleteTrack: deleteSelected,
     onDeletePreview: previewDelete,
     onClose: closeCard,
+    // 선로 카드의 [직선][곡선]: 길어지면 늘어난 만큼 공사비를 낸다
+    onSetCurve: (id, curve) => {
+      if (!setTrackCurve(id, curve)) notice(shortfall(curveChangeCost(findTrack(id), curve).cost), 'bad');
+    },
   });
   const routeStrip = createRouteStrip(document.getElementById('route-strip'), {
     onUnfold: () => {
@@ -181,7 +185,12 @@ export function startApp(map, loadMessage) {
   });
 
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
-  const { trackTool, routeTool } = createDrawingTools({ map, select, render, notice });
+  const { trackTool, routeTool, setDraftCurve } = createDrawingTools({ map, select, render, notice });
+  // [선로] 도구 옆 [직선][곡선] (V 키)
+  const trackShape = createTrackShapeToggle(document.getElementById('track-shape'), setDraftCurve);
+  const toggleDraftCurve = () => {
+    if (ui.tool === 'track') setDraftCurve(!trackTool.isCurve());
+  };
 
   // 오른쪽 노선 패널 (routeControls.js)
   const routePanel = createRouteControls(document.getElementById('routes'), {
@@ -253,6 +262,7 @@ export function startApp(map, loadMessage) {
     }
     shownMonth = monthKey;
     toolbar.setActive(ui.tool);
+    trackShape.show(ui.tool === 'track', trackTool.isCurve());
     toggles.show();
     speedControl.setActive(speed);
     renderTracks();
@@ -318,6 +328,7 @@ export function startApp(map, loadMessage) {
     toggleTerrain: toggles.toggleTerrain,
     toggleSound: toggles.toggleSound,
     toggleControlRoom: toggles.toggleControlRoom,
+    toggleDraftCurve,
     showDraftProfile,
     renderTracks,
     trackTool,

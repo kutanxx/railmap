@@ -10,6 +10,7 @@ import {
   SHARP_CURVE_ANGLE,
   SHARP_CURVE_SPEED_KMH,
   CURVE_ZONE_M,
+  CURVE_WINDOW_M,
   GRADE_SLOW_START,
   MAX_GRADE,
   SPEED_RATIO_AT_MAX_GRADE,
@@ -30,10 +31,19 @@ export function buildRun(coords) {
     along.push(along[i - 1] + distance(coords[i - 1], coords[i], { units: 'meters' }));
   }
   const total = along[along.length - 1];
+  // 점마다 꺾인 각도. 그 점 앞뒤 CURVE_WINDOW_M 안에서 꺾인 각도를 모두 더한 값으로 제한 속도를 정한다
+  // (꺾인 직선은 한 점에서 크게, 곡선은 여러 점에서 조금씩 꺾이므로 더해야 비교할 수 있다)
+  const turns = coords.map((_, i) =>
+    i === 0 || i === coords.length - 1 ? 0 : turnAngle(coords[i - 1], coords[i], coords[i + 1]),
+  );
   const limits = [];
+  let first = 0;
+  let last = 0;
+  let windowTurn = 0; // turns[first..last]의 합
   for (let i = 1; i < coords.length - 1; i++) {
-    const turn = turnAngle(coords[i - 1], coords[i], coords[i + 1]);
-    if (turn > GENTLE_CURVE_ANGLE) limits.push({ at: along[i], speed: curveSpeed(turn) });
+    while (last + 1 < coords.length && along[last + 1] - along[i] <= CURVE_WINDOW_M / 2) windowTurn += turns[++last];
+    while (along[i] - along[first] > CURVE_WINDOW_M / 2) windowTurn -= turns[first++];
+    if (turns[i] > 0 && windowTurn > GENTLE_CURVE_ANGLE) limits.push({ at: along[i], speed: curveSpeed(windowTurn) });
   }
 
   const steps = Math.max(1, Math.ceil(total / RUN_STEP_M));

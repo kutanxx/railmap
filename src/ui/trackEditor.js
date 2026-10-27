@@ -4,7 +4,8 @@
 // - 경유점 손잡이를 두 번 클릭하면 그 경유점이 지워진다 (선로가 짧아지니 돈은 들지 않는다)
 // 끄는 동안 마우스 옆에 바뀐 길이와 더 낼 공사비를 보여주고, 놓을 때 공사비를 낸다.
 import { updateHandles, handleAt } from '../map/trackLayers.js';
-import { findTrack, trackCoords } from '../game/state.js';
+import { findTrack, trackControlPoints } from '../game/state.js';
+import { curveSegments } from '../game/trackShape.js';
 import { rerouteCost, setTrackWaypoints } from '../game/build.js';
 import { showCallout } from './callouts.js';
 import { formatMoney } from './format.js';
@@ -25,13 +26,15 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
       return;
     }
     const waypoints = drag ? drag.waypoints : track.waypoints;
-    const coords = trackCoords({ ...track, waypoints });
+    const points = trackControlPoints({ ...track, waypoints });
     const handles = waypoints.map((coord, index) => ({ coord, kind: 'waypoint', index }));
-    // 이웃한 두 점 사이 가운데: 끌면 index 자리에 새 경유점이 끼워진다
-    for (let i = 0; i < coords.length - 1; i++) {
-      const [x1, y1] = coords[i];
-      const [x2, y2] = coords[i + 1];
-      handles.push({ coord: [(x1 + x2) / 2, (y1 + y2) / 2], kind: 'midpoint', index: i });
+    // 이웃한 두 점 사이 가운데: 끌면 index 자리에 새 경유점이 끼워진다 (곡선이면 곡선 위의 가운데)
+    const segments = track.curve && points.length >= 3 ? curveSegments(points) : null;
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[i + 1];
+      const middle = segments ? segments[i][Math.floor(segments[i].length / 2)] : [(x1 + x2) / 2, (y1 + y2) / 2];
+      handles.push({ coord: middle, kind: 'midpoint', index: i });
     }
     updateHandles(map, handles);
   }

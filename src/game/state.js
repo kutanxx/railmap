@@ -13,6 +13,7 @@ import {
 } from '../config.js';
 import { createHistory } from './history.js';
 import { getRegion, isSandbox } from './region.js';
+import { shapeCoords } from './trackShape.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea, cells }
@@ -21,8 +22,9 @@ const state = {
   // cells: 반경 안 건물 면적을 칸마다 적은 것 [[경도, 위도, 면적㎡], …] (못 쟀으면 null)
   //        이웃 역과 인구를 나눌 때 쓴다 (game/catchment.js)
   stations: [],
-  // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …] }
-  // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다
+  // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …], curve: 곡선인지 }
+  // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다. curve가 true면 경유점을 지나는 부드러운 곡선
+  // (game/trackShape.js), 없거나 false면 꺾인 직선 (예전 저장은 모두 직선)
   tracks: [],
   // 노선 하나 = { id: 'r1', name: '1호선', color: '#3F6E9A', stations: [역 id, …], trainCount: 1 }
   // 이웃한 두 역 사이에는 반드시 선로가 있다
@@ -212,9 +214,14 @@ export function findTrackBetween(a, b) {
   );
 }
 
-// 선로가 지나는 좌표 전체: 출발역 → 경유점들 → 도착역
-export function trackCoords(track) {
+// 선로를 정하는 점들: 출발역 → 경유점들 → 도착역 (경유점 손잡이를 놓을 때 쓴다)
+export function trackControlPoints(track) {
   return [findStation(track.from).coord, ...track.waypoints, findStation(track.to).coord];
+}
+
+// 선로가 실제로 지나는 좌표 전체 (직선이면 정하는 점들 그대로, 곡선이면 그 점들을 지나는 촘촘한 점들)
+export function trackCoords(track) {
+  return shapeCoords(trackControlPoints(track), track.curve);
 }
 
 // 선로 길이 (km)

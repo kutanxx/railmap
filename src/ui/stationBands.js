@@ -22,6 +22,7 @@ import {
   PARALLEL_PLATFORM_GAP_M,
 } from '../config.js';
 import { localProjection, inverseProjection } from '../map/population.js';
+import { shapeCoords } from '../game/trackShape.js';
 
 // 결과: Map(역 id → { parts: [{ kind: 'platform' | 'concourse', coords: [[경도, 위도], …], width: 폭(미터),
 //                                group: 몇 번째 띠(노선 묶음)의 조각인지 }],
@@ -45,13 +46,14 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
   // 역에서 뻗어 나가는 선로("팔"): 선로 id → 역(원점)에서 바깥쪽으로 가는 점들 (미터)
   const arms = new Map();
   for (const track of tracks) {
-    let coords;
+    let points;
     if (track.from === station.id) {
-      coords = [station.coord, ...track.waypoints, coordOf.get(track.to)];
+      points = [station.coord, ...track.waypoints, coordOf.get(track.to)];
     } else if (track.to === station.id) {
-      coords = [station.coord, ...[...track.waypoints].reverse(), coordOf.get(track.from)];
+      points = [station.coord, ...[...track.waypoints].reverse(), coordOf.get(track.from)];
     } else continue;
-    arms.set(track.id, coords.map(toMeters));
+    // 곡선 선로면 승강장 띠도 곡선을 따라 휜다
+    arms.set(track.id, shapeCoords(points, track.curve).map(toMeters));
   }
 
   const random = seededRandom(station.id);

@@ -125,6 +125,17 @@
   border-color: #1f3a55;
 }
 
+/* 선로 카드 [직선][곡선]: 지금 모양을 남색으로 채운다 */
+.panel-track-shape {
+  margin-top: 10px;
+}
+
+.panel-track-shape button.active {
+  border-color: #1f3a55;
+  background: #1f3a55;
+  color: #ffffff;
+}
+
 /* 선로가 이어진 역은 방향을 돌리지 않으므로 조절을 숨긴다 */
 .panel-angle[hidden],
 .panel-angle-presets[hidden] {

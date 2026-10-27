@@ -111,6 +111,11 @@ export const SHARP_CURVE_ANGLE = 90;
 export const SHARP_CURVE_SPEED_KMH = 30;
 // 꺾이는 곳 앞뒤로 이만큼(미터)은 제한 속도로 달린다
 export const CURVE_ZONE_M = 60;
+// 꺾인 정도는 이 길이(미터) 안에서 꺾인 각도를 모두 더해서 잰다. 곡선 선로는 조금씩 여러 번 휘므로,
+// 좁게 휘는 곡선일수록 이 길이 안에서 많이 꺾여 느려진다 (반경 230m쯤부터 느려지기 시작, 60m면 거의 직각처럼)
+export const CURVE_WINDOW_M = 60;
+// 곡선 선로를 이 간격(미터)마다 점으로 나눠 그린다 (작을수록 매끄럽지만 계산이 늘어난다, game/trackShape.js)
+export const CURVE_SAMPLE_M = 15;
 
 // 역에 멈춰 있는 시간 (게임 시간 초)
 export const STATION_DWELL_SECONDS = 30;

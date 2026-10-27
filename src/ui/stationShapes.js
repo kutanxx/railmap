@@ -3,6 +3,7 @@
 // 그래서 선로를 깔거나 옮기거나 되돌려도 늘 맞는 모양이 나온다.
 // 가까이서 보이는 띠·대합실 모양은 stationBands.js가 계산한다.
 import { bearing } from '@turf/turf';
+import { shapeCoords } from '../game/trackShape.js';
 
 // 결과: Map(역 id → { angle: 승강장 방향(도, 0 = 가로), followsTrack: 선로 방향을 따르는지,
 //                     aligned: 이어진 선로들이 모두 한 방향(한 줄)인지, 엇갈리면 false,
@@ -45,10 +46,12 @@ function trackAngle(station, tracks, coordOf) {
   let y = 0;
   let count = 0;
   for (const track of tracks) {
-    let next;
-    if (track.from === station.id) next = track.waypoints[0] ?? coordOf.get(track.to);
-    else if (track.to === station.id) next = track.waypoints.at(-1) ?? coordOf.get(track.from);
+    // 역에서 선로가 처음 나가는 쪽 (곡선이면 곡선의 첫 조각 방향)
+    let points;
+    if (track.from === station.id) points = [station.coord, ...track.waypoints, coordOf.get(track.to)];
+    else if (track.to === station.id) points = [station.coord, ...[...track.waypoints].reverse(), coordOf.get(track.from)];
     else continue;
+    const next = shapeCoords(points, track.curve)[1];
     // 나침반 방향(북쪽 0°, 시계 방향) → 승강장 각도(가로 0°, 시계 방향)
     const angle = bearing(station.coord, next) - 90;
     const doubled = (angle * 2 * Math.PI) / 180;

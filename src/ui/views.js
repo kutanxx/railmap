@@ -65,6 +65,7 @@ export function infoPanelView(selected, shapes) {
         fromName: findStation(track.from).name,
         toName: findStation(track.to).name,
         waypointCount: track.waypoints.length,
+        curve: Boolean(track.curve),
       },
       removal: removalText(selected),
     };
