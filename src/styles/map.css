@@ -8,10 +8,12 @@
   pointer-events: none;
 }
 
-/* 멀리서 볼 때 (map/stationLabels.js): 말풍선 없이 노란 점만, 또는 이용객 숫자를 뺀 짧은 말풍선 */
+/* 멀리서 볼 때 (map/stationLabels.js): 말풍선을 숨기거나, 이용객 숫자를 뺀 짧은 말풍선.
+   역이 동그라미·캡슐로 보이는 줌에서는 역 가운데 노란 점도 숨긴다 */
 .station-label-dot-only .station-label-line,
 .station-label-dot-only .station-label-bubble,
-.station-label-brief .station-label-riders {
+.station-label-brief .station-label-riders,
+.station-label-far .station-label-dot {
   display: none;
 }
 

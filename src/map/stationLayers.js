@@ -3,25 +3,29 @@
 import { circle } from '@turf/turf';
 import {
   POPULATION_RADIUS_M,
-  PLATFORM_LENGTH_M,
-  CONCOURSE_WIDTH_M,
   PLATFORM_REAL_SIZE_ZOOM,
   GROUND_LATITUDE,
+  STATION_CAPSULE_MIN_ZOOM,
 } from '../config.js';
+import { ensureCapsuleImage } from './stationIcons.js';
 
-// 역은 두 가지로 그린다
+// 역은 줌에 따라 다르게 그린다 (근거: reports/나라별 노선도 역 표기.md)
 // - 가까이 (PLATFORM_REAL_SIZE_ZOOM 이상): 실제 크기의 승강장 띠 + 대합실 (ui/stationBands.js가 모양을 정한다)
-// - 멀리: 작은 승강장 그림. 실제 크기로 그리면 너무 작아서 안 보이기 때문
+// - 멀리, 일반역: 노선도처럼 동그라미 (승강장 색 + 남색 테두리)
+// - 멀리, 환승역: 노선 색 원을 이어 붙인 캡슐 (서울 2023 "신호등 방식"·홍콩 MTR처럼, map/stationIcons.js)
+//   크기가 아니라 모양으로 일반역과 갈라서, 어디서 어느 노선끼리 갈아타는지 멀리서도 보인다
+// - 아주 멀리 (STATION_CAPSULE_MIN_ZOOM 아래), 환승역: 흰 원 + 굵은 남색 테두리 (캡슐이 이웃 역과 겹치지 않게)
 const POINT_SOURCE = 'station-points';
 const BAND_SOURCE = 'station-bands';
-const ICON_LAYER = 'station-icons';
+const CIRCLE_LAYER = 'station-circles';
+const CIRCLE_SELECTED_LAYER = 'station-circle-selected';
+const TRANSFER_CIRCLE_LAYER = 'station-transfer-circles';
+const CAPSULE_LAYER = 'station-capsules';
 const SELECTED_LAYER = 'station-band-selected';
 const CASING_LAYER = 'station-band-casing';
 const FILL_LAYER = 'station-band-fill';
 const CENTERLINE_LAYER = 'station-band-centerline';
 
-const ICON_IMAGE = 'station-icon';
-const ICON_SELECTED_IMAGE = 'station-icon-selected';
 
 const COLORS = {
   platform: '#A7BED4', // 승강장
@@ -29,18 +33,26 @@ const COLORS = {
   selected: '#F2C230', // 선택 표시 (노란색)
 };
 
-// 멀리서 보이는 그림의 크기 배율 (줌 → 배율). 줌 14에서 1이면 실제 크기 띠와 비슷한 크기
-// 환승역은 조금 크게 그린다
-const IS_TRANSFER = ['get', 'transfer'];
-const ICON_SIZE = [
+// 캡슐로 그리는 환승역 (지나는 노선이 둘 이상): 점마다 캡슐 그림 이름이 붙어 있다
+const IS_CAPSULE = ['has', 'capsule'];
+// 멀리서 보이는 동그라미 반지름 (줌 → px). 아주 멀리서 환승역 흰 원은 조금 크게.
+// extra: 모든 줌에서 더할 px (고른 역의 노란 테두리)
+const circleRadius = (extra) => [
   'interpolate',
   ['linear'],
   ['zoom'],
   10,
-  ['case', IS_TRANSFER, 0.55, 0.4],
+  ['case', IS_CAPSULE, 5 + extra, 3.5 + extra],
+  13,
+  6 + extra,
   PLATFORM_REAL_SIZE_ZOOM,
-  ['case', IS_TRANSFER, 1.35, 1],
+  8 + extra,
 ];
+const CIRCLE_RADIUS = circleRadius(0);
+// 동그라미 테두리 (줌 → px)
+const CIRCLE_STROKE = ['interpolate', ['linear'], ['zoom'], 10, 1.5, 13, 2];
+// 캡슐 그림 배율 (줌 → 배율). 그림은 줌 15 바로 아래 크기로 만든다
+const CAPSULE_SIZE = ['interpolate', ['linear'], ['zoom'], STATION_CAPSULE_MIN_ZOOM, 0.55, 13, 0.75, PLATFORM_REAL_SIZE_ZOOM, 1];
 
 // 줌 0에서 1px이 몇 미터인지 (MapLibre는 512px 타일을 쓴다). 지도들이 있는 위도로 한 번만 계산한다
 export const METERS_PER_PIXEL_Z0 = (40075016.686 * Math.cos((GROUND_LATITUDE * Math.PI) / 180)) / 512;
@@ -65,24 +77,68 @@ const CENTERLINE_WIDTH = ['interpolate', ['linear'], ['zoom'], 14, 1, 18, 2.5];
 const BAND_LAYOUT = { 'line-join': 'round', 'line-cap': 'butt' };
 
 export function addStationLayers(map) {
-  map.addImage(ICON_IMAGE, drawIcon(false), { pixelRatio: 2 });
-  map.addImage(ICON_SELECTED_IMAGE, drawIcon(true), { pixelRatio: 2 });
-
   const empty = { type: 'FeatureCollection', features: [] };
   map.addSource(POINT_SOURCE, { type: 'geojson', data: empty });
   map.addSource(BAND_SOURCE, { type: 'geojson', data: empty });
 
-  // ── 멀리서: 작은 그림 ──
+  // ── 멀리서: 동그라미와 캡슐 ──
+  // 고른 역은 밑에 더 큰 노란 동그라미를 깔아 노란 테두리처럼 보이게 한다
+  // (캡슐 환승역은 줌 STATION_CAPSULE_MIN_ZOOM부터 노란 테두리가 있는 캡슐 그림을 따로 쓴다)
   map.addLayer({
-    id: ICON_LAYER,
-    type: 'symbol',
+    id: CIRCLE_SELECTED_LAYER,
+    type: 'circle',
     source: POINT_SOURCE,
     maxzoom: PLATFORM_REAL_SIZE_ZOOM,
+    filter: ['get', 'selected'],
+    paint: {
+      'circle-color': COLORS.selected,
+      'circle-radius': circleRadius(5),
+      // 캡슐로 바뀌는 줌부터는 환승역의 노란 동그라미를 감춘다
+      'circle-opacity': ['step', ['zoom'], 1, STATION_CAPSULE_MIN_ZOOM, ['case', IS_CAPSULE, 0, 1]],
+    },
+  });
+  // 일반역: 승강장 색 동그라미
+  map.addLayer({
+    id: CIRCLE_LAYER,
+    type: 'circle',
+    source: POINT_SOURCE,
+    maxzoom: PLATFORM_REAL_SIZE_ZOOM,
+    filter: ['!', IS_CAPSULE],
+    paint: {
+      'circle-color': COLORS.platform,
+      'circle-radius': CIRCLE_RADIUS,
+      'circle-stroke-color': COLORS.border,
+      'circle-stroke-width': CIRCLE_STROKE,
+    },
+  });
+  // 아주 멀리서 환승역: 흰 원 + 굵은 남색 테두리
+  map.addLayer({
+    id: TRANSFER_CIRCLE_LAYER,
+    type: 'circle',
+    source: POINT_SOURCE,
+    maxzoom: STATION_CAPSULE_MIN_ZOOM,
+    filter: IS_CAPSULE,
+    paint: {
+      'circle-color': '#FFFFFF',
+      'circle-radius': CIRCLE_RADIUS,
+      'circle-stroke-color': COLORS.border,
+      'circle-stroke-width': 2.5,
+    },
+  });
+  // 환승역 캡슐: 노선들이 한 선로를 따라 나란히 가면 승강장과 직각으로 놓아서 확대하면 나란한 승강장 띠로 이어지고,
+  // 노선들이 엇갈려 지나가면 (X자·십자 환승) 이름표처럼 가로로 눕힌다 (어느 한 선을 따라 비스듬히 놓이지 않게)
+  map.addLayer({
+    id: CAPSULE_LAYER,
+    type: 'symbol',
+    source: POINT_SOURCE,
+    minzoom: STATION_CAPSULE_MIN_ZOOM,
+    maxzoom: PLATFORM_REAL_SIZE_ZOOM,
+    filter: IS_CAPSULE,
     layout: {
-      'icon-image': ['case', ['get', 'selected'], ICON_SELECTED_IMAGE, ICON_IMAGE],
-      'icon-size': ICON_SIZE,
-      'icon-rotate': ['get', 'angle'],
-      // 지도를 돌려도 승강장이 땅에 붙어 같이 돈다
+      'icon-image': ['case', ['get', 'selected'], ['get', 'capsuleSelected'], ['get', 'capsule']],
+      'icon-size': CAPSULE_SIZE,
+      'icon-rotate': ['get', 'capsuleAngle'],
+      // 지도를 돌려도 캡슐이 땅에 붙어 같이 돈다
       'icon-rotation-alignment': 'map',
       // 지도 글자에 가려지거나 서로 겹친다고 숨지 않게 한다
       'icon-allow-overlap': true,
@@ -137,16 +193,26 @@ export function addStationLayers(map) {
 // 역 목록 전체를 한 번에 다시 그린다
 // shapes = Map(역 id → { angle: 승강장 방향, transfer: 환승역인지 }) (ui/stationShapes.js)
 // bands = Map(역 id → { parts: [{ kind, coords, width }] }) (ui/stationBands.js)
-export function updateStations(map, stations, selectedId, shapes, bands) {
+// stationRoutes = Map(역 id → 지나는 노선 [{ color, number }]) (ui/views.js routeColors)
+export function updateStations(map, stations, selectedId, shapes, bands, stationRoutes) {
   const points = [];
   const pieces = [];
   for (const station of stations) {
-    const { angle, transfer } = shapes.get(station.id) ?? { angle: station.angle, transfer: false };
+    const { angle, aligned } = shapes.get(station.id) ?? { angle: station.angle, aligned: true };
     const selected = station.id === selectedId;
+    const properties = { id: station.id, angle, selected };
+    // 노선이 둘 이상 지나면 캡슐: 노선 번호 순서의 노선 색으로 그림을 (없으면 만들어) 고른다
+    const routes = stationRoutes.get(station.id) ?? [];
+    if (routes.length >= 2) {
+      const colors = [...routes].sort((a, b) => a.number - b.number).map((route) => route.color);
+      properties.capsule = ensureCapsuleImage(map, colors, false);
+      properties.capsuleSelected = ensureCapsuleImage(map, colors, true);
+      properties.capsuleAngle = aligned ? angle + 90 : 0;
+    }
     points.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: station.coord },
-      properties: { id: station.id, angle, transfer, selected },
+      properties,
     });
     for (const { kind, coords, width } of bands.get(station.id)?.parts ?? []) {
       pieces.push({
@@ -168,36 +234,9 @@ export function stationIdAt(map, point) {
       [point.x - pad, point.y - pad],
       [point.x + pad, point.y + pad],
     ],
-    { layers: [ICON_LAYER, CASING_LAYER] },
+    { layers: [CIRCLE_LAYER, TRANSFER_CIRCLE_LAYER, CAPSULE_LAYER, CASING_LAYER] },
   );
   return features.length > 0 ? features[0].properties.id : null;
-}
-
-// 멀리서 보일 승강장 그림. 줌 14에서 실제 크기 띠(길이)·대합실(폭)과 비슷한 px 크기로 만든다
-function drawIcon(selected) {
-  const metersPerPixel = METERS_PER_PIXEL_Z0 / 2 ** PLATFORM_REAL_SIZE_ZOOM;
-  const scale = 2; // 선명하게 2배로 그린다
-  const ring = selected ? 3 : 0; // 노란 선택 테두리 (px)
-  const border = 1.5; // 남색 테두리 (px)
-  const width = PLATFORM_LENGTH_M / metersPerPixel;
-  const height = CONCOURSE_WIDTH_M / metersPerPixel;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round((width + ring * 2) * scale);
-  canvas.height = Math.round((height + ring * 2) * scale);
-  const ctx = canvas.getContext('2d');
-  ctx.scale(scale, scale);
-
-  if (selected) {
-    ctx.fillStyle = COLORS.selected;
-    ctx.fillRect(0, 0, width + ring * 2, height + ring * 2);
-  }
-  ctx.fillStyle = COLORS.border;
-  ctx.fillRect(ring, ring, width, height);
-  ctx.fillStyle = COLORS.platform;
-  ctx.fillRect(ring + border, ring + border, width - border * 2, height - border * 2);
-
-  return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 // ── 역세권 원 (반경 POPULATION_RADIUS_M) ────────────

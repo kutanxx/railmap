@@ -248,7 +248,7 @@ export function startApp(map, loadMessage) {
     toggles.show();
     speedControl.setActive(speed);
     renderTracks();
-    updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands);
+    updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands, stationRoutes);
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
     const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
     const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;

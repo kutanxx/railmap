@@ -5,6 +5,8 @@
 // 띠를 정하는 법
 // - 노선이 지나는 역: 노선마다 "들어오는 선로 + 나가는 선로"로 띠 하나. 노선 끝이면 들어오는 선로만 (종착역)
 //   두 노선이 같은 선로를 함께 쓰면 띠를 옆으로 나란히 놓는다
+//   노선이 역에서 크게 꺾이면 (예: 북쪽에서 와서 동쪽으로) 띠를 ㄱ자로 꺾지 않고 들어오는 선로 쪽으로만 곧게 깐다.
+//   그 선로에 이미 곧은 띠가 있으면 그 옆에 나란히 붙인다 (여러 노선이 모이는 역에서 띠끼리 겹치지 않게)
 //   띠가 둘 이상이면(환승역) 역 자리에 큰 대합실을 하나 더 놓는다
 // - 노선이 없는 역: 가장 곧게 이어지는 선로 두 개로 띠 하나. 선로가 하나면 종착역처럼
 // - 선로가 없는 역: 정한 방향으로 곧은 띠
@@ -116,6 +118,12 @@ function bandsFor(station, angle, tracks, routes, coordOf) {
 function platformGroups(station, arms, tracks, routes) {
   const between = (a, b) =>
     tracks.find((t) => (t.from === a && t.to === b) || (t.from === b && t.to === a));
+  // 두 선로가 역에서 거의 반대 방향으로 뻗으면 곧게 지나가는 것 (사이 각도가 대략 135도보다 크면)
+  const straight = (a, b) => {
+    const [ax, ay] = directionAt(arms.get(a), 15);
+    const [bx, by] = directionAt(arms.get(b), 15);
+    return ax * bx + ay * by < STRAIGHT_DOT;
+  };
 
   // 노선마다 이 역 앞뒤로 지나는 선로
   const byKey = new Map(); // "선로id+선로id" → { armIds, up, routeIds, oldest: 가장 먼저 만든 노선의 순번 }
@@ -127,8 +135,10 @@ function platformGroups(station, arms, tracks, routes) {
         return arms.has(armId) ? armId : null;
       };
       const previous = armOf(route.stations[i - 1]);
-      const armIds = [...new Set([previous, armOf(route.stations[i + 1])].filter(Boolean))];
+      let armIds = [...new Set([previous, armOf(route.stations[i + 1])].filter(Boolean))];
       if (armIds.length === 0) return;
+      // 크게 꺾여 지나가면 들어오는 선로 쪽 (첫 역이면 나가는 선로 쪽) 하나로만 곧게
+      if (armIds.length === 2 && !straight(armIds[0], armIds[1])) armIds = [armIds[0]];
       // 같은 두 선로를 쓰면 지나는 방향이 달라도 같은 띠다
       const key = [...armIds].sort().join('+');
       const group = byKey.get(key) ?? { armIds, up: previous !== null, routeIds: new Set(), oldest: routeIndex };
@@ -136,6 +146,30 @@ function platformGroups(station, arms, tracks, routes) {
       byKey.set(key, group);
     });
   });
+  // Y자 갈림: 두 곧은 띠가 선로 하나를 함께 쓰면 (같은 선로로 와서 역에서 갈라지면) 겹치므로,
+  // 나중에 만든 노선은 먼저 만든 노선의 띠 옆에 나란히 붙인다 (실제 갈림 역도 갈라지기 전 쪽에 승강장이 나란하다)
+  const throughs = [...byKey.entries()]
+    .filter(([, group]) => group.armIds.length === 2)
+    .sort((x, y) => x[1].oldest - y[1].oldest);
+  const kept = [];
+  for (const [key, group] of throughs) {
+    const earlier = kept.find((other) => other.armIds.some((id) => group.armIds.includes(id)));
+    if (!earlier) {
+      kept.push(group);
+      continue;
+    }
+    for (const id of group.routeIds) earlier.routeIds.add(id);
+    byKey.delete(key);
+  }
+  // 선로 하나로만 까는 띠가 다른 곧은 띠와 같은 선로를 쓰면, 그 곧은 띠 옆에 나란히 붙인다 (겹치지 않게)
+  for (const [key, group] of byKey) {
+    if (group.armIds.length !== 1) continue;
+    const through = [...byKey.values()].find((other) => other.armIds.length === 2 && other.armIds.includes(group.armIds[0]));
+    if (!through) continue;
+    for (const id of group.routeIds) through.routeIds.add(id);
+    through.oldest = Math.min(through.oldest, group.oldest);
+    byKey.delete(key);
+  }
   if (byKey.size > 0) {
     // 노선 목록은 만든 순서대로라서, 순번이 작을수록 먼저 만든 노선이다
     return [...byKey.values()]
@@ -162,6 +196,9 @@ function platformGroups(station, arms, tracks, routes) {
   }
   return [{ armIds: best, up: true, count: 1 }];
 }
+
+// 두 선로 방향의 내적이 이보다 작으면 (사이 각도가 약 135도보다 크면) 역을 곧게 지나가는 것으로 본다
+const STRAIGHT_DOT = -0.7;
 
 // 띠(points)에 승강장과 대합실을 붙인다
 // count: 나란히 놓을 승강장 수, type: 'through'(지나가는 역) | 'terminal'(처음이 역인 종착역)

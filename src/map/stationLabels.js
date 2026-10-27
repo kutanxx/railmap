@@ -6,11 +6,17 @@
 // 말풍선은 역 둘레 여러 자리 중 출구 배지와 다른 말풍선을 덮지 않는 곳에 놓는다 (arrangeStationLabels).
 // 멀리서 볼수록 말풍선을 줄인다 (config.js LABEL_NAME_ZOOM, LABEL_DETAIL_ZOOM, showForZoom).
 import { Marker } from 'maplibre-gl';
-import { EXIT_DOT_ZOOM, EXIT_LABEL_ZOOM, LABEL_NAME_ZOOM, LABEL_DETAIL_ZOOM } from '../config.js';
+import {
+  EXIT_DOT_ZOOM,
+  EXIT_LABEL_ZOOM,
+  LABEL_NAME_ZOOM,
+  LABEL_DETAIL_ZOOM,
+  PLATFORM_REAL_SIZE_ZOOM,
+} from '../config.js';
 import { formatPeopleShort } from '../ui/format.js';
 
 // 역 id → { element, marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, coordKey,
-//          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양 }
+//          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양, far: 노란 점을 숨겼는지 }
 const labels = new Map();
 // 줌을 바꿀 때마다 말풍선 모양을 맞추도록 지도에 한 번만 등록한다
 const watchedMaps = new WeakSet();
@@ -94,11 +100,18 @@ export function updateStationLabels(map, stations, stationRoutes, riders, shapes
   showForZoom(map);
 }
 
-// 줌에 맞춰 말풍선을 줄인다: 'dot'(노란 점만) · 'brief'(이름과 노선 번호) · 'full'(이용객 숫자까지)
+// 줌에 맞춰 말풍선을 줄인다: 'dot'(말풍선 없음) · 'brief'(이름과 노선 번호) · 'full'(이용객 숫자까지)
+// 역이 동그라미·캡슐로 보이는 줌(PLATFORM_REAL_SIZE_ZOOM 아래)에서는 역 가운데 노란 점도 숨긴다
+// (점이 작은 동그라미를 덮고, 노랑은 "고른 역" 표시와도 겹쳐서). 지시선은 역 가운데에서 그대로 나간다
 // 줌을 바꾸는 동안 매 프레임 불리므로, 모양이 바뀐 말풍선만 고친다
 function showForZoom(map) {
   const zoom = map.getZoom();
+  const far = zoom < PLATFORM_REAL_SIZE_ZOOM;
   for (const label of labels.values()) {
+    if (label.far !== far) {
+      label.far = far;
+      label.element.classList.toggle('station-label-far', far);
+    }
     let mode = 'full';
     if (!label.selected && zoom < LABEL_DETAIL_ZOOM) mode = 'brief';
     if (!label.selected && !label.important && zoom < LABEL_NAME_ZOOM) mode = 'dot';
@@ -224,5 +237,6 @@ function createLabel(map, coord) {
     important: false,
     selected: false,
     mode: 'full',
+    far: false,
   };
 }

@@ -7,8 +7,10 @@
 // 정원: 가장 붐비는 한 시간(출퇴근)에 노선이 나를 수 있는 양(열차 × 운행 횟수 × 정원 × 노선 길이)보다
 //       그 시간에 타려는 양(승객 × 그 노선에서 탄 거리 × PEAK_HOUR_SHARE)이 많으면
 //       혼잡도가 100%를 넘고, 넘친 만큼 승객을 놓친다.
+// 같은 두 역 사이를 여러 노선이 함께 다니면 (같은 선로를 쓰는 노선들) 그 구간 승객·수입·혼잡을 열차 수에 비례해 나눠 가진다
+// (길찾기는 그중 한 노선만 고르므로, 그대로 두면 나중에 만든 노선은 승객이 0명이 된다)
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
-import { getState, routeTracks, trackLengthKm, trackCoords } from './state.js';
+import { getState, routeTracks, trackLengthKm, trackCoords, findTrackBetween } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
 import { buildRun } from './running.js';
@@ -64,6 +66,8 @@ export function updateEconomy() {
 
   const zeros = (items) => new Map(items.map((item) => [item.id, 0]));
   const servedStations = [...new Set(running.flatMap((route) => route.stations))];
+  // 같은 두 역 사이를 함께 다니는 노선들 (예: 같은 선로를 쓰는 두 노선). 그 구간 승객을 열차 수에 비례해 나눠 가진다
+  const sharers = segmentSharers(running);
 
   // 1) 타려는 승객: 두 역 사이마다 { origin, destination, riders, km, routeKm }
   const journeys = [];
@@ -77,11 +81,12 @@ export function updateEconomy() {
       const riders =
         (RIDERS_FACTOR * (population.get(origin) / 1000) * (population.get(destination) / 1000)) /
         minutes ** DEMAND_TIME_POWER;
-      journeys.push({ origin, destination, riders, km: trip.km, routeKm: trip.routeKm });
-      for (const [routeId, km] of trip.routeKm) {
+      // 길찾기는 같은 구간을 다니는 노선 중 하나만 고르므로, 그 구간을 함께 다니는 노선들에게 나눠 준다
+      const { routeKm, share } = spreadOverSharers(trip, sharers, riders, segmentWanted);
+      journeys.push({ origin, destination, riders, km: trip.km, routeKm, share, routeCount: trip.routeKm.size });
+      for (const [routeId, km] of routeKm) {
         wantedKm.set(routeId, wantedKm.get(routeId) + riders * km);
       }
-      for (const key of trip.segments) segmentWanted.set(key, (segmentWanted.get(key) ?? 0) + riders);
     }
   }
 
@@ -110,7 +115,7 @@ export function updateEconomy() {
   const routeLost = zeros(routes);
   const routeKm = zeros(routes); // 노선별 (승객 × 그 노선에서 탄 거리) 합. 평균 거리를 구할 때 쓴다
   const stationRiders = zeros(stations);
-  for (const { origin, destination, riders: wanted, km, routeKm: kmByRoute } of journeys) {
+  for (const { origin, destination, riders: wanted, km, routeKm: kmByRoute, share, routeCount } of journeys) {
     const worstLoad = Math.max(1, ...[...kmByRoute.keys()].map((id) => routeLoad.get(id)));
     const riders = wanted / worstLoad;
     const monthly = (riders * fareWon(km) * DAYS_PER_MONTH) / WON_PER_EOK;
@@ -120,10 +125,12 @@ export function updateEconomy() {
     stationRiders.set(origin, stationRiders.get(origin) + riders);
     stationRiders.set(destination, stationRiders.get(destination) + riders);
     // 이 여행에서 탄 노선들: 승객은 모두에게 세고, 수입은 똑같이 나눠 가진다
+    // (같은 구간을 함께 다니는 노선들은 그 몫(share)을 나눠 가진다)
     for (const [routeId, routeDistance] of kmByRoute) {
-      routeRevenue.set(routeId, routeRevenue.get(routeId) + monthly / kmByRoute.size);
-      routeRiders.set(routeId, routeRiders.get(routeId) + riders);
-      routeLost.set(routeId, routeLost.get(routeId) + (wanted - riders));
+      const part = share.get(routeId);
+      routeRevenue.set(routeId, routeRevenue.get(routeId) + (monthly * part) / routeCount);
+      routeRiders.set(routeId, routeRiders.get(routeId) + riders * part);
+      routeLost.set(routeId, routeLost.get(routeId) + (wanted - riders) * part);
       routeKm.set(routeId, routeKm.get(routeId) + riders * routeDistance);
     }
   }
@@ -164,6 +171,64 @@ function trackRunSeconds(track) {
 // 노선의 이웃한 두 역 사이 구간 이름. 오가는 방향을 같은 구간으로 친다
 function segmentKey(routeId, a, b) {
   return a < b ? `${routeId}|${a}|${b}` : `${routeId}|${b}|${a}`;
+}
+
+// 두 역 사이(오가는 방향 같음)를 이웃한 역으로 다니는 노선들과 그 몫 (열차 수 비례)
+// 결과: Map("역|역" → [{ routeId, weight }]) — weight를 더하면 1
+function segmentSharers(running) {
+  const byPair = new Map();
+  for (const route of running) {
+    for (let i = 0; i + 1 < route.stations.length; i++) {
+      const [a, b] = [route.stations[i], route.stations[i + 1]].sort();
+      const pair = `${a}|${b}`;
+      const list = byPair.get(pair) ?? new Map();
+      list.set(route.id, route.trainCount);
+      byPair.set(pair, list);
+    }
+  }
+  const result = new Map();
+  for (const [pair, trains] of byPair) {
+    const total = [...trains.values()].reduce((sum, count) => sum + count, 0);
+    result.set(
+      pair,
+      [...trains].map(([routeId, count]) => ({ routeId, weight: count / total })),
+    );
+  }
+  return result;
+}
+
+// 한 여행(trip)의 구간들을 그 구간을 함께 다니는 노선들에게 나눠 준다
+// 결과: { routeKm: Map(노선 → 그 노선에서 탄 거리), share: Map(노선 → 원래 탄 노선 하나를 1로 쳤을 때의 몫) }
+// segmentWanted(구간별 타려는 승객)에도 나눈 만큼 더한다
+function spreadOverSharers(trip, sharers, riders, segmentWanted) {
+  const routeKm = new Map();
+  const share = new Map();
+  const add = (map, key, value) => map.set(key, (map.get(key) ?? 0) + value);
+  // 원래 노선별로 구간 길이를 모아, 원래 노선 하나의 몫(1)을 구간 길이 비율로 나눈다
+  const segmentsByRoute = new Map();
+  for (const key of trip.segments) {
+    const [routeId, a, b] = key.split('|');
+    const km = trackLengthKm(findTrackBetween(a, b));
+    const list = segmentsByRoute.get(routeId) ?? [];
+    list.push({ pair: `${a}|${b}`, km });
+    segmentsByRoute.set(routeId, list);
+  }
+  for (const [routeId, totalKm] of trip.routeKm) {
+    const segments = segmentsByRoute.get(routeId) ?? [];
+    if (segments.length === 0 || totalKm <= 0) {
+      add(routeKm, routeId, totalKm);
+      add(share, routeId, 1);
+      continue;
+    }
+    for (const { pair, km } of segments) {
+      for (const { routeId: sharer, weight } of sharers.get(pair) ?? [{ routeId, weight: 1 }]) {
+        add(routeKm, sharer, km * weight);
+        add(share, sharer, (km / totalKm) * weight);
+        add(segmentWanted, segmentKey(sharer, ...pair.split('|')), riders * weight);
+      }
+    }
+  }
+  return { routeKm, share };
 }
 
 const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);

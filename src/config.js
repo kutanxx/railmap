@@ -64,8 +64,15 @@ export const STATION_SHAPE_VARIETY = 0.25;
 export const TRANSFER_HALL_M = 34;
 // 같은 선로를 두 노선이 함께 쓰면 띠를 나란히 놓는다. 띠 사이 틈 (미터)
 export const PARALLEL_PLATFORM_GAP_M = 3;
-// 이 줌부터는 실제 크기로 그리고, 더 멀리서는 작은 승강장 그림으로 대신 보여준다
-export const PLATFORM_REAL_SIZE_ZOOM = 14;
+// 이 줌부터는 역을 실제 크기(승강장 띠 + 대합실)로 그리고, 더 멀리서는 노선도처럼 동그라미로 보여준다
+// (멀리서 네모난 승강장이 지도에서 툭 튀어나와 보이지 않게. 15 = 출구 점이 보이기 시작하는 줌과 같다)
+export const PLATFORM_REAL_SIZE_ZOOM = 15;
+// 멀리서 보이는 환승역 (map/stationIcons.js): 노선 색 원을 이어 붙인 캡슐 (서울 2023 "신호등 방식"·홍콩 MTR처럼)
+// 이 줌부터 PLATFORM_REAL_SIZE_ZOOM 전까지 캡슐, 더 멀리서는 이웃 역과 겹치지 않게 흰 원 + 굵은 남색 테두리
+export const STATION_CAPSULE_MIN_ZOOM = 11;
+// 캡슐 크기 (줌 15 바로 아래 기준 px): 노선 색 원 지름, 원 사이·둘레 흰 띠, 남색 테두리, 고른 역의 노란 테두리
+// 더 멀리서는 줄인다 (줌 13에서 0.75배, 줌 11에서 0.55배)
+export const STATION_CAPSULE = { circle: 14, band: 1.5, outline: 2, ring: 3 };
 
 // ── 역 출구 ────────────────────────────
 // 대합실 양옆으로 통로를 뻗어, 건물이 없는 가장 가까운 길가(보도)에 출구를 놓는다
@@ -100,7 +107,7 @@ export const EXIT_LABEL_ZOOM = 16;
 // 출구 이름 붙이는 방식. 지금은 'seoul'(상행 오른쪽 앞이 1번, 시계 방향)만 있다 (ui/exitNames.js)
 export const EXIT_NAMING = 'seoul';
 // 역 이름 말풍선은 줌에 따라 줄인다 (멀리서 보면 지도가 말풍선으로 덮이지 않게)
-// - LABEL_NAME_ZOOM보다 멀리: 환승역·종착역만 말풍선, 나머지 역은 노란 점만
+// - LABEL_NAME_ZOOM보다 멀리: 환승역·종착역만 말풍선, 나머지 역은 지도의 동그라미만
 // - LABEL_NAME_ZOOM ~ LABEL_DETAIL_ZOOM: 모든 역의 이름과 노선 번호 (하루 이용객 숫자는 숨김)
 // - LABEL_DETAIL_ZOOM부터: 전부 (이용객 숫자까지)
 // 고른 역은 줌과 상관없이 전부 보인다. 서울은 줌 14, 솔내 지방은 줌 12로 시작한다
