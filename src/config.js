@@ -241,9 +241,10 @@ export const SOUND_NOTES = {
   G5: 783.99, // 솔
   A5: 880.0, // 라
 };
-// 소리마다 크기 (dB, 노선 개통을 0으로). −6이면 대략 절반. 자주 나는 소리일수록 작게
+// 소리마다 크기 (dB). −6이면 대략 절반. 자주 나는 소리일수록 작게 (악기마다 크게 들리는 정도가 달라서 귀로 맞춘 값)
 export const SOUND_LEVELS = {
-  open: 0, // 노선 개통 (아주 드묾)
+  open: -3, // 노선 개통 (아주 드묾, 가장 큰 소리)
+  horn: -14, // 새 노선의 첫 열차가 떠날 때 경적 (노선마다 한 번). 톱니파라 같은 값이어도 크게 들려서 낮게
   track: -4, // 선로 완성
   station: -6, // 역 놓기
   arrive: -14, // 열차 도착 (계속 남)
@@ -258,6 +259,8 @@ export const SOUND_VARIATION = 0.05;
 // threshold 이 크기(dB)를 넘으면 누르기 시작, ratio 넘친 만큼을 이 비율로 줄임, knee 부드럽게 시작하는 폭(dB),
 // attack·release 누르기 시작·풀리는 데 걸리는 초
 export const SOUND_COMPRESSOR = { threshold: -18, knee: 12, ratio: 4, attack: 0.005, release: 0.2 };
+// 노선 개통·경적처럼 큰 소리가 날 때 열차 도착 소리를 이만큼(dB) 잠깐 줄인다 (덕킹)
+export const DUCK_DB = -6;
 // 열차가 역에 서는 소리는 열차가 많아도 이만큼(실제 초)에 한 번만 낸다 (3배속이어도 같다)
 // 그 사이에 선 열차들은 묶어서 다음 소리 때 한꺼번에 낸다
 export const ARRIVAL_SOUND_GAP_SECONDS = 1.5;

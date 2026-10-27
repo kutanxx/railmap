@@ -1,5 +1,8 @@
 // 효과음: 소리 파일 없이 Web Audio로 만든다. 설계 근거는 docs/sound-research.md.
-// - 역 놓기·선로 완성·노선 개통은 부드러운 벨 "딩~", 열차 도착은 마림바 "톡" (나무 건반 소리)
+// - 역 놓기·선로 완성은 부드러운 벨 "딩~", 열차 도착은 마림바 "톡" (나무 건반 소리)
+// - 노선 개통은 레일맵만의 네 음 차임(FM 벨), 새 노선의 첫 열차가 떠날 때는 멀리서 들리는 듯한 짧은 경적
+//   차임은 처음부터 새로 만든 음 순서다. 실제 역 멜로디(환승 음악, 발차 멜로디 등)의 음 순서는 옮기지 않는다
+// - 큰 소리(개통, 경적)가 나는 동안은 열차 소리를 잠깐 줄인다 (덕킹)
 // - 열차 도착음은 노선마다 다른 음이다 (ARRIVAL_NOTES). 짧은 동안 선 열차들은 묶어서 최대 몇 음만 낸다
 //   가까이 볼 때(ARRIVAL_SOUND_MIN_ZOOM 이상) 화면 안 열차만 소리를 낸다 (ui/animation.js)
 // - 모든 음은 config.js의 SOUND_NOTES(도·레·미·솔·라 5음 음계) 안에서만 고른다. 겹쳐도 부딪치지 않게
@@ -19,6 +22,7 @@ import {
   ARRIVAL_NOTES,
   MAX_ARRIVAL_NOTES,
   ARRIVAL_NOTE_SPACING,
+  DUCK_DB,
 } from '../config.js';
 
 const MUTED_KEY = 'railmap-muted';
@@ -44,7 +48,10 @@ const MARIMBA = [
 const SOUNDS = {
   station: { instrument: BELL, group: 'event', notes: [['E5', 0]], length: 0.6 }, // 역 놓기: 미 한 번
   track: { instrument: BELL, group: 'event', notes: [['C5', 0], ['E5', 0.14]], length: 0.6 }, // 선로 완성: 도→미
-  open: { instrument: BELL, group: 'event', notes: [['C5', 0], ['E5', 0.16], ['G5', 0.32]], length: 1.3 }, // 개통: 도·미·솔
+  // 개통: 도·미·라·솔 — 올라갔다가 한 칸 내려와 마무리하는 새 차임 (FM 벨)
+  open: { instrument: 'fm', group: 'event', notes: [['C5', 0], ['E5', 0.18], ['A5', 0.36], ['G5', 0.56]], length: 1 },
+  // 경적: 도·미·솔·라를 한 옥타브 낮게 한꺼번에 (장6화음, 실제 열차 경적과 같은 성격의 화음)
+  horn: { instrument: 'horn', group: 'event', notes: [['C5', 0], ['E5', 0], ['G5', 0], ['A5', 0]], length: 1 },
   arrive: { instrument: MARIMBA, group: 'train', notes: [['A5', 0]], length: 0.7 }, // 열차 도착 (음은 노선마다 바뀐다)
 };
 
@@ -54,6 +61,8 @@ const groups = {}; // 묶음별 음량 (event, train)
 let muted = localStorage.getItem(MUTED_KEY) === '1';
 let volume = readVolume();
 let lastArrival = 0;
+let eventBusyUntil = 0; // 개통 차임이 울리는 동안 (오디오 시계). 경적은 그 뒤에 울린다
+let lastHorn = -Infinity;
 let lastArrivalNote = null; // 바로 전에 낸 열차 음 (같은 음이 연달아 나지 않게)
 const pendingArrivals = new Set(); // 이번 묶음 동안 열차가 선 노선들의 음
 
@@ -109,18 +118,95 @@ function strike(instrument, frequency, at, peak, lengthScale, output) {
   }
 }
 
+// FM 벨: 음 하나(carrier)를 1.4배 높이 음(modulator)으로 빠르게 흔들면 벨처럼 어긋난 배음이 생긴다.
+// 흔드는 세기를 점점 줄여서, 처음엔 쨍하다가 맑은 음으로 사라진다. 너무 높은 소리는 필터로 깎는다
+function strikeFm(frequency, at, peak, lengthScale, output) {
+  const duration = 1.8 * lengthScale;
+  const carrier = context.createOscillator();
+  const modulator = context.createOscillator();
+  const depth = context.createGain();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  carrier.frequency.value = frequency;
+  modulator.frequency.value = frequency * 1.4;
+  depth.gain.setValueAtTime(frequency * 1.4 * 3.5, at);
+  depth.gain.exponentialRampToValueAtTime(frequency * 0.01, at + duration * 0.6);
+  filter.type = 'lowpass';
+  filter.frequency.value = MAX_PARTIAL_HZ;
+  gain.gain.setValueAtTime(0, at);
+  gain.gain.linearRampToValueAtTime(peak, at + 0.005);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+  modulator.connect(depth).connect(carrier.frequency);
+  carrier.connect(filter).connect(gain).connect(output);
+  for (const oscillator of [carrier, modulator]) {
+    oscillator.start(at);
+    oscillator.stop(at + duration + 0.05);
+  }
+}
+
+// 경적: 거친 톱니파 두 개(아주 살짝 어긋나게)를 한 옥타브 낮게 내고, 높은 소리를 깎아 멀리서 들리는 느낌으로.
+// 처음에 음이 살짝 낮았다가 제 높이로 올라가고, 0.1초에 걸쳐 커졌다가 짧게 끝난다
+function strikeHorn(frequency, at, peak, lengthScale, output) {
+  const low = frequency / 2;
+  const hold = 0.45 * lengthScale;
+  const end = at + hold + 0.2;
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  filter.type = 'lowpass';
+  filter.frequency.value = 1100;
+  gain.gain.setValueAtTime(0, at);
+  gain.gain.linearRampToValueAtTime(peak, at + 0.1);
+  gain.gain.setValueAtTime(peak, at + hold);
+  gain.gain.linearRampToValueAtTime(0, end);
+  filter.connect(gain).connect(output);
+  for (const detune of [-4, 4]) {
+    const oscillator = context.createOscillator();
+    oscillator.type = 'sawtooth';
+    oscillator.detune.value = detune; // 센트 (반음의 1/100)
+    oscillator.frequency.setValueAtTime(low * 0.97, at);
+    oscillator.frequency.linearRampToValueAtTime(low, at + 0.12);
+    oscillator.connect(filter);
+    oscillator.start(at);
+    oscillator.stop(end + 0.05);
+  }
+}
+
+// 큰 소리가 나는 동안 열차 소리 묶음을 DUCK_DB만큼 줄였다가 천천히 되돌린다
+function duck(from, until) {
+  const train = groups.train.gain;
+  train.cancelScheduledValues(from);
+  train.setTargetAtTime(fromDb(DUCK_DB), from, 0.03);
+  train.setTargetAtTime(1, until, 0.3);
+}
+
 // name: SOUNDS의 이름. notes: 음 목록을 바꿔 낼 때 [[음 이름, 시작 초], …] (없으면 SOUNDS 그대로)
 export function playSound(name, notes) {
   if (muted || volume === 0) return;
   if (!context) setup();
   const sound = SOUNDS[name];
   const played = notes ?? sound.notes;
+  let start = context.currentTime + 0.01;
+  if (name === 'horn') {
+    // 경적은 드물어야 한다: 3초 안에 또 울리지 않고, 개통 차임이 울리는 중이면 끝난 뒤에 울린다
+    if (start - lastHorn < 3) return;
+    start = Math.max(start, eventBusyUntil);
+    lastHorn = start;
+  }
   // 음이 여러 개면 겹쳐서 커지므로, 음 개수에 맞춰 한 음을 줄인다 (그래야 SOUND_LEVELS대로 들린다)
   const peak = (SOUND_PEAK * fromDb(SOUND_LEVELS[name]) * vary()) / played.length ** 0.8;
   const length = sound.length * vary();
-  const start = context.currentTime + 0.01;
   for (const [note, offset] of played) {
-    strike(sound.instrument, SOUND_NOTES[note], start + offset, peak, length, groups[sound.group]);
+    const frequency = SOUND_NOTES[note];
+    const output = groups[sound.group];
+    if (sound.instrument === 'fm') strikeFm(frequency, start + offset, peak, length, output);
+    else if (sound.instrument === 'horn') strikeHorn(frequency, start + offset, peak, length, output);
+    else strike(sound.instrument, frequency, start + offset, peak, length, output);
+  }
+  if (name === 'open' || name === 'horn') {
+    const lastNote = Math.max(...played.map(([, offset]) => offset));
+    const until = start + lastNote + (name === 'open' ? 1.0 : 0.6);
+    if (name === 'open') eventBusyUntil = until;
+    duck(start, until);
   }
 }
 
