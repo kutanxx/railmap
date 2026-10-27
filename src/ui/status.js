@@ -1,6 +1,7 @@
 // 화면 위쪽 자금 표시: 자금, 월 수지 (+는 초록, −는 빨강), 하루 승객
 // 매달 정산하면 자금 숫자 아래에 그 달 수지("+1.2억 ▲" / "−3.4억 ▼")가 잠깐 떠오른다 (색과 화살표가 함께)
 import { formatMoney, formatSignedMoney, formatPopulation } from './format.js';
+import { isSandbox } from '../game/region.js';
 
 // 정산 숫자가 떠 있는 시간 (실제 밀리초)
 const FLASH_MS = 2000;
@@ -27,8 +28,9 @@ export function createStatus(element) {
     dangerText.hidden = monthsLeft === null;
     if (monthsLeft !== null) dangerText.textContent = `파산까지 ${monthsLeft}개월`;
     ridersText.textContent = formatPopulation(riders);
-    moneyText.textContent = formatMoney(money);
-    moneyText.classList.toggle('negative', money < 0);
+    // 샌드박스는 자금 대신 "무제한" (월 수지와 하루 승객은 그대로 보여준다)
+    moneyText.textContent = isSandbox() ? '무제한' : formatMoney(money);
+    moneyText.classList.toggle('negative', money < 0 && !isSandbox());
     netText.textContent = formatSignedMoney(net);
     netText.classList.toggle('positive', net > 0.05);
     netText.classList.toggle('negative', net < -0.05);

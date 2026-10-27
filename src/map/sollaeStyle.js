@@ -2,6 +2,10 @@
 // 색은 실제 지도와 같은 베이지 팔레트(style.js)를 쓴다.
 import { PALETTE } from './style.js';
 
+// 칠할 곳(prop) → 팔레트 이름. 관제실 모드에서 이 이름으로 다른 팔레트 색을 찾는다 (map/theme.js)
+const paletteMeta = (entries) => ({ 'railmap:palette': entries });
+const keyOf = (color) => Object.keys(PALETTE).find((key) => PALETTE[key] === color);
+
 const SOURCE = 'sollae';
 // 지명 글자 모양: 실제 지도와 같은 무료 글꼴 (OpenFreeMap, 가입·키 없음)
 const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
@@ -21,6 +25,7 @@ export function sollaeStyle(data) {
     source: SOURCE,
     filter,
     paint: { 'fill-color': color, ...(outline ? { 'fill-outline-color': outline } : {}) },
+    metadata: paletteMeta({ 'fill-color': keyOf(color), ...(outline ? { 'fill-outline-color': keyOf(outline) } : {}) }),
   });
   const road = (id, roadClass, color, width) => ({
     id,
@@ -29,6 +34,7 @@ export function sollaeStyle(data) {
     filter: ['all', isLayer('transportation'), isClass(roadClass)],
     layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: { 'line-color': color, 'line-width': width },
+    metadata: paletteMeta({ 'line-color': keyOf(color) }),
   });
   const label = (id, kind, size, color, font) => ({
     id,
@@ -37,6 +43,7 @@ export function sollaeStyle(data) {
     filter: ['all', isLayer('place'), isKind(kind)],
     layout: { 'text-field': ['get', 'name'], 'text-font': [font], 'text-size': size },
     paint: { 'text-color': color, 'text-halo-color': PALETTE.labelHalo, 'text-halo-width': 1.5 },
+    metadata: paletteMeta({ 'text-color': keyOf(color), 'text-halo-color': 'labelHalo' }),
   });
 
   return {
@@ -44,7 +51,12 @@ export function sollaeStyle(data) {
     glyphs: GLYPHS,
     sources: { [SOURCE]: { type: 'geojson', data } },
     layers: [
-      { id: 'land', type: 'background', paint: { 'background-color': PALETTE.land } },
+      {
+        id: 'land',
+        type: 'background',
+        paint: { 'background-color': PALETTE.land },
+        metadata: paletteMeta({ 'background-color': 'land' }),
+      },
       // 산과 공원은 녹지 색
       fill('mountain', ['all', isLayer('landcover'), isKind('mountain')], PALETTE.green),
       fill('park', ['all', isLayer('landcover'), isKind('park')], PALETTE.green),

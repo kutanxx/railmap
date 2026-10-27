@@ -12,7 +12,7 @@ import {
   BANKRUPT_GRACE_MONTHS,
 } from '../config.js';
 import { createHistory } from './history.js';
-import { getRegion } from './region.js';
+import { getRegion, isSandbox } from './region.js';
 
 const state = {
   // 역 하나 = { id: 's1', name: '역 1', coord: [경도, 위도], angle: 0, population, builtArea, cells }
@@ -46,6 +46,8 @@ const state = {
   monthsOverDebtLimit: 0,
   // 파산했는지. 파산하면 시간이 멈추고 아무것도 지을 수 없다
   bankrupt: false,
+  // 이룬 게임 목표 번호들 (config.js GOALS의 순서, game/goals.js)
+  achievedGoals: [],
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
@@ -160,13 +162,14 @@ export function setSpeed(speed) {
 }
 
 // 이 공사비를 낼 수 있는지: 자금이 모자라도 빚 한도(DEBT_LIMIT)까지는 빚을 내서 지을 수 있다
+// 샌드박스는 늘 낼 수 있다 (돈 무제한)
 export function canAfford(cost) {
-  return state.money - cost >= DEBT_LIMIT;
+  return isSandbox() || state.money - cost >= DEBT_LIMIT;
 }
 
-// 빚이 있으면 이번 달에 낼 이자 (억 원)
+// 빚이 있으면 이번 달에 낼 이자 (억 원). 샌드박스는 이자가 없다
 export function monthlyInterest() {
-  return state.money < 0 ? -state.money * DEBT_INTEREST_PER_MONTH : 0;
+  return state.money < 0 && !isSandbox() ? -state.money * DEBT_INTEREST_PER_MONTH : 0;
 }
 
 // 한 달을 마무리한다: 수입 − 운영비 − 이자를 자금에 더하고 날짜를 한 달 넘긴다
@@ -176,7 +179,8 @@ export function settleMonth(revenue, opex) {
   const net = revenue - opex - interest;
   state.money += net;
   state.lastSettlement = { revenue, opex, interest, net };
-  state.monthsOverDebtLimit = state.money < DEBT_LIMIT ? state.monthsOverDebtLimit + 1 : 0;
+  // 샌드박스는 빚 한도도 파산도 없다
+  state.monthsOverDebtLimit = state.money < DEBT_LIMIT && !isSandbox() ? state.monthsOverDebtLimit + 1 : 0;
   if (state.monthsOverDebtLimit >= BANKRUPT_GRACE_MONTHS) {
     state.bankrupt = true;
     state.speed = 0;

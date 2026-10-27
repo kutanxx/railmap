@@ -4,7 +4,7 @@
 // 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js, [선로]·[노선] 도구 drawingTools.js,
 // 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js
 import { BANKRUPT_GRACE_MONTHS } from '../config.js';
-import { getRegion } from '../game/region.js';
+import { getRegion, isSandbox } from '../game/region.js';
 import {
   addStationLayers,
   updateStations,
@@ -39,6 +39,7 @@ import { createViewToggles } from './viewToggles.js';
 import { bindMapInput } from './mapInput.js';
 import { createWarnings } from './warnings.js';
 import { createNoticeLog } from './noticeLog.js';
+import { createGoalsPanel } from './goalsPanel.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -69,6 +70,7 @@ export function startApp(map, loadMessage) {
     removing: null, // 삭제 버튼에 마우스를 올려서 지도에 미리 보여줄 것 { type, id } 또는 null
     congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
     terrain: false, // 지형 보기: 켜면 등고선이 보인다 (땅 높이가 있는 가상 지도만)
+    controlRoom: false, // 관제실 모드: 어두운 지도 (viewToggles.js가 브라우저에 기억한 값으로 정한다)
     panelFolded: localStorage.getItem(PANEL_FOLDED_KEY) === '1', // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지
     trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
   };
@@ -229,7 +231,13 @@ export function startApp(map, loadMessage) {
     const bands = stationBands(stations, getState().tracks, routes, shapes);
     lastBands = { stations, bands };
 
-    renderBadge(document.getElementById('badge'), { year, month, region: getRegion().name, paused: speed === 0 });
+    renderBadge(document.getElementById('badge'), {
+      year,
+      month,
+      region: getRegion().name,
+      paused: speed === 0,
+      sandbox: isSandbox(),
+    });
     const economy = getEconomy();
     status.show({
       money,
@@ -309,6 +317,7 @@ export function startApp(map, loadMessage) {
     toggleCongestion: toggles.toggleCongestion,
     toggleTerrain: toggles.toggleTerrain,
     toggleSound: toggles.toggleSound,
+    toggleControlRoom: toggles.toggleControlRoom,
     showDraftProfile,
     renderTracks,
     trackTool,
@@ -333,6 +342,8 @@ export function startApp(map, loadMessage) {
   addDraftLayers(map);
   addHandleLayers(map);
   stationExits = createStationExits(map);
+  // 관제실 모드를 켜 둔 채 끝냈으면 레이어를 다 올린 지금 어두운 색을 입힌다
+  toggles.applyControlRoom();
   // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾고 말풍선 자리를 다시 고른다
   map.on('idle', updateStationExits);
 
@@ -345,6 +356,9 @@ export function startApp(map, loadMessage) {
     animation.markTrainsChanged();
   });
   subscribe(updateEconomy);
+  // 게임 목표: 수요를 다시 계산한 뒤에 확인한다 (이루면 말풍선과 보상)
+  const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
+  subscribe(goals.update);
   subscribe(() => warnings.crowding());
   subscribe(warnings.debt);
   subscribe(render);
@@ -353,6 +367,8 @@ export function startApp(map, loadMessage) {
   updateEconomy();
   warnings.crowding({ silent: true });
   render();
+  // 불러온 게임이 이미 이룬 목표도 확인한다 (목표 기록이 없는 예전 저장 파일)
+  goals.update();
 
   bindMapInput(ctx);
 }

@@ -286,3 +286,17 @@
   border-right-width: 3px;
   border-bottom-width: 3px;
 }
+
+/* ── 관제실 모드 (body.control-room, map/theme.js): 짙은 지도 위에서도 남색 선이 보이게 밝게 ── */
+.control-room {
+  --panel-ring: 0 0 0 2px #1e2630;
+  background: #1e2630;
+}
+
+.control-room .station-label-line {
+  background: #d3dce5;
+}
+
+.control-room .selection-bracket i {
+  border-color: #d3dce5;
+}

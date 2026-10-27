@@ -248,12 +248,36 @@ function hourlyCapacityKm(route) {
 }
 
 // 길찾기용 그래프. 점 하나 = "어느 역에서 어느 노선을 타고 있음"
-// { nodes: [{ station, route }], edges: Map(점 번호 → [{ to, minutes, km }]), boarding: Map(노선 id → 기다리는 시간) }
+// { nodes: [{ station, route }], edges: Map(점 번호 → [{ to, minutes, km }]),
+//   boarding: Map(점 번호 → 그 역에서 그 노선을 타려고 기다리는 시간(분)) }
+// 기다리는 시간 = 열차 간격의 절반. 같은 구간을 함께 다니는 노선들이 있으면 (같은 선로를 쓰는 노선들)
+// 그 노선들의 열차를 모두 탈 수 있으므로 열차가 더 자주 오는 것으로 친다 (합친 간격 = 1 ÷ 노선마다 1/간격의 합)
 function buildGraph(routes) {
   const nodes = [];
   const index = new Map(); // "역|노선" → 점 번호
   const edges = new Map();
   const boarding = new Map();
+  const headway = new Map(routes.map((route) => [route.id, roundTripMinutes(route) / route.trainCount]));
+  // 이웃한 두 역 사이("역|역") → 그 사이를 다니는 노선들
+  const pairRoutes = new Map();
+  for (const route of routes) {
+    for (let i = 0; i + 1 < route.stations.length; i++) {
+      const pair = [route.stations[i], route.stations[i + 1]].sort().join('|');
+      if (!pairRoutes.has(pair)) pairRoutes.set(pair, new Set());
+      pairRoutes.get(pair).add(route.id);
+    }
+  }
+  // 역 station에서 노선 route를 탈 때 기다리는 시간: 그 역 앞뒤 구간을 함께 다니는 노선들의 열차를 모두 친다
+  const waitAt = (route, i) => {
+    const sharing = new Set([route.id]);
+    for (const other of [route.stations[i - 1], route.stations[i + 1]]) {
+      if (other === undefined) continue;
+      const pair = [route.stations[i], other].sort().join('|');
+      for (const id of pairRoutes.get(pair) ?? []) sharing.add(id);
+    }
+    const perMinute = [...sharing].reduce((sum, id) => sum + 1 / headway.get(id), 0);
+    return 1 / perMinute / 2;
+  };
 
   const nodeOf = (station, route) => {
     const key = `${station}|${route}`;
@@ -267,8 +291,10 @@ function buildGraph(routes) {
   const connect = (a, b, minutes, km) => edges.get(a).push({ to: b, minutes, km });
 
   for (const route of routes) {
-    // 평균 기다리는 시간 = 열차 간격의 절반
-    boarding.set(route.id, roundTripMinutes(route) / route.trainCount / 2);
+    route.stations.forEach((station, i) => {
+      const node = nodeOf(station, route.id);
+      boarding.set(node, Math.min(boarding.get(node) ?? Infinity, waitAt(route, i)));
+    });
     // 이웃한 역 사이: 달리는 시간 + 다음 역에 서는 시간, 탄 거리는 선로 길이
     routeTracks(route).forEach((track, i) => {
       const km = trackLengthKm(track);
@@ -289,7 +315,7 @@ function buildGraph(routes) {
   for (const group of byStation.values()) {
     for (const a of group) {
       for (const b of group) {
-        if (a !== b) connect(a, b, TRANSFER_MINUTES + boarding.get(nodes[b].route), 0);
+        if (a !== b) connect(a, b, TRANSFER_MINUTES + boarding.get(b), 0);
       }
     }
   }
@@ -308,7 +334,7 @@ function shortestTrips(graph, origin) {
   const done = new Array(nodes.length).fill(false);
 
   // 출발역에서 각 노선을 처음 탈 때는 그 노선을 기다린다
-  for (const i of byStation.get(origin) ?? []) minutes[i] = boarding.get(nodes[i].route);
+  for (const i of byStation.get(origin) ?? []) minutes[i] = boarding.get(i);
 
   // 다익스트라 (점이 많지 않아서 단순한 방법으로 충분하다)
   for (;;) {

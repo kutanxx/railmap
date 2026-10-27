@@ -173,7 +173,7 @@
    왼쪽 아래 버튼 줄 오른쪽부터 오른쪽 패널 왼쪽까지 (지도를 덜 가리게 낮게) */
 .profile-panel {
   position: fixed;
-  left: 392px;
+  left: 470px;
   right: 292px;
   bottom: 16px;
   z-index: 1;
@@ -264,5 +264,30 @@
 
 .dialog-buttons .dialog-primary {
   background: #1f3a55;
+  color: #ffffff;
+}
+
+/* 시작 화면: 지도 카드 아래 [샌드박스 · 돈 무제한] (작은 버튼) */
+.start-choice-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.start-sandbox {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.start-sandbox:hover {
+  background: var(--navy);
   color: #ffffff;
 }

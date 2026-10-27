@@ -1,9 +1,10 @@
 // 시작 화면: 어느 지도에서 할지 고른다 (config.js의 REGIONS).
 // 지도마다 브라우저에 저장된 게임이 있으면 "이어하기 · 2026년 5월"처럼 알려준다.
+// 지도 카드 아래 [샌드박스]로 돈 무제한(빚·파산·목표 없음) 게임을 따로 할 수 있다 (저장 칸도 따로).
 import { REGIONS } from '../config.js';
 import { savedGameInfo } from '../game/save.js';
 
-// element에 시작 화면을 띄우고, 고르면 그 지도 id로 끝나는 Promise를 돌려준다
+// element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지 }로 끝나는 Promise를 돌려준다
 export function chooseRegion(element) {
   element.innerHTML = `
     <div class="start-card">
@@ -17,6 +18,10 @@ export function chooseRegion(element) {
 
   return new Promise((resolve) => {
     for (const [id, region] of Object.entries(REGIONS)) {
+      const choose = (sandbox) => {
+        element.hidden = true;
+        resolve({ id, sandbox });
+      };
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'start-choice';
@@ -27,11 +32,18 @@ export function chooseRegion(element) {
       const save = document.createElement('small');
       save.textContent = saveText(savedGameInfo(id));
       button.append(title, description, save);
-      button.addEventListener('click', () => {
-        element.hidden = true;
-        resolve(id);
-      });
-      choices.append(button);
+      button.addEventListener('click', () => choose(false));
+      // 같은 지도의 샌드박스 (돈 무제한)
+      const sandbox = document.createElement('button');
+      sandbox.type = 'button';
+      sandbox.className = 'start-sandbox';
+      const sandboxSave = savedGameInfo(id, true);
+      sandbox.textContent = `샌드박스 · 돈 무제한${sandboxSave && !sandboxSave.broken ? ` · 이어하기 ${sandboxSave.year}년 ${sandboxSave.month}월` : ''}`;
+      sandbox.addEventListener('click', () => choose(true));
+      const card = document.createElement('div');
+      card.className = 'start-choice-row';
+      card.append(button, sandbox);
+      choices.append(card);
     }
   });
 }

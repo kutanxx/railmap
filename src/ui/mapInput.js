@@ -18,7 +18,18 @@ import { formatMoney, formatPopulation } from './format.js';
 const TOO_FAR = '더 확대해야 역을 놓을 수 있어요';
 
 export function bindMapInput(ctx) {
-  const { map, ui, select, render, chooseTool, deleteSelected, toggleCongestion, toggleTerrain, toggleSound } = ctx;
+  const {
+    map,
+    ui,
+    select,
+    render,
+    chooseTool,
+    deleteSelected,
+    toggleCongestion,
+    toggleTerrain,
+    toggleSound,
+    toggleControlRoom,
+  } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
 
   // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
@@ -187,7 +198,7 @@ export function bindMapInput(ctx) {
     cancelWork();
   });
 
-  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리
+  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리, N: 관제실 모드
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   document.addEventListener('keydown', (event) => {
@@ -223,6 +234,8 @@ export function bindMapInput(ctx) {
       toggleTerrain();
     } else if (event.key.toLowerCase() === 'm') {
       toggleSound();
+    } else if (event.key.toLowerCase() === 'n') {
+      toggleControlRoom();
     } else if (event.key === 'Escape') {
       cancelWork();
     } else if (event.key === 'Backspace') {

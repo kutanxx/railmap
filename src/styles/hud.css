@@ -119,7 +119,7 @@
 }
 
 /* ── 왼쪽 아래 한 줄: [혼잡도][지형] 묶음 + [메뉴][소리][?] 묶음 ──
-   종단면도(왼쪽 392px부터)와 겹치지 않게 너비 360px 안에 둔다 ([지형]이 있는 가상 지도 기준) */
+   종단면도(왼쪽 470px부터)와 겹치지 않게 너비 450px 안에 둔다 ([지형]·[관제실]이 있는 가상 지도 기준) */
 .bottom-left {
   position: fixed;
   left: 16px;
@@ -353,4 +353,50 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ── 위쪽 [목표 n/10]: 아래로 펼치는 게임 목표 목록 ── */
+.pop-anchor[hidden] {
+  display: none;
+}
+
+.goals-list {
+  width: 260px;
+  gap: 0;
+}
+
+.goal-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.goal-item + .goal-item {
+  border-top: 1px solid var(--divider);
+}
+
+.goal-mark {
+  flex: none;
+  width: 16px;
+  color: #3f7d3f;
+  font-weight: 700;
+}
+
+.goal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-weight: 700;
+}
+
+.goal-text small {
+  font-weight: 400;
+}
+
+/* 다음에 이룰 목표: 남색으로 진하게 */
+.goal-next {
+  color: var(--navy);
+  font-size: var(--text-body);
 }

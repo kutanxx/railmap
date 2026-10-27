@@ -4,7 +4,7 @@
 // - 불러오기: JSON 파일을 읽어 그 상태로 바꾼다
 // 지도(지역)마다 저장 칸이 따로 있고, 저장 파일에도 어느 지도인지 적어 둔다
 import { START_YEAR, START_MONTH, REGIONS } from '../config.js';
-import { getRegion } from './region.js';
+import { getRegion, isSandbox } from './region.js';
 import {
   getState,
   subscribe,
@@ -32,6 +32,7 @@ export function saveData() {
     lastSettlement: state.lastSettlement,
     monthsOverDebtLimit: state.monthsOverDebtLimit,
     bankrupt: state.bankrupt,
+    achievedGoals: state.achievedGoals,
   };
 }
 
@@ -62,6 +63,8 @@ export function loadData(data) {
   // 빚·파산 기록이 없는 예전 저장 파일은 빚이 없던 것으로 친다
   state.monthsOverDebtLimit = data.monthsOverDebtLimit ?? 0;
   state.bankrupt = data.bankrupt ?? false;
+  // 목표 기록이 없는 예전 저장 파일은 아직 아무 목표도 이루지 않은 것으로 친다 (지금 상태로 다시 확인된다)
+  state.achievedGoals = Array.isArray(data.achievedGoals) ? [...data.achievedGoals] : [];
   clearHistory();
   notify();
 }
@@ -86,18 +89,21 @@ export function resetGame() {
   state.lastSettlement = null;
   state.monthsOverDebtLimit = 0;
   state.bankrupt = false;
+  state.achievedGoals = [];
   clearHistory();
   notify();
 }
 
 const AUTOSAVE_DELAY_MS = 1000; // 바뀐 뒤 이만큼 조용하면 저장한다 (연달아 바뀔 때 매번 저장하지 않게)
 
-// 지도마다 브라우저 저장 칸 이름 (서울은 예전부터 쓰던 이름 그대로)
-const storageKey = (regionId) => (regionId === 'seoul' ? 'railmap-save' : `railmap-save-${regionId}`);
+// 지도마다 브라우저 저장 칸 이름 (서울은 예전부터 쓰던 이름 그대로). 샌드박스는 칸이 따로다
+const storageKey = (regionId, sandbox = isSandbox()) =>
+  `${regionId === 'seoul' ? 'railmap-save' : `railmap-save-${regionId}`}${sandbox ? '-sandbox' : ''}`;
 
 // 시작 화면에 보여줄 그 지도의 저장 상태: 저장이 없으면 null, 있으면 { year, month }, 읽을 수 없으면 { broken: true }
-export function savedGameInfo(regionId) {
-  const text = localStorage.getItem(storageKey(regionId));
+// sandbox: 샌드박스 저장 칸을 볼지
+export function savedGameInfo(regionId, sandbox = false) {
+  const text = localStorage.getItem(storageKey(regionId, sandbox));
   if (text === null) return null;
   try {
     const { year, month } = JSON.parse(text);

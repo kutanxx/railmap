@@ -22,6 +22,7 @@ export const REGIONS = {
     populationScale: 1,
     trackCostScale: 1,
     soundStyle: 'gugak',
+    riderGoalScale: 1,
   },
   sollae: {
     name: '솔내 지방',
@@ -37,6 +38,8 @@ export const REGIONS = {
     // 이 두 값으로 솔내–가람 첫 노선(열차 1대)이 서울 첫 노선처럼 200개월쯤에 본전이 된다
     trackCostScale: 0.5,
     soundStyle: 'marimba',
+    // 지방이라 승객이 서울보다 훨씬 적어서, 하루 승객 목표를 이만큼 줄인다 (GOALS)
+    riderGoalScale: 0.1,
   },
 };
 
@@ -258,6 +261,23 @@ export const CALLOUT_SECONDS = 4;
 export const CALLOUT_WARN_SECONDS = 8;
 // 지난 알림을 몇 개까지 기억할지 (위쪽 [알림] 목록)
 export const NOTICE_LOG_SIZE = 20;
+
+// ── 게임 목표 (game/goals.js) ─────────────
+// 위에서부터 차례로 보여주고, 이루면 말풍선과 함께 보상(억)을 준다. 샌드박스에는 목표가 없다
+// kind: 'routes' 노선 수, 'stations' 역 수, 'transfers' 환승역 수, 'riders' 하루 승객 (지도의 riderGoalScale을 곱한다),
+//       'net' 월 수지(억, 이 값을 넘으면), 'money' 자금(억)
+export const GOALS = [
+  { kind: 'routes', value: 1, reward: 20 },
+  { kind: 'riders', value: 10000, reward: 30 },
+  { kind: 'net', value: 0, reward: 30 },
+  { kind: 'transfers', value: 1, reward: 30 },
+  { kind: 'routes', value: 3, reward: 50 },
+  { kind: 'riders', value: 50000, reward: 80 },
+  { kind: 'stations', value: 20, reward: 80 },
+  { kind: 'riders', value: 100000, reward: 120 },
+  { kind: 'money', value: 2000, reward: 150 },
+  { kind: 'riders', value: 300000, reward: 300 },
+];
 
 // ── 소리 (ui/sounds.js, 설계 근거 docs/sound-research.md) ──
 // 효과음에 쓰는 음: C장조 5음 음계(도·레·미·솔·라). 반음으로 부딪치는 음이 없어서 소리가 겹쳐도 어울린다.

@@ -1,7 +1,7 @@
 // 시작점: 시작 화면에서 지도 고르기 → 그 지도의 저장된 게임 불러오기 → 지도 만들기 → 게임 화면 시작
 import './style.css';
 import { START_YEAR, START_MONTH } from './config.js';
-import { setRegion, getRegion } from './game/region.js';
+import { setRegion, getRegion, setSandbox, isSandbox } from './game/region.js';
 import { createMap } from './map/createMap.js';
 import { useVirtualMap } from './map/mapFeatures.js';
 import { setTerrain } from './game/terrain.js';
@@ -10,13 +10,16 @@ import { renderBadge } from './ui/badge.js';
 import { chooseRegion } from './ui/startScreen.js';
 import { startApp } from './ui/app.js';
 
-setRegion(await chooseRegion(document.getElementById('start')));
+const choice = await chooseRegion(document.getElementById('start'));
+setRegion(choice.id);
+setSandbox(choice.sandbox);
 const region = getRegion();
 
 renderBadge(document.getElementById('badge'), {
   year: START_YEAR,
   month: START_MONTH,
   region: region.name,
+  sandbox: isSandbox(),
 });
 
 // 가상 지도는 GeoJSON 자료와 땅 높이 격자를 읽어 둔다 (실제 지도를 고르면 받지 않는다)

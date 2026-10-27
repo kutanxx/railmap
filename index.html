@@ -12,21 +12,28 @@
         <button id="badge" class="badge" type="button" title="눌러서 멈춤 · 다시 가기 (Space 키)"></button>
         <div id="speed" class="speed"></div>
         <div id="status" class="status"></div>
+      </div>
+      <div class="top-row">
+        <div id="toolbar" class="toolbar"></div>
         <div class="hud-group">
+          <span class="pop-anchor">
+            <button id="goals-button" class="hud-button" type="button" aria-expanded="false" title="게임 목표">목표</button>
+            <div id="goals-list" class="popover popover-down goals-list" hidden></div>
+          </span>
           <span class="pop-anchor">
             <button id="notice-button" class="hud-button" type="button" aria-expanded="false" title="지난 알림">알림</button>
             <div id="notice-log" class="popover popover-down notice-log" hidden></div>
           </span>
         </div>
       </div>
-      <div class="top-row">
-        <div id="toolbar" class="toolbar"></div>
-      </div>
     </div>
     <div class="bottom-left">
       <div class="hud-group">
         <div id="congestion" class="view-toggle"></div>
         <div id="terrain" class="view-toggle" hidden></div>
+        <div class="view-toggle">
+          <button id="control-room-button" class="hud-button" type="button" title="관제실 모드: 어두운 지도 (N 키)">관제실<span class="tool-key">N</span></button>
+        </div>
       </div>
       <div class="hud-group">
         <span class="pop-anchor">

@@ -1,5 +1,7 @@
 // 기본 지도 스타일(OpenFreeMap positron)을 받아와서
 // CLAUDE.md 아트 규칙의 베이지 팔레트로 색을 바꾼다.
+// 레이어마다 어떤 팔레트 색을 쓰는지 적어 두어서(metadata 'railmap:palette'), 관제실 모드에서
+// 다른 팔레트(CONTROL_ROOM_PALETTE)로 한꺼번에 바꿀 수 있다 (map/theme.js).
 
 // 아트 규칙 표의 색 (배경 지도용)
 export const PALETTE = {
@@ -16,6 +18,28 @@ export const PALETTE = {
   labelSmall: '#9A8F7B', // 작은 지명 글자 (도로 이름, 동네 이름 등)
   labelHalo: '#EFE7D6', // 글자 테두리
 };
+
+// 관제실 모드의 바탕 지도 색: 짙은 회남색 (실제 철도 관제실 화면처럼 평소엔 차분하게, 색은 플레이어가 지은 것에만)
+export const CONTROL_ROOM_PALETTE = {
+  land: '#1E2630',
+  urban: '#232C37',
+  building: '#2A3441',
+  buildingOutline: '#36414F',
+  road: '#38434F',
+  roadCasing: '#2B3440',
+  green: '#25302C',
+  water: '#1A2B3B',
+  rail: '#4F5A68',
+  label: '#9DABB9',
+  labelSmall: '#73828F',
+  labelHalo: '#1E2630',
+};
+
+// 레이어의 칠할 곳(prop)에 팔레트 색(key)을 칠하고, 어떤 색인지 metadata에 적어 둔다 (관제실 모드로 바꿀 때 쓴다)
+export function usePalette(layer, paint, prop, key) {
+  paint[prop] = PALETTE[key];
+  layer.metadata = { ...layer.metadata, 'railmap:palette': { ...layer.metadata?.['railmap:palette'], [prop]: key } };
+}
 
 // 지명은 한국어 이름을 먼저, 없으면 원래 이름
 const KOREAN_NAME = ['coalesce', ['get', 'name:ko'], ['get', 'name']];
@@ -35,63 +59,65 @@ export async function loadBeigeStyle(url) {
 }
 
 // 레이어 하나의 id와 type을 보고 어떤 색을 입힐지 정한다
-function recolorLayer(layer) {
+function recolorLayer(original) {
+  const layer = { ...original };
   const id = layer.id;
   const paint = { ...layer.paint };
   const layout = { ...layer.layout };
+  const color = (prop, key) => usePalette(layer, paint, prop, key);
 
   if (layer.type === 'background') {
-    paint['background-color'] = PALETTE.land;
+    color('background-color', 'land');
   } else if (layer.type === 'fill') {
-    recolorFill(id, paint);
+    recolorFill(id, paint, color);
   } else if (layer.type === 'line') {
-    recolorLine(id, paint, layout);
+    recolorLine(id, paint, layout, color);
   } else if (layer.type === 'symbol') {
-    recolorSymbol(id, paint, layout);
+    recolorSymbol(id, paint, layout, color);
   }
 
   return { ...layer, paint, layout };
 }
 
-function recolorFill(id, paint) {
+function recolorFill(id, paint, color) {
   if (id.includes('water')) {
-    paint['fill-color'] = PALETTE.water;
+    color('fill-color', 'water');
   } else if (id.includes('park') || id.includes('wood')) {
-    paint['fill-color'] = PALETTE.green;
+    color('fill-color', 'green');
   } else if (id.includes('building')) {
-    paint['fill-color'] = PALETTE.building;
-    paint['fill-outline-color'] = PALETTE.buildingOutline;
+    color('fill-color', 'building');
+    color('fill-outline-color', 'buildingOutline');
   } else if (id.includes('residential') || id.includes('aeroway')) {
-    paint['fill-color'] = PALETTE.urban;
+    color('fill-color', 'urban');
   } else {
     // 빙하, 부두 등 나머지 면은 땅 색으로 묻는다
-    paint['fill-color'] = PALETTE.land;
+    color('fill-color', 'land');
   }
   // 반투명 없이 완전히 칠한다
   paint['fill-opacity'] = 1;
 }
 
-function recolorLine(id, paint, layout) {
+function recolorLine(id, paint, layout, color) {
   if (id.includes('rail')) {
     if (id.includes('dashline')) {
       // 철도 위의 흰 점선은 숨긴다
       layout.visibility = 'none';
     }
-    paint['line-color'] = PALETTE.rail;
+    color('line-color', 'rail');
   } else if (id.includes('waterway')) {
-    paint['line-color'] = PALETTE.water;
+    color('line-color', 'water');
   } else if (id.includes('boundary')) {
-    paint['line-color'] = PALETTE.buildingOutline;
+    color('line-color', 'buildingOutline');
   } else if (id.includes('casing')) {
-    paint['line-color'] = PALETTE.roadCasing;
+    color('line-color', 'roadCasing');
   } else {
     // 일반 도로, 고속도로 안쪽, 터널, 활주로, 보행로
-    paint['line-color'] = PALETTE.road;
+    color('line-color', 'road');
   }
   paint['line-opacity'] = 1;
 }
 
-function recolorSymbol(id, paint, layout) {
+function recolorSymbol(id, paint, layout, color) {
   // 글자가 없는 아이콘 전용 레이어는 건드리지 않는다
   if (!layout['text-field']) return;
 
@@ -107,7 +133,7 @@ function recolorSymbol(id, paint, layout) {
   }
 
   const isBig = BIG_LABEL_IDS.some((prefix) => id.startsWith(prefix));
-  paint['text-color'] = isBig ? PALETTE.label : PALETTE.labelSmall;
-  paint['text-halo-color'] = PALETTE.labelHalo;
+  color('text-color', isBig ? 'label' : 'labelSmall');
+  color('text-halo-color', 'labelHalo');
   paint['text-halo-blur'] = 0;
 }
