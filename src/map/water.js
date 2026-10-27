@@ -6,18 +6,20 @@ import { readMapFeatures } from './mapFeatures.js';
 const SKIPPED_CLASSES = new Set(['swimming_pool']);
 
 // 지도마다 읽어 둔 물 모양. 지도를 움직여 타일을 새로 불러오면(idle) 다시 읽는다
+// version은 다시 읽은 물 모양이 전과 달라졌을 때만 1씩 늘린다 (선로 분석을 기억해 둘지 정하는 데 쓴다)
 const cache = new WeakMap();
 
 function waterShapes(map) {
   let entry = cache.get(map);
   if (!entry) {
-    entry = { shapes: null };
+    entry = { shapes: null, size: -1, version: 0 };
     cache.set(map, entry);
     map.on('idle', () => {
       entry.shapes = null;
     });
   }
-  entry.shapes ??= readMapFeatures(map, 'water')
+  if (entry.shapes) return entry.shapes;
+  entry.shapes = readMapFeatures(map, 'water')
     .filter((f) => !SKIPPED_CLASSES.has(f.properties.class) && f.properties.brunnel !== 'tunnel')
     .flatMap((feature) => {
       const { type, coordinates } = feature.geometry;
@@ -26,7 +28,19 @@ function waterShapes(map) {
       return [];
     })
     .map((rings) => ({ rings, bbox: boundsOf(rings[0]) }));
+  // 물 모양이 달라졌는지는 점 개수로 가늠한다
+  const size = entry.shapes.reduce((sum, { rings }) => sum + rings.reduce((n, ring) => n + ring.length, 0), 0);
+  if (size !== entry.size) {
+    entry.size = size;
+    entry.version += 1;
+  }
   return entry.shapes;
+}
+
+// 물 모양 번호: 읽어 둔 물 모양이 바뀔 때마다 달라진다
+export function waterVersion(map) {
+  waterShapes(map);
+  return cache.get(map).version;
 }
 
 // 점들([경도, 위도] 목록)이 하나씩 물 위인지 (true/false 목록). 선로 높이 분석이 쓴다 (game/trackProfile.js)

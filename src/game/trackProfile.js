@@ -19,16 +19,44 @@ import { hasTerrain, heightAt } from './terrain.js';
 
 // 점들이 하나씩 물 위인지 알려주는 함수. 게임 규칙 코드는 지도를 직접 읽지 않으므로
 // 지도를 가진 화면 쪽(ui/app.js → map/water.js)이 정해 준다. 정해 주기 전에는 물이 없는 것으로 친다
+// version: 물 모양이 바뀔 때마다(실제 지도에서 물이 있는 타일을 새로 불러오면) 달라지는 번호
 let waterTest = (points) => points.map(() => false);
-export function setWaterTest(test) {
+let waterVersion = () => 0;
+export function setWaterTest(test, version) {
   waterTest = test;
+  waterVersion = version;
+  cache.clear();
 }
+
+// 같은 모양의 선로는 몇 번을 물어도 답이 같으므로 기억해 둔다. 바뀔 때마다 모든 선로의 공사비·달리는 모습·그림이
+// 이 분석을 다시 부르는데, 물 위인지 재는 계산이 무거워서 역 50개 가상 지도에서 바뀜 하나에 50ms쯤 걸렸다.
+// 물 모양이 바뀌면 모두 잊는다. 선로를 그리는 동안 생기는 모양까지 다 쌓이지 않게 MAX_CACHED개까지만 둔다
+const MAX_CACHED = 500;
+const cache = new Map();
+let cachedVersion = 0;
 
 // coords: 선로 [경도, 위도] 점들 (출발역, 경유점…, 도착역)
 // 결과: { km: 길이, stepKm: 짚은 간격, points, ground: 땅 높이(m), rail: 선로 높이(m), water: 물 위인지,
 //         type: 점마다 'ground' | 'tunnel' | 'bridge', groundKm, tunnelKm, bridgeKm, maxGrade: 가장 가파른 경사(0.03 = 3%),
 //         gradeAt(km): 그 자리의 경사 }
 export function trackProfile(coords) {
+  const version = waterVersion();
+  if (version !== cachedVersion) {
+    cache.clear();
+    cachedVersion = version;
+  }
+  const key = coords.join(';');
+  let profile = cache.get(key);
+  if (!profile) {
+    profile = analyze(coords);
+    if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value);
+    cache.set(key, profile);
+  }
+  return profile;
+}
+
+// 실제 분석 (결과는 trackProfile 설명과 같다)
+function analyze(coords) {
   const km = coords.length >= 2 ? length(lineString(coords), { units: 'kilometers' }) : 0;
   const count = Math.max(2, Math.ceil((km * 1000) / PROFILE_STEP_M) + 1);
   const stepKm = km / (count - 1);

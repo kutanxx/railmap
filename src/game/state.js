@@ -77,9 +77,20 @@ export function notify() {
 // ── 되돌리기 ───────────────────────────
 // "철도망" = 플레이어가 지은 것과 그에 쓴 돈. 되돌리기는 이것만 바꾸고 날짜·시간은 그대로 둔다
 
+// 철도망을 복사한다. 역의 cells(주변 건물 칸 목록)는 역마다 수백 칸이라 복사가 가장 오래 걸리는데,
+// 한 번 만든 뒤 고치지 않고 통째로 바꾸기만 하므로(build.js) 복사하지 않고 같이 쓴다.
+// (역 50개에서 바뀜 하나마다 복사가 10ms 넘게 걸리던 것을 줄였다)
+function cloneNetwork(network) {
+  const copy = structuredClone({ ...network, stations: network.stations.map(({ cells, ...rest }) => rest) });
+  copy.stations.forEach((station, i) => {
+    station.cells = network.stations[i].cells;
+  });
+  return copy;
+}
+
 // (game 폴더 안에서만 쓴다: 저장할 때)
 export function snapshotNetwork() {
-  return structuredClone({
+  return cloneNetwork({
     stations: state.stations,
     tracks: state.tracks,
     routes: state.routes,
@@ -92,7 +103,7 @@ export function snapshotNetwork() {
 
 // (game 폴더 안에서만 쓴다: 불러올 때)
 export function restoreNetwork(snapshot) {
-  const copy = structuredClone(snapshot);
+  const copy = cloneNetwork(snapshot);
   state.stations = copy.stations;
   state.tracks = copy.tracks;
   state.routes = copy.routes;

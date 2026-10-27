@@ -20,7 +20,7 @@ import { renameStation, rotateStation, removeStation, removeTrack } from '../gam
 import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
-import { waterAt } from '../map/water.js';
+import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
@@ -66,7 +66,10 @@ export function startApp(map, loadMessage) {
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
-  setWaterTest((points) => waterAt(map, points));
+  setWaterTest(
+    (points) => waterAt(map, points),
+    () => waterVersion(map),
+  );
 
   // 화면 가운데 말풍선 알림
   const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);

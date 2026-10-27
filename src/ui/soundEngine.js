@@ -43,7 +43,8 @@ function createReverb(output) {
   for (let channel = 0; channel < 2; channel++) {
     const data = impulse.getChannelData(channel);
     for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** 3;
+      const fade = 1 - i / length;
+      data[i] = (Math.random() * 2 - 1) * fade * fade * fade;
     }
   }
   const convolver = context.createConvolver();

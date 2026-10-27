@@ -14,11 +14,13 @@ export function sharedPopulations(stations) {
       continue;
     }
     const near = neighbors(station, stations);
+    // 이웃 역은 1~2km 안이라 경도를 줄이는 비율(cos 위도)은 이 역 것 하나로 써도 된다 (칸마다 다시 계산하지 않게)
+    const scale = lngScale(station.coord[1]);
     let builtArea = 0;
     for (const [lng, lat, area] of station.cells) {
-      const own = distanceSq(station.coord, lng, lat);
+      const own = distanceSq(station.coord, lng, lat, scale);
       // 이 칸에 더 가까운 다른 역이 있으면 그 역 몫이다
-      if (near.every((other) => distanceSq(other.coord, lng, lat) >= own)) builtArea += area;
+      if (near.every((other) => distanceSq(other.coord, lng, lat, scale) >= own)) builtArea += area;
     }
     result.set(station.id, Math.max(MIN_STATION_POPULATION, Math.round(builtArea * peoplePerBuiltM2())));
   }
@@ -28,14 +30,16 @@ export function sharedPopulations(stations) {
 // 반경 두 배(=두 원이 겹칠 수 있는 거리) 안의 다른 역들
 function neighbors(station, stations) {
   const reach = ((2 * POPULATION_RADIUS_M) / 111320) ** 2 * 1.2; // 위도 1도 ≈ 111km, 여유 20%
-  return stations.filter(
-    (other) => other !== station && distanceSq(station.coord, ...other.coord) < reach,
-  );
+  const scale = lngScale(station.coord[1]);
+  return stations.filter((other) => other !== station && distanceSq(station.coord, ...other.coord, scale) < reach);
 }
 
-// 두 점 사이 거리의 제곱 (도 단위, 경도는 위도에 맞춰 줄인다). 크기 비교에만 쓴다
-function distanceSq([lng1, lat1], lng2, lat2) {
-  const dx = (lng1 - lng2) * Math.cos((lat1 * Math.PI) / 180);
+// 경도 1도가 위도 1도보다 얼마나 짧은지 (그 위도에서)
+const lngScale = (lat) => Math.cos((lat * Math.PI) / 180);
+
+// 두 점 사이 거리의 제곱 (도 단위, 경도는 scale만큼 줄인다). 크기 비교에만 쓴다
+function distanceSq([lng1, lat1], lng2, lat2, scale) {
+  const dx = (lng1 - lng2) * scale;
   const dy = lat1 - lat2;
   return dx * dx + dy * dy;
 }
