@@ -5,6 +5,7 @@
 // 시작 화면에서 고르는 지도들. 역·선로·노선·열차·돈 계산은 어느 지도든 똑같다
 // name: 왼쪽 위 배지에 보일 지역 이름, title·description: 시작 화면 글,
 // center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
+// bounds: 실제 지도에서 움직일 수 있는 범위 [서쪽 경도, 남쪽 위도, 동쪽 경도, 북쪽 위도] (도시 경계쯤. 가상 지도는 자료 범위로 정해진다)
 // 지도마다 다른 돈 계산 (밸런스):
 //   startMoney: 시작 자금 (억)
 //   populationScale: 건물 면적으로 잰 인구에 곱하는 배율 (1 = PEOPLE_PER_BUILT_M2 그대로)
@@ -15,13 +16,31 @@ export const REGIONS = {
   seoul: {
     name: '서울',
     title: '실제 지도 · 서울',
-    description: 'OpenStreetMap의 실제 서울 도심 위에 노선을 깔아요',
+    description: 'OpenStreetMap의 실제 서울 위에 노선을 깔아요',
     center: [126.9895, 37.5615],
     zoom: 14,
+    bounds: [126.76, 37.41, 127.19, 37.72],
     startMoney: 600,
     populationScale: 1,
     trackCostScale: 1,
     soundStyle: 'gugak',
+    riderGoalScale: 1,
+  },
+  busan: {
+    name: '부산',
+    title: '실제 지도 · 부산',
+    description: '바다와 산 사이로 길게 뻗은 실제 부산 위에 노선을 깔아요',
+    // 부산역과 서면 사이
+    center: [129.05, 35.14],
+    zoom: 14,
+    bounds: [128.76, 35.0, 129.31, 35.39],
+    startMoney: 600,
+    // 지도에 그려진 건물이 서울보다 성겨서(사상·덕천 같은 아파트 동네도 건물이 적게 그려져 있다) 1배로 재면
+    // 역 주변 인구가 서울의 절반쯤 나온다 (서울 종로3가 2.5만·홍대입구 3.3만, 부산 연산 1.3만·사상 0.5만).
+    // 1.8배면 보통 역이 서울과 비슷하고, 서면은 약 9만 명으로 부산의 큰 중심이 된다
+    populationScale: 1.8,
+    trackCostScale: 1,
+    soundStyle: 'bell',
     riderGoalScale: 1,
   },
   sollae: {
