@@ -3,7 +3,7 @@
 // 도시를 하나 더하려면 아래 목록에 한 덩어리를 복사해 넣고 이름·위치·범위·인구 배율을 바꾼다.
 
 // 시작 화면에서 고르는 지도들. 역·선로·노선·열차·돈 계산은 어느 지도든 똑같다
-// name: 왼쪽 위 배지와 시작 화면 카드에 보일 지역 이름, description: 시작 화면 글,
+// name: 왼쪽 위 배지와 시작 화면 카드에 보일 지역 이름, description: 시작 화면 카드의 한 줄 설명 (두 줄 안쪽으로 짧게),
 // country: 나라 ('kr' 한국, 'jp' 일본, 'us' 미국, 'uk' 영국, 'fr' 프랑스). 요금 방식과 출구 이름 방식이 나라마다 다르다
 //          (config.js의 FARES, EXIT_NAMING). virtual: 가상 지도인지 (시작 화면에서 따로 묶는다),
 // center: 처음 화면 가운데 [경도, 위도], zoom: 처음 확대 정도 (클수록 가까이, 14 ≈ 동네 몇 개)
@@ -20,7 +20,7 @@ export const REGIONS = {
   seoul: {
     name: '서울',
     country: 'kr',
-    description: 'OpenStreetMap의 실제 서울 위에 노선을 깔아요',
+    description: '한강을 건너는 수도, 도심에서 분당까지',
     center: [126.9895, 37.5615],
     zoom: 14,
     // 서울 시 경계쯤. 남쪽은 분당(정자·오리)까지 들어오게 조금 더 내렸다
@@ -34,7 +34,7 @@ export const REGIONS = {
   busan: {
     name: '부산',
     country: 'kr',
-    description: '바다와 산 사이로 길게 뻗은 실제 부산 위에 노선을 깔아요',
+    description: '바다와 산 사이로 길게 뻗은 항구 도시',
     // 부산역과 서면 사이
     center: [129.05, 35.14],
     zoom: 14,
@@ -51,7 +51,7 @@ export const REGIONS = {
   incheon: {
     name: '인천',
     country: 'kr',
-    description: '바다를 낀 항구 도시, 부평·주안에서 송도까지 실제 인천 위에 노선을 깔아요',
+    description: '바다를 낀 항구 도시, 부평·주안에서 송도까지',
     // 부평·주안·인천시청 사이
     center: [126.7, 37.47],
     zoom: 14,
@@ -66,7 +66,7 @@ export const REGIONS = {
   daegu: {
     name: '대구',
     country: 'kr',
-    description: '산으로 둘러싸인 분지, 반월당을 가운데 둔 실제 대구 위에 노선을 깔아요',
+    description: '산으로 둘러싸인 분지, 반월당이 한가운데',
     // 반월당과 중앙로 사이
     center: [128.6, 35.868],
     zoom: 14,
@@ -81,7 +81,7 @@ export const REGIONS = {
   daejeon: {
     name: '대전',
     country: 'kr',
-    description: '대전역 옛 도심과 둔산 새 도심이 떨어져 있는 실제 대전 위에 노선을 깔아요',
+    description: '대전역 옛 도심과 둔산 새 도심이 떨어진 도시',
     // 둔산 새 도심 (시청·정부청사). 옛 도심(대전역)은 동쪽으로 4km쯤
     center: [127.385, 36.355],
     zoom: 14,
@@ -96,7 +96,7 @@ export const REGIONS = {
   gwangju: {
     name: '광주',
     country: 'kr',
-    description: '금남로 옛 도심과 상무지구가 있는 실제 광주 위에 노선을 깔아요',
+    description: '금남로 옛 도심과 상무지구가 있는 도시',
     // 금남로 옛 도심. 상무지구는 서쪽으로 6km쯤
     center: [126.912, 35.149],
     zoom: 14,
@@ -111,7 +111,7 @@ export const REGIONS = {
   tokyo: {
     name: '도쿄',
     country: 'jp',
-    description: '세계에서 철도가 가장 붐비는 도시, 실제 도쿄 23구 위에 노선을 깔아요',
+    description: '세계에서 철도가 가장 붐비는 도시, 23구',
     // 도쿄역. 신주쿠는 서쪽으로 6km쯤
     center: [139.767, 35.681],
     zoom: 14,
@@ -126,7 +126,7 @@ export const REGIONS = {
   newyork: {
     name: '뉴욕',
     country: 'us',
-    description: '바둑판 거리의 맨해튼과 다리 건너 브루클린·퀸스, 실제 뉴욕 위에 노선을 깔아요',
+    description: '맨해튼과 다리 건너 브루클린·퀸스',
     // 맨해튼 미드타운 (타임스스퀘어 근처)
     center: [-73.985, 40.754],
     zoom: 14,
@@ -141,7 +141,7 @@ export const REGIONS = {
   london: {
     name: '런던',
     country: 'uk',
-    description: '템스강을 따라 펼쳐진 세계 첫 지하철의 도시, 실제 런던 위에 노선을 깔아요',
+    description: '템스강을 따라 펼쳐진 첫 지하철의 도시',
     // 채링크로스 (트래펄가 광장 근처)
     center: [-0.125, 51.508],
     zoom: 14,
@@ -156,7 +156,7 @@ export const REGIONS = {
   paris: {
     name: '파리',
     country: 'fr',
-    description: '센강과 순환도로 안쪽에 건물이 빽빽한, 실제 파리 위에 노선을 깔아요',
+    description: '센강과 순환도로 안쪽에 빽빽한 도시',
     // 샤틀레 (시내 한가운데)
     center: [2.347, 48.859],
     zoom: 14,
@@ -172,7 +172,7 @@ export const REGIONS = {
     name: '솔내 지방',
     country: 'kr',
     virtual: true,
-    description: '마을 넷과 금빛강, 봉우리산이 있는 가상의 지방이에요',
+    description: '마을 넷과 금빛강, 봉우리산이 있는 가상의 지방',
     center: [131.0, 37.56],
     zoom: 12,
     startMoney: 600,

@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
+    "pbf": "^5.1.2",
     "vite": "^8.3.5"
   },
   "dependencies": {
