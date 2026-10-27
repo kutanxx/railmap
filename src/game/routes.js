@@ -2,7 +2,7 @@
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
 import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
-import { routeColorFor } from './routeColors.js';
+import { routeColorFor, routeNameFor } from './routeColors.js';
 
 // 노선 번호 (1호선이면 1). 노선 id가 "r번호"라서 이름을 바꿔도 번호는 그대로다
 export const routeNumber = (route) => Number(route.id.slice(1));
@@ -13,7 +13,7 @@ export function newRouteCost() {
 }
 
 // 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
-// 이름은 "1호선", "2호선" …, 색은 그 도시의 실제 노선 색을 차례로 받는다 (모자라면 추천 색, routeColors.js)
+// 이름과 색은 그 도시의 실제 노선을 차례로 받는다 (서울 "1호선"·남색, 런던 "베이커루선"·갈색 …. 모자라면 "n호선"·추천 색, routeColors.js)
 // 기본 열차 값을 빚 한도 안에서 낼 수 없으면 만들지 않고 null을 돌려준다
 export function addRoute(stationIds) {
   return change(null, () => {
@@ -24,7 +24,7 @@ export function addRoute(stationIds) {
     state.nextRouteNumber += 1;
     const route = {
       id: `r${number}`,
-      name: `${number}호선`,
+      name: routeNameFor(number),
       color: routeColorFor(number),
       stations: stationIds,
       trainCount: DEFAULT_TRAINS_PER_ROUTE,

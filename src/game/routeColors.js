@@ -1,5 +1,5 @@
-// 노선 색 정하기: 지금 지도(도시)의 실제 노선 색을 1호선부터 차례로 쓰고 (src/lineColors.js),
-// 모자라면 추천 색(config.js의 ROUTE_COLORS)으로 이어 간다. 추천 색 가운데 도시 색과 거의 같은 색은 건너뛴다.
+// 노선의 처음 이름과 색 정하기: 지금 지도(도시)의 실제 노선 이름·색을 첫 노선부터 차례로 쓰고 (src/lineColors.js),
+// 모자라면 이름은 "n호선", 색은 추천 색(config.js의 ROUTE_COLORS)으로 이어 간다. 추천 색 가운데 도시 색과 거의 같은 색은 건너뛴다.
 // 노선 패널의 색 고르기 견본도 같은 목록을 쓴다.
 import { ROUTE_COLORS, SAME_ROUTE_COLOR_DISTANCE } from '../config.js';
 import { LINE_COLORS } from '../lineColors.js';
@@ -12,6 +12,13 @@ export function colorChoices() {
     city.every((line) => colorDistance(line.color, color) >= SAME_ROUTE_COLOR_DISTANCE),
   );
   return [...city, ...extra];
+}
+
+// number번째 노선(1부터)의 처음 이름: 그 도시의 number번째 실제 노선 이름 (서울 "1호선", 런던 "베이커루선" …).
+// 실제 노선보다 많으면 "n호선"
+export function routeNameFor(number) {
+  const city = LINE_COLORS[getRegion().id] ?? [];
+  return city[number - 1]?.name ?? `${number}호선`;
 }
 
 // number번째 노선(1부터)의 처음 색. 목록을 다 쓰면 처음부터 다시 돈다
