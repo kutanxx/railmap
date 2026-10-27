@@ -48,8 +48,10 @@
   color: #ffffff;
 }
 
+/* 색 견본: 도시의 실제 노선 색 + 추천 색이라 많을 때는 여러 줄로 (마우스를 올리면 노선 이름) */
 .route-swatches {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 

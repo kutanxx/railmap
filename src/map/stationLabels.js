@@ -14,6 +14,7 @@ import {
   PLATFORM_REAL_SIZE_ZOOM,
 } from '../config.js';
 import { formatPeopleShort } from '../ui/format.js';
+import { inkOn } from './ink.js';
 
 // 역 id → { element, marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, coordKey,
 //          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양, far: 노란 점을 숨겼는지 }
@@ -80,6 +81,7 @@ export function updateStationLabels(map, stations, stationRoutes, riders, shapes
           const badge = document.createElement('span');
           badge.className = 'station-label-route';
           badge.style.background = route.color;
+          badge.style.color = inkOn(route.color);
           badge.textContent = route.number;
           return badge;
         }),

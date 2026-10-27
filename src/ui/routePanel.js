@@ -1,7 +1,8 @@
 // 오른쪽 노선 패널: 한 번에 하나만 보여준다 — 새 노선 만들기 안내('draft'), 고른 노선 정보('detail'), 노선 목록('list').
 // 노선 정보 맨 위의 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose). 목록의 [▸]는 패널을 접는다 (onFold).
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
-import { ROUTE_COLORS, MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
+import { MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
+import { colorChoices } from '../game/routeColors.js';
 import { bindNameInput } from './nameInput.js';
 import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
 import { renderRouteList, loadTone } from './routeList.js';
@@ -132,9 +133,9 @@ export function createRoutePanel(
   });
   const routeName = bindNameInput(element.querySelector('.route-name'), onRename);
 
-  // 색 고르기 버튼 6개
+  // 색 고르기 버튼: 그 도시의 실제 노선 색 + 추천 색 (game/routeColors.js)
   const swatches = element.querySelector('.route-swatches');
-  const swatchButtons = ROUTE_COLORS.map(({ name, color }) => {
+  const swatchButtons = colorChoices().map(({ name, color }) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'route-swatch';
