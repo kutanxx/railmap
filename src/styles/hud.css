@@ -1,0 +1,255 @@
+/* 화면 가장자리 조작: 위쪽 두 줄(날짜·배속·돈 / 도구), 왼쪽 아래 한 줄(보기 / 메뉴·소리·?), 펼침 판
+   모양 규칙 (reports/레일맵 화면 디자인 스타일.md):
+   - 화면 판(누르는 것이 든 묶음·패널·펼침)은 흰 바탕 + 남색 2px + 둥근 모서리 10px + 바깥 땅색 띠 2px
+     (땅색 띠는 흐림 없는 단색 선이다. 선로·도로 위에 겹쳐도 판과 붙어 보이지 않게 틈을 만든다)
+   - 그 안의 버튼은 평소 흰 바탕, 마우스를 올리면 땅색, 고르거나 켜진 것만 남색으로 꽉 채운다
+   - 누를 수 없는 정보(자금 줄, 혼잡도 설명)는 얇은 #CFC0A3 선으로 조용하게
+   - 노란 점·꼬리·지시선은 지도 위 것(역 이름표, 알림)에만 쓴다. 화면 것에는 달지 않는다 */
+
+/* 화면 판 */
+.toolbar,
+.speed,
+.hud-group,
+.popover {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+}
+
+/* 판 안의 버튼 (도구, 배속, 보기, 메뉴, 소리, ?, 메뉴 항목) */
+.tool-button,
+.speed-button,
+.hud-button,
+.file-button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tool-button:hover,
+.speed-button:hover,
+.hud-button:hover,
+.file-button:hover {
+  background: var(--land);
+}
+
+/* 고른 것·켜진 것·열어 둔 펼침의 버튼: 남색으로 꽉 채운다 */
+.tool-button.active,
+.speed-button.active,
+.hud-button.active,
+.hud-button[aria-expanded='true'] {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+/* ── 위쪽 둘째 줄: 도구 막대 (가장 자주 누르는 곳이라 조금 크게) ── */
+.tool-button {
+  padding: 7px 14px;
+}
+
+/* 도구·보기 버튼 옆 작은 숫자·글자 (단축키) */
+.tool-key {
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 고른 도구의 단축키는 노랑 (노랑은 늘 남색 위에서만 쓴다) */
+.active > .tool-key {
+  color: var(--accent);
+}
+
+/* ── 위쪽 첫 줄: 자금 표시 (누를 수 없는 정보라 조용한 띠) ── */
+.status {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--navy);
+  font-size: var(--text-strong);
+}
+
+.status-label {
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+.status-label + b + .status-label,
+.status-label + b + .status-label + b + .status-label {
+  margin-left: 6px;
+}
+
+/* 월 수지: +는 초록, −는 빨강 */
+.status .positive {
+  color: #3f7d3f;
+}
+
+.status .negative {
+  color: var(--danger);
+}
+
+/* 위쪽 막대: 파산까지 n개월 */
+.status-danger {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.status-danger[hidden] {
+  display: none;
+}
+
+/* ── 왼쪽 아래 한 줄: [혼잡도][지형] 묶음 + [메뉴][소리][?] 묶음 ──
+   종단면도(왼쪽 392px부터)와 겹치지 않게 너비 360px 안에 둔다 ([지형]이 있는 가상 지도 기준) */
+.bottom-left {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* 묶음은 펼침 판과 혼잡도 설명의 기준 자리가 된다 */
+.hud-group {
+  position: relative;
+}
+
+/* 보기 버튼 자리 ([지형]은 땅 높이가 있는 지도에서만) */
+.view-toggle {
+  display: flex;
+}
+
+.view-toggle[hidden] {
+  display: none;
+}
+
+/* ── 펼침 판: 자기 버튼 바로 위 12px에 열린다 (꼬리 없음, 연 버튼이 남색으로 채워져 이어진다) ── */
+.pop-anchor {
+  position: relative;
+  display: flex;
+}
+
+.popover {
+  position: absolute;
+  left: -6px;
+  bottom: calc(100% + 12px);
+  z-index: 3;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.popover[hidden] {
+  display: none;
+}
+
+/* 메뉴 항목은 글자를 왼쪽에 맞춘다 */
+.file-button {
+  text-align: left;
+}
+
+/* 메뉴 맨 아래 [새로 시작]은 줄로 떼어 빨갛게 (실수로 누르지 않게) */
+.popover-divider {
+  width: 100%;
+  margin: 3px 0;
+  border: none;
+  border-top: 1px solid var(--divider);
+}
+
+.file-reset {
+  color: var(--danger);
+}
+
+/* [새로 시작]을 한 번 눌러 "정말요?"를 묻는 중 */
+.file-button.confirm {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* 소리 펼침: [소리 켬] · 음량 막대 · [음악 켬] */
+.sound-panel {
+  gap: 8px;
+  padding: 8px;
+}
+
+.volume-slider {
+  width: 150px;
+  accent-color: var(--navy);
+}
+
+.volume-slider:disabled {
+  opacity: 1;
+  accent-color: var(--divider);
+}
+
+/* ── 혼잡도 설명: [혼잡도] 위에 뜨는 조용한 정보 띠. 켜 둔 동안 계속 보인다 ──
+   세로로 쌓아 좁게 둔다 (옆 [메뉴]·[소리] 펼침과 겹치지 않게) */
+.congestion-legend {
+  position: absolute;
+  left: -2px;
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 6px 10px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+.congestion-legend[hidden] {
+  display: none;
+}
+
+/* 혼잡도 설명의 막대: 지도의 선로처럼 여유는 가늘게, 넘침은 굵게 (색을 못 봐도 구별되게) */
+.congestion-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.congestion-legend i {
+  width: 16px;
+  border-radius: 2px;
+}
+
+.congestion-legend .load-ok {
+  height: 3px;
+}
+
+.congestion-legend .load-busy {
+  height: 6px;
+}
+
+.congestion-legend .load-over {
+  height: 10px;
+}
+
+/* 넘친 구간 수 */
+.congestion-over-count {
+  margin-top: 2px;
+  color: var(--navy);
+}

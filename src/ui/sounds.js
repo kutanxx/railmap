@@ -124,12 +124,14 @@ export function playClack(loudness) {
 
 // [소리] 버튼과 음량 막대
 // button: 누르면 켜고 끈다 ("소리 켬"/"소리 끔"), slider: 0~100 음량 막대
-export function createSoundToggle(button, slider) {
+// onShow(muted): 켜고 끌 때마다 불린다 (펼침을 여는 [소리] 버튼 글자를 바꾸는 데 쓴다)
+export function createSoundToggle(button, slider, onShow = () => {}) {
   const show = () => {
     button.textContent = muted ? '소리 끔' : '소리 켬';
     button.classList.toggle('active', !muted);
     slider.value = Math.round(volume * 100);
     slider.disabled = muted;
+    onShow(muted);
   };
   const toggle = () => {
     muted = !muted;

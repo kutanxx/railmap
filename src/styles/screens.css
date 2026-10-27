@@ -1,0 +1,268 @@
+/* 화면 위에 뜨는 것: 시작 화면, 튜토리얼, 조작 안내·파산 창, 종단면도 */
+
+/* ── 시작 화면: 지도 고르기 (게임 화면 전체를 덮는다) ── */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #efe7d6;
+}
+
+.start-screen[hidden] {
+  display: none;
+}
+
+.start-card {
+  width: 100%;
+  max-width: 460px;
+  color: #1f3a55;
+}
+
+.start-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.start-lead {
+  margin: 6px 0 18px;
+  color: #6f6656;
+  font-size: var(--text-body);
+}
+
+.start-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.start-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 2px solid #1f3a55;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.start-choice:hover {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.start-choice b {
+  font-size: var(--text-strong);
+}
+
+.start-choice span {
+  font-size: var(--text-body);
+}
+
+.start-choice small {
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: #c9772f;
+}
+
+/* ── 튜토리얼 말풍선 (도구 막대 아래) ── */
+.tutorial {
+  position: fixed;
+  top: 116px;
+  left: 16px;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+}
+
+.tutorial[hidden] {
+  display: none;
+}
+
+.tutorial-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-strong);
+  font-weight: 700;
+}
+
+/* 단계 번호: 노란 배지 */
+.tutorial-step {
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #f2c230;
+  color: #1f3a55;
+  font-size: var(--text-small);
+}
+
+.tutorial-text {
+  margin: 6px 0 8px;
+  color: #6f6656;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.tutorial-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tutorial-skip {
+  padding: 3px 10px;
+  border: 1px solid var(--muted);
+  border-radius: 5px;
+  background: #ffffff;
+  color: #6f6656;
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.tutorial-skip:hover {
+  border-color: #1f3a55;
+  color: #1f3a55;
+}
+
+/* 튜토리얼이 눌러 보라고 강조하는 버튼 */
+/* 노랑만으로는 흰 판·땅 위에서 잘 안 보여서, 노란 선 바깥에 남색 선을 한 줄 더 */
+.tutorial-target {
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 0 5px var(--navy);
+}
+
+/* 조작 안내 카드: 키(굵게) + 하는 일 */
+.dialog.help-card {
+  max-width: 560px;
+}
+
+.help-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 14px 0 16px;
+  font-size: var(--text-body);
+  line-height: 1.45;
+}
+
+.help-list dt {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.help-list dd {
+  margin: 0;
+  color: #6f6656;
+}
+
+/* ── 화면 아래 종단면도 (땅 높이가 있는 가상 지도) ──
+   왼쪽 아래 버튼 줄 오른쪽부터 오른쪽 패널 왼쪽까지 (지도를 덜 가리게 낮게) */
+.profile-panel {
+  position: fixed;
+  left: 392px;
+  right: 292px;
+  bottom: 16px;
+  z-index: 1;
+  max-width: 760px;
+  padding: 8px 10px 4px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+}
+
+.profile-panel[hidden] {
+  display: none;
+}
+
+.profile-title {
+  color: #1f3a55;
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.profile-canvas {
+  display: block;
+  width: 100%;
+  height: 110px;
+}
+
+/* ── 화면 가운데 창 (파산) ── */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  /* 반투명으로 어둡게 하지 않는다 (아트 규칙: 완전히 플랫). 지도 클릭만 막는다 */
+  background: transparent;
+}
+
+.dialog-backdrop[hidden] {
+  display: none;
+}
+
+.dialog {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 380px;
+  /* 창이 화면보다 길면 (낮은 화면, 큰 글자) 창 안에서 내려 읽는다 */
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  border: 2px solid #1f3a55;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f3a55;
+}
+
+.dialog-title {
+  font-size: var(--text-title);
+  font-weight: 700;
+}
+
+.dialog-text {
+  margin: 10px 0 16px;
+  color: #6f6656;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-buttons button {
+  flex: 1;
+  padding: 8px;
+  border: 2px solid #1f3a55;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dialog-buttons .dialog-primary {
+  background: #1f3a55;
+  color: #ffffff;
+}

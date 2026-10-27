@@ -24,7 +24,7 @@ import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
-import { createSpeedControl } from './speedControl.js';
+import { createSpeedControl, togglePause } from './speedControl.js';
 import { createPanel } from './panel.js';
 import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
@@ -116,6 +116,8 @@ export function startApp(map, loadMessage) {
   }
 
   const speedControl = createSpeedControl(document.getElementById('speed'), setSpeed);
+  // 날짜 배지를 누르면 멈춤·다시 가기 (Space 키와 같다)
+  document.getElementById('badge').addEventListener('click', togglePause);
   // 튜토리얼 (처음 온 사람에게 저절로) 과 조작 안내 카드 ([?])
   const tutorial = createTutorial(document.getElementById('tutorial'));
   createHelpCard(document.getElementById('help'), document.getElementById('help-button'), {
@@ -189,7 +191,7 @@ export function startApp(map, loadMessage) {
     const bands = stationBands(stations, getState().tracks, routes, shapes);
     lastBands = { stations, bands };
 
-    renderBadge(document.getElementById('badge'), { year, month, region: getRegion().name });
+    renderBadge(document.getElementById('badge'), { year, month, region: getRegion().name, paused: speed === 0 });
     const economy = getEconomy();
     status.show({
       money,

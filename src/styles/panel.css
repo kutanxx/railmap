@@ -1,0 +1,190 @@
+/* 오른쪽 정보 패널 (역·선로) */
+
+/* ── 오른쪽 정보 패널 ── */
+/* 오른쪽 세로 줄: 역·선로 패널 위, 노선 패널 아래 */
+.side {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 40px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 290px;
+  overflow-y: auto;
+  /* 패널 둘레 땅색 띠가 잘리지 않게 */
+  padding: 2px;
+  margin: -2px;
+  pointer-events: none;
+}
+
+.panel {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  pointer-events: auto;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--navy);
+  box-shadow: var(--panel-ring);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.panel-title {
+  margin-bottom: 12px;
+  font-size: var(--text-title);
+  font-weight: 700;
+}
+
+.panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-small);
+  color: #6f6656;
+}
+
+.panel-name {
+  padding: 6px 8px;
+  border: 2px solid var(--muted);
+  border-radius: 5px;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.panel-name:focus {
+  border-color: #1f3a55;
+  outline: none;
+}
+
+.panel-coord {
+  margin: 10px 0 6px;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+/* 지우기 버튼 (역·선로·노선): 위험한 일이라 빨간 테두리와 글자 */
+.panel-delete {
+  width: 100%;
+  padding: 7px;
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--danger);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-delete:hover {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* 패널의 방향 조절 */
+.panel-field + .panel-field {
+  margin-top: 12px;
+}
+
+.panel-angle-text {
+  color: #1f3a55;
+}
+
+.panel-angle {
+  width: 100%;
+  accent-color: #1f3a55;
+}
+
+.panel-angle-presets {
+  display: flex;
+  gap: 6px;
+}
+
+.panel-angle-presets button {
+  flex: 1;
+  padding: 4px;
+  border: 2px solid var(--muted);
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-angle-presets button:hover {
+  border-color: #1f3a55;
+}
+
+/* 선로가 이어진 역은 방향을 돌리지 않으므로 조절을 숨긴다 */
+.panel-angle[hidden],
+.panel-angle-presets[hidden] {
+  display: none;
+}
+
+/* 패널의 선로 정보 (길이, 구간, 경유점) */
+.panel-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 14px;
+  font-size: var(--text-body);
+}
+
+.panel-facts dt {
+  color: #6f6656;
+}
+
+.panel-facts dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* 보이는 섹션끼리만 사이에 줄을 긋는다 (숨긴 섹션은 자리를 차지하지 않는다) */
+.panel section[hidden] {
+  display: none;
+}
+
+.panel section:not([hidden]) ~ section:not([hidden]) {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px solid #efe7d6;
+}
+
+/* 역 패널: 숫자 아래 작은 설명 */
+.panel-station-facts {
+  margin-top: 12px;
+}
+
+.panel-facts dd small {
+  display: block;
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  font-weight: 400;
+}
+
+/* 패널의 사용법 안내 (작은 글씨) */
+.panel-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+
+/* 삭제 버튼 아래: 지우면 함께 사라지는 것 */
+.panel-removal {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}

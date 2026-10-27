@@ -1,6 +1,7 @@
 // 저장과 관련된 화면: 자동 저장 켜기, 불러온 게임 알림, 왼쪽 아래 파일 버튼, 파산 창.
 import { startAutosave, exportToFile, importFromFile, resetGame } from '../game/save.js';
 import { createFileMenu } from './fileMenu.js';
+import { createPopover } from './popovers.js';
 import { createBankruptDialog } from './bankruptDialog.js';
 
 // notice: 화면 가운데 말풍선, loadMessage: 시작할 때 저장된 게임을 불러온 결과 (없으면 null)
@@ -25,6 +26,8 @@ export function bindSaveControls({ notice, loadMessage, clearWork, render }) {
     notice('새 게임을 시작해요');
   };
 
+  // [메뉴]를 누르면 위로 펼쳐지는 파일 버튼들
+  createPopover(document.getElementById('menu-button'), document.getElementById('file-menu'));
   createFileMenu(document.getElementById('file-menu'), {
     onExport: exportToFile,
     onImport: importGame,

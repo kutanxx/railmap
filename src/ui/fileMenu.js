@@ -1,5 +1,7 @@
-// 왼쪽 아래 파일 버튼: [내보내기] [불러오기] [새로 시작] [지도 바꾸기]
+// [메뉴] 펼침 안의 파일 버튼: [내보내기] [불러오기] [지도 바꾸기], 줄 아래 빨간 [새로 시작]
 // [새로 시작]은 실수로 누르지 않게 한 번 더 눌러야 실행된다 (브라우저 confirm 창 대신)
+// 항목을 누르면 할 일을 하고 펼침을 닫는다 ([새로 시작]의 첫 누름은 "한 번 더"를 묻느라 열어 둔다)
+import { closePopovers } from './popovers.js';
 
 const CONFIRM_MS = 4000; // "정말요?" 상태로 기다리는 시간
 
@@ -7,16 +9,23 @@ export function createFileMenu(element, { onExport, onImport, onReset, onChangeM
   element.innerHTML = `
     <button type="button" class="file-button file-export">내보내기</button>
     <button type="button" class="file-button file-import">불러오기</button>
-    <button type="button" class="file-button file-reset">새로 시작</button>
     <button type="button" class="file-button file-change-map">지도 바꾸기</button>
+    <hr class="popover-divider" />
+    <button type="button" class="file-button file-reset">새로 시작</button>
     <input type="file" class="file-input" accept=".json,application/json" hidden />
   `;
   const input = element.querySelector('.file-input');
   const resetButton = element.querySelector('.file-reset');
 
-  element.querySelector('.file-export').addEventListener('click', onExport);
+  element.querySelector('.file-export').addEventListener('click', () => {
+    closePopovers();
+    onExport();
+  });
   element.querySelector('.file-change-map').addEventListener('click', onChangeMap);
-  element.querySelector('.file-import').addEventListener('click', () => input.click());
+  element.querySelector('.file-import').addEventListener('click', () => {
+    closePopovers();
+    input.click();
+  });
   input.addEventListener('change', () => {
     const [file] = input.files;
     if (file) onImport(file);
@@ -32,6 +41,7 @@ export function createFileMenu(element, { onExport, onImport, onReset, onChangeM
       return;
     }
     restoreReset();
+    closePopovers();
     onReset();
   });
 

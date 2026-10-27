@@ -1,0 +1,273 @@
+/* 오른쪽 노선 패널 (새 노선, 노선 정보, 목록, 역 순서 편집, 열차 수, 혼잡도) */
+
+/* ── 노선 패널 ── */
+.route-hint {
+  margin: 0 0 8px;
+  font-size: var(--text-small);
+  color: #6f6656;
+}
+
+.route-sequence {
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.route-message {
+  margin: 6px 0 0;
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: #b0574a;
+}
+
+.route-message:empty {
+  display: none;
+}
+
+.route-draft-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.route-draft-buttons button {
+  flex: 1;
+  padding: 7px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-draft-buttons .route-finish {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.route-swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.route-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  outline: 2px solid transparent;
+  cursor: pointer;
+}
+
+/* 지금 고른 색 */
+.route-swatch.active {
+  outline-color: #1f3a55;
+}
+
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.route-empty {
+  margin: 0;
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.route-item:hover {
+  background: #efe7d6;
+}
+
+.route-item.active {
+  border-color: #1f3a55;
+}
+
+.route-item-dot {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.route-item-name {
+  flex: 1;
+}
+
+.route-item-length {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.route-detail .panel-facts {
+  margin-top: 12px;
+}
+
+/* 노선 패널의 열차 수 − n + */
+.route-trains {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1f3a55;
+  font-size: var(--text-body);
+}
+
+.route-trains button {
+  width: 30px;
+  height: 28px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-trains button:disabled {
+  border-color: #d6c9af;
+  color: #d6c9af;
+  cursor: default;
+}
+
+.route-trains-count {
+  min-width: 34px;
+  text-align: center;
+}
+
+/* ── 노선 패널: 역 순서 편집 ── */
+.route-stops {
+  margin: 0;
+  padding-left: 20px;
+  color: #1f3a55;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.route-stops li {
+  padding: 2px 0;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+/* 끌어온 역이 들어갈 자리 (그 줄의 자리를 차지한다) */
+.route-stops li.drop-target {
+  background: #efe7d6;
+}
+
+.route-stops-hint {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  font-weight: 400;
+}
+
+/* [노선 복제] 버튼은 삭제 버튼 위에 한 줄로 */
+.route-duplicate {
+  width: 100%;
+  margin: 0 0 8px;
+}
+
+.route-stops li span {
+  margin-right: 6px;
+}
+
+.route-stop-remove {
+  padding: 0 6px;
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  background: #ffffff;
+  color: #6f6656;
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.route-stop-remove:hover {
+  border-color: #1f3a55;
+  color: #1f3a55;
+}
+
+.route-insert {
+  margin-top: 6px;
+  padding: 5px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 끼워넣는 중 */
+.route-insert.active {
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+.route-edit-message:not(:empty) {
+  margin: 6px 0 0;
+}
+
+/* 노선 편집 안내는 차분한 색 (넣었어요 / 못 넣는 이유) */
+.route-edit-message {
+  color: #6f6656;
+}
+
+/* ── 노선 패널: 혼잡도 ── */
+.route-load.load-ok {
+  color: #3f7d3f;
+}
+
+.route-load.load-busy {
+  color: #c9772f;
+}
+
+.route-load.load-over {
+  color: #b0402f;
+}
+
+.route-trains-price {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 노선 목록의 "혼잡" 표시 */
+.route-item-crowded {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #b0402f;
+  color: #ffffff;
+  font-size: var(--text-small);
+}

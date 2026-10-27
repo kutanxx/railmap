@@ -1,0 +1,175 @@
+/* 지도 위에 붙는 것: 역 이름 말풍선, 말풍선 알림, 마우스 옆 안내 */
+
+/* ── 역 이름 말풍선 (흰 말풍선 + 남색 테두리 + 노란 점 + 지시선) ──
+   .station-label은 크기 0인 점이고, 그 점이 역의 위치다 */
+.station-label {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* 멀리서 볼 때 (map/stationLabels.js): 말풍선 없이 노란 점만, 또는 이용객 숫자를 뺀 짧은 말풍선 */
+.station-label-dot-only .station-label-line,
+.station-label-dot-only .station-label-bubble,
+.station-label-brief .station-label-riders {
+  display: none;
+}
+
+/* 역 위치의 노란 점 */
+.station-label-dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f2c230;
+}
+
+/* 역에서 말풍선으로 가는 지시선. 기본은 오른쪽 위이고,
+   출구나 다른 말풍선을 덮지 않게 map/stationLabels.js가 길이·방향과 말풍선 자리를 바꾼다 */
+.station-label-line {
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 26px;
+  height: 2px;
+  background: #1f3a55;
+  transform-origin: 0 50%;
+  transform: rotate(-40deg);
+}
+
+.station-label-bubble {
+  position: absolute;
+  left: 18px;
+  bottom: 14px;
+  padding: 3px 9px;
+  border: 2px solid #1f3a55;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 역 말풍선 안의 노선 번호 배지 (노선 색 동그라미 + 흰 번호) */
+.station-label-routes {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.station-label-routes:empty {
+  display: none;
+}
+
+.station-label-route {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── 마우스 옆 안내 ── */
+.cursor-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  padding: 4px 8px;
+  border: 2px solid #1f3a55;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: var(--text-body);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cursor-tip[hidden] {
+  display: none;
+}
+
+.cursor-tip-bad {
+  border-color: #b0402f;
+  color: #b0402f;
+}
+
+/* ── 지도 위 말풍선 알림 ── */
+.callout {
+  pointer-events: none;
+}
+
+.callout-bubble {
+  position: relative;
+  padding: 6px 12px;
+  border: 2px solid #1f3a55;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f3a55;
+  font-size: var(--text-body);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 말풍선 아래 꼬리 */
+.callout-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #1f3a55;
+  border-bottom: 2px solid #1f3a55;
+  background: #ffffff;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.callout-info .callout-bubble::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f2c230;
+  vertical-align: middle;
+}
+
+.callout-bad .callout-bubble,
+.callout-bad .callout-bubble::after {
+  border-color: #b0402f;
+  color: #b0402f;
+}
+
+/* 역 말풍선의 하루 이용객 (작고 흐린 글자) */
+.station-label-riders:not(:empty) {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 빚을 내서 지을 때 (주황) */
+.cursor-tip-warn {
+  border-color: #c9772f;
+  color: #c9772f;
+}
+
+/* 역 말풍선의 "환승"·"종착" (시안처럼 이름 옆 작은 글자) */
+.station-label-tag:not(:empty) {
+  margin-left: 5px;
+  color: #6f6656;
+  font-size: 12px;
+  font-weight: 400;
+}

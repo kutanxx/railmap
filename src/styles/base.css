@@ -1,0 +1,102 @@
+/* 기본: 글자 크기 단계와 색 변수, 화면 바탕, 초점 표시, 움직임 줄이기, 왼쪽 위 줄 배치와 날짜 배지 */
+
+/* 글자 크기는 네 단계만 쓴다 (그림자 없이 크기·굵기로 중요한 것을 가린다. docs: reports/레일맵 화면 UI 개선안.md)
+   지도 위 역 이름 말풍선은 역이 많을 때 붐비지 않게 따로 작은 크기를 쓴다 */
+:root {
+  --text-small: 13px; /* 단축키 숫자, 단위, 짧은 보조 글 */
+  --text-body: 15px; /* 패널 본문, 버튼 */
+  --text-strong: 17px; /* 위쪽 상태 숫자, 날짜 배지 */
+  --text-title: 20px; /* 패널·창 제목 */
+  --muted: #6f6656; /* 보조 글자 색. 흰 판 위에서도 읽기 충분히 진하다 (대비 5.7:1) */
+  --navy: #1f3a55; /* 남색: 글자, 판 테두리, 고른 것 */
+  --accent: #f2c230; /* 노랑: 지도 위 점, 고른 도구의 단축키. 늘 남색 위에서만 쓴다 */
+  --land: #efe7d6; /* 땅색: 지도 바탕, 마우스를 올린 버튼, 화면 판 둘레 띠 */
+  --divider: #d6c9af; /* 판 안의 칸막이 줄 */
+  --info-border: #cfc0a3; /* 누를 수 없는 정보 띠의 얇은 테두리 */
+  --danger: #b0402f; /* 위험한 버튼(지우기, 새로 시작), 넘침, 적자 */
+  --radius-panel: 10px; /* 화면 판 모서리 (지도 위 말풍선은 6px라서 구별된다) */
+  --radius-button: 6px; /* 판 안 버튼 모서리 */
+  /* 화면 판 바깥 땅색 띠: 흐림 없는 단색 선이라 그림자가 아니다. 선로 위에 겹쳐도 판과 붙어 보이지 않게 */
+  --panel-ring: 0 0 0 2px #efe7d6;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #efe7d6;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  /* 숫자 폭을 똑같이 맞춰서, 자금이 바뀌어도 옆 글자가 좌우로 밀리지 않게 */
+  font-variant-numeric: tabular-nums;
+}
+
+/* 키보드(Tab)로 버튼·입력 칸을 옮겨 다닐 때 지금 어디 있는지 남색 테두리로 보여준다 */
+:focus-visible {
+  outline: 3px solid #1f3a55;
+  outline-offset: 2px;
+}
+
+/* 컴퓨터에서 "움직임 줄이기"를 켠 사람에게는 화면 요소의 움직임을 끈다 (열차가 달리는 것은 게임 내용이라 그대로) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 지도는 화면 전체를 채운다 */
+#map {
+  position: fixed;
+  inset: 0;
+}
+
+/* 왼쪽 위: 첫 줄은 "언제·얼마" (날짜 배지, 배속, 자금 표시), 둘째 줄은 "무엇을 짓나" (도구 막대)
+   (화면이 좁아도 오른쪽 패널·서로와 겹치지 않게 왼쪽에 모으고, 넘치면 다음 줄로 내린다) */
+.top-left {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  max-width: calc(100vw - 290px - 48px);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 남색 배지 (날짜 · 지역). 누르면 멈춤·다시 가기 (Space 키와 같다) */
+.badge {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--text-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.badge:hover {
+  background: #2c4a68;
+}
+
+/* 멈춰 있을 때 배지 끝의 노란 "❚❚ 멈춤" */
+.badge-paused {
+  margin-left: 10px;
+  color: var(--accent);
+  font-size: var(--text-body);
+}
+
+.badge-paused:empty {
+  display: none;
+}

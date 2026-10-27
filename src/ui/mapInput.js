@@ -3,13 +3,14 @@
 import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
 import { estimatePopulation, zoomedInEnough } from '../map/population.js';
-import { getState, findStation, undo, redo, setSpeed } from '../game/state.js';
+import { getState, findStation, undo, redo } from '../game/state.js';
 import { addStation } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
 import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
 import { showCallout } from './callouts.js';
 import { TOOLS } from './toolbar.js';
+import { togglePause } from './speedControl.js';
 import { playSound } from './sounds.js';
 import { formatMoney, formatPopulation } from './format.js';
 
@@ -186,9 +187,6 @@ export function bindMapInput(ctx) {
     cancelWork();
   });
 
-  // Space로 멈췄다가 다시 갈 때 쓸 배속 (멈추기 전 배속)
-  let resumeSpeed = 1;
-
   // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
@@ -216,9 +214,7 @@ export function bindMapInput(ctx) {
     } else if (event.key === ' ') {
       // 버튼에 초점이 있어도 Space가 그 버튼을 누르지 않게 한다
       event.preventDefault();
-      const { speed } = getState();
-      if (speed > 0) resumeSpeed = speed;
-      setSpeed(speed > 0 ? 0 : resumeSpeed);
+      togglePause();
     } else if (event.key === 'Delete') {
       deleteSelected();
     } else if (event.key.toLowerCase() === 'c') {

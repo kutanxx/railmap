@@ -9,27 +9,39 @@
     <div id="map"></div>
     <div class="top-left">
       <div class="top-row">
-        <div id="badge" class="badge"></div>
+        <button id="badge" class="badge" type="button" title="눌러서 멈춤 · 다시 가기 (Space 키)"></button>
+        <div id="speed" class="speed"></div>
         <div id="status" class="status"></div>
       </div>
       <div class="top-row">
         <div id="toolbar" class="toolbar"></div>
-        <div id="speed" class="speed"></div>
-        <div id="congestion" class="congestion"></div>
-        <div id="terrain" class="congestion" hidden></div>
-        <div class="congestion sound-box">
-          <button id="sound-button" class="congestion-button" type="button" title="소리 켜고 끄기 (M 키)"></button>
-          <input id="volume-slider" class="volume-slider" type="range" min="0" max="100" step="5" aria-label="소리 크기" title="소리 크기" />
-          <button id="music-button" class="congestion-button" type="button" title="배경 음악 켜고 끄기"></button>
-        </div>
-        <button id="help-button" class="help-button" type="button" title="조작 안내">?</button>
+      </div>
+    </div>
+    <div class="bottom-left">
+      <div class="hud-group">
+        <div id="congestion" class="view-toggle"></div>
+        <div id="terrain" class="view-toggle" hidden></div>
+      </div>
+      <div class="hud-group">
+        <span class="pop-anchor">
+          <button id="menu-button" class="hud-button" type="button" aria-expanded="false" title="내보내기 · 불러오기 · 새로 시작 · 지도 바꾸기">메뉴 ▴</button>
+          <div id="file-menu" class="popover" hidden></div>
+        </span>
+        <span class="pop-anchor">
+          <button id="sound-open" class="hud-button" type="button" aria-expanded="false" title="소리 켜고 끄기 (M 키) · 크기 · 음악">소리 ▴</button>
+          <div class="popover sound-panel" hidden>
+            <button id="sound-button" class="hud-button" type="button" title="소리 켜고 끄기 (M 키)"></button>
+            <input id="volume-slider" class="volume-slider" type="range" min="0" max="100" step="5" aria-label="소리 크기" title="소리 크기" />
+            <button id="music-button" class="hud-button" type="button" title="배경 음악 켜고 끄기"></button>
+          </div>
+        </span>
+        <button id="help-button" class="hud-button" type="button" title="조작 안내">?</button>
       </div>
     </div>
     <div class="side">
       <aside id="panel" class="panel"></aside>
       <aside id="routes" class="panel"></aside>
     </div>
-    <div id="file-menu" class="file-menu"></div>
     <div id="cursor-tip" class="cursor-tip"></div>
     <div id="profile" class="profile-panel" hidden></div>
     <div id="bankrupt" class="dialog-backdrop" hidden></div>
