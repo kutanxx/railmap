@@ -37,6 +37,7 @@ import { createDrawingTools } from './drawingTools.js';
 import { createViewToggles } from './viewToggles.js';
 import { bindMapInput } from './mapInput.js';
 import { createWarnings } from './warnings.js';
+import { createNoticeLog } from './noticeLog.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -131,6 +132,10 @@ export function startApp(map, loadMessage) {
   // [혼잡도 보기]·[지형]·[소리] 버튼 (viewToggles.js)
   const toggles = createViewToggles({ map, ui, render });
   const status = createStatus(document.getElementById('status'));
+  // 위쪽 [알림]: 지난 알림 목록
+  createNoticeLog(document.getElementById('notice-button'), document.getElementById('notice-log'), map);
+  // 달이 바뀌면 정산 숫자를 자금 옆에 띄운다 (불러온 첫 화면에서는 띄우지 않는다)
+  let shownMonth = null;
   // 화면 아래 종단면도 (땅 높이가 있는 가상 지도만): 선로를 그리는 중이면 그리는 선로, 아니면 고른 선로·노선
   const profilePanel = createProfilePanel(document.getElementById('profile'));
   const showDraftProfile = (coords) => {
@@ -228,6 +233,11 @@ export function startApp(map, loadMessage) {
         monthsOverDebtLimit > 0 && !bankrupt ? BANKRUPT_GRACE_MONTHS - monthsOverDebtLimit : null,
     });
     bankruptDialog.show({ bankrupt, year, month, money });
+    const monthKey = `${year}-${month}`;
+    if (shownMonth !== null && monthKey !== shownMonth && getState().lastSettlement) {
+      status.flashSettlement(getState().lastSettlement.net);
+    }
+    shownMonth = monthKey;
     toolbar.setActive(ui.tool);
     toggles.show();
     speedControl.setActive(speed);
@@ -264,7 +274,7 @@ export function startApp(map, loadMessage) {
   }
 
   // 혼잡·빚 경고 말풍선 (warnings.js)
-  const warnings = createWarnings(map, notice);
+  const warnings = createWarnings(map);
 
   // ── 저장: 자동 저장, 내보내기·불러오기·새로 시작, 파산 창 (saveControls.js) ──
   // 불러오기·새로 시작 뒤에는 고르던 것과 그리던 것을 모두 놓는다

@@ -241,8 +241,13 @@ export const DEFAULT_STATION_POPULATION = 10000;
 export const MIN_STATION_POPULATION = 1000;
 
 // ── 알림 ──────────────────────────────
-// 지도 위 말풍선 알림이 떠 있는 시간 (실제 초)
+// 말풍선 알림이 떠 있는 시간 (실제 초). 단계마다 다르다 (ui/callouts.js)
+// 정보(개통 등)와 안 되는 이유: CALLOUT_SECONDS, 주의(노선 혼잡): CALLOUT_WARN_SECONDS,
+// 위험(빚 한도를 넘음, 파산까지 남은 달): 누를 때까지 남는다
 export const CALLOUT_SECONDS = 4;
+export const CALLOUT_WARN_SECONDS = 8;
+// 지난 알림을 몇 개까지 기억할지 (위쪽 [알림] 목록)
+export const NOTICE_LOG_SIZE = 20;
 
 // ── 소리 (ui/sounds.js, 설계 근거 docs/sound-research.md) ──
 // 효과음에 쓰는 음: C장조 5음 음계(도·레·미·솔·라). 반음으로 부딪치는 음이 없어서 소리가 겹쳐도 어울린다.

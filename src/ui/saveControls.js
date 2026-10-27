@@ -8,7 +8,7 @@ import { createBankruptDialog } from './bankruptDialog.js';
 // clearWork: 불러오기·새로 시작 뒤 고르던 것과 그리던 것을 놓는다, render: 화면 다시 그리기
 // 결과: { bankruptDialog } — render가 파산했는지에 맞춰 창을 띄우고 숨긴다
 export function bindSaveControls({ notice, loadMessage, clearWork, render }) {
-  startAutosave((problem) => notice(problem, 'bad'));
+  startAutosave((problem) => notice(problem, 'warn'));
   if (loadMessage) notice(loadMessage.text, loadMessage.tone);
 
   const importGame = (file) => {

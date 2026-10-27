@@ -146,10 +146,73 @@
   vertical-align: middle;
 }
 
+/* 단계마다 다른 모양 표시 (색을 못 봐도 구별되게): 안 되는 이유 ✕, 주의 !, 위험 ! (굵은 테두리) */
 .callout-bad .callout-bubble,
-.callout-bad .callout-bubble::after {
-  border-color: #b0402f;
-  color: #b0402f;
+.callout-bad .callout-bubble::after,
+.callout-danger .callout-bubble,
+.callout-danger .callout-bubble::after {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.callout-warn .callout-bubble,
+.callout-warn .callout-bubble::after {
+  border-color: #c9772f;
+  color: #8a4f17;
+}
+
+.callout-danger .callout-bubble {
+  border-width: 3px;
+}
+
+.callout-bad .callout-bubble::before,
+.callout-warn .callout-bubble::before,
+.callout-danger .callout-bubble::before {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: var(--text-small);
+  vertical-align: 1px;
+}
+
+.callout-bad .callout-bubble::before {
+  content: '✕';
+  background: var(--danger);
+}
+
+.callout-warn .callout-bubble::before {
+  content: '!';
+  background: #c9772f;
+}
+
+.callout-danger .callout-bubble::before {
+  content: '!';
+  background: var(--danger);
+}
+
+/* 위험 알림은 누를 때까지 남는다 */
+.callout-sticky,
+.callout-sticky .callout-bubble {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* 위쪽 자금 숫자를 가리키는 말풍선 (빚·정산): 화면에 고정, 꼬리는 위로 */
+.callout-money {
+  position: fixed;
+  z-index: 2;
+}
+
+.callout-money .callout-bubble::after {
+  left: 24px;
+  top: -7px;
+  bottom: auto;
+  transform: rotate(225deg);
 }
 
 /* 역 말풍선의 하루 이용객 (작고 흐린 글자) */

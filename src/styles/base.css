@@ -59,7 +59,7 @@ body {
   top: 16px;
   left: 16px;
   max-width: calc(100vw - 290px - 48px);
-  z-index: 1;
+  z-index: 3; /* 위쪽 [알림] 목록이 자금 옆 말풍선·오른쪽 패널 위에 펼쳐지게 */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
