@@ -11,7 +11,7 @@ const COLORS = {
   water: '#B8CBDA', // 강·물
   pier: '#8FA6BB', // 교량 기둥
   grid: '#EFE7D6', // 높이 눈금선
-  axis: '#9A8F7B', // 눈금 글자
+  axis: '#6F6656', // 눈금 글자 (흰 바탕에서 읽기 충분히 진하게)
 };
 const PAD = { left: 44, right: 12, top: 10, bottom: 20 };
 
@@ -85,7 +85,7 @@ function draw(canvas, parts, totalKm) {
   const bottom = Y(low);
 
   // 눈금: 높이(왼쪽), 거리(아래)
-  g.font = '10px sans-serif';
+  g.font = '12px sans-serif';
   g.fillStyle = COLORS.axis;
   g.textAlign = 'right';
   const yStep = high - low > 400 ? 100 : 50;
@@ -110,7 +110,7 @@ function draw(canvas, parts, totalKm) {
     g.fillRect(x0, PAD.top, x1 - x0, bottom - PAD.top);
     if (x1 - x0 > 70) {
       g.fillStyle = COLORS.tunnelText;
-      g.font = 'bold 10px sans-serif';
+      g.font = 'bold 12px sans-serif';
       g.fillText(`터널 ${(samples[run[1]].km - samples[run[0]].km).toFixed(1)}km`, (x0 + x1) / 2, PAD.top + 12);
     }
   }
