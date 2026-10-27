@@ -9,6 +9,8 @@
 //   startMoney: 시작 자금 (억)
 //   populationScale: 건물 면적으로 잰 인구에 곱하는 배율 (1 = PEOPLE_PER_BUILT_M2 그대로)
 //   trackCostScale: 선로·교량·터널 공사비와 선로 운영비에 곱하는 배율 (지방은 땅값이 싸서 1보다 작다)
+//   soundStyle: 효과음 음색 (ui/sounds.js). 'gugak' 대금 같은 국악 관악기풍, 'marimba' 마림바풍,
+//               'bell' 벨·마림바 섞음 (지도별 음색을 넣기 전 소리)
 export const REGIONS = {
   seoul: {
     name: '서울',
@@ -19,6 +21,7 @@ export const REGIONS = {
     startMoney: 600,
     populationScale: 1,
     trackCostScale: 1,
+    soundStyle: 'gugak',
   },
   sollae: {
     name: '솔내 지방',
@@ -33,6 +36,7 @@ export const REGIONS = {
     // 땅값이 싸서 선로 공사비와 선로 운영비가 서울의 절반이다.
     // 이 두 값으로 솔내–가람 첫 노선(열차 1대)이 서울 첫 노선처럼 200개월쯤에 본전이 된다
     trackCostScale: 0.5,
+    soundStyle: 'marimba',
   },
 };
 
