@@ -65,8 +65,12 @@ export const PASSAGE_WIDTH_M = 4;
 // 이 줌부터 출구가 작은 노란 점으로, EXIT_LABEL_ZOOM부터 통로와 번호 배지로 보인다
 export const EXIT_DOT_ZOOM = 15;
 export const EXIT_LABEL_ZOOM = 16;
-// 출구 이름 붙이는 방식. 지금은 'seoul'(상행 오른쪽 앞이 1번, 시계 방향)만 있다 (ui/exitNames.js)
-export const EXIT_NAMING = 'seoul';
+// 나라마다 출구 이름 붙이는 방식 (ui/exitNames.js, 근거: docs/station-exit-research.md). 지도의 나라는 regions.js의 country
+// 'seoul' 숫자 (상행 오른쪽 앞이 1번, 시계 방향), 'tokyo' 글자+숫자 (노선 묶음마다 A, B … 안에서 1, 2 …),
+// 'street' 거리 이름 (런던 "Way out"처럼 출구가 나가는 길 이름), 'none' 이름 없음 (뉴욕처럼 노란 점만)
+export const EXIT_NAMING = { kr: 'seoul', jp: 'tokyo', us: 'none', uk: 'street', fr: 'seoul' };
+// 거리 이름 출구: 출구에서 이 거리(미터) 안의 가장 가까운 이름 있는 길을 쓴다. 없으면 이름 없이 노란 점만
+export const STREET_NAME_REACH_M = 40;
 // 역 이름 말풍선은 줌에 따라 줄인다 (멀리서 보면 지도가 말풍선으로 덮이지 않게)
 // - LABEL_NAME_ZOOM보다 멀리: 환승역·종착역만 말풍선, 나머지 역은 지도의 동그라미만
 // - LABEL_NAME_ZOOM ~ LABEL_DETAIL_ZOOM: 모든 역의 이름과 노선 번호 (하루 이용객 숫자는 숨김)
@@ -314,13 +318,43 @@ export const MUSIC_MELODY_NOTES = ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5
 // (노선망이 커질수록 음악이 조금씩 풍성해진다). 멈춤 중에는 화음만 울린다
 export const MUSIC_NOTE_CHANCE = { start: 0.08, perRoute: 0.03, max: 0.28 };
 
-// ── 요금 (서울 지하철 거리 비례 요금, 2025-06-28 기준) ──
-// 기본 거리까지는 기본요금, 그 뒤로는 일정 거리마다 추가요금
-export const FARE_BASE_WON = 1550; // 기본요금 (원)
-export const FARE_BASE_KM = 10; // 기본요금으로 갈 수 있는 거리 (km)
-export const FARE_STEP_WON = 100; // 추가요금 한 번 (원)
-export const FARE_STEP_KM = 5; // 기본 거리 ~ 50km 구간: 이 거리마다 추가요금
-export const FARE_LONG_KM = 50; // 이 거리부터는 더 긴 간격으로 추가요금
-export const FARE_LONG_STEP_KM = 8; // 50km 넘는 구간: 이 거리마다 추가요금
+// ── 요금 (나라마다 매기는 방식이 다르다. 지도의 나라는 regions.js의 country) ──
+// 방식은 실제 나라를 따르고, 금액은 서울과 비슷하게 맞췄다 (어느 도시든 돈 버는 어려움이 비슷하게).
+// 승객이 흔히 타는 5~15km 여행이 1,550~1,650원쯤 되게 했다. 단위는 모두 원
+export const FARES = {
+  // 한국: 거리 비례 (서울 지하철, 2025-06-28 기준). 기본 거리까지는 기본요금, 그 뒤로는 일정 거리마다 추가요금
+  kr: {
+    type: 'distance',
+    baseWon: 1550, // 기본요금
+    baseKm: 10, // 기본요금으로 갈 수 있는 거리 (km)
+    stepWon: 100, // 추가요금 한 번
+    stepKm: 5, // 기본 거리 ~ 50km 구간: 이 거리마다 추가요금
+    longKm: 50, // 이 거리부터는 더 긴 간격으로 추가요금
+    longStepKm: 8, // 50km 넘는 구간: 이 거리마다 추가요금
+  },
+  // 일본: 거리 구간 (도쿄메트로처럼 몇 km까지 얼마). [이 거리(km)까지, 요금]
+  // 실제 IC 요금 178·209·252·293·324엔의 비율 그대로, 7~11km 구간이 서울 기본요금과 같게
+  jp: {
+    type: 'bands',
+    bands: [
+      [6, 1320],
+      [11, 1550],
+      [19, 1870],
+      [27, 2170],
+      [Infinity, 2400],
+    ],
+  },
+  // 미국: 어디까지 가든 같은 요금 (뉴욕 지하철 균일 요금 2.90달러처럼)
+  us: { type: 'flat', won: 1650 },
+  // 영국: 구역제 (런던처럼 도심에서 둥글게 구역 1, 2, 3 …). 지나는 구역 수에 따라 요금이 오른다
+  uk: {
+    type: 'zones',
+    zoneKm: 4, // 구역 하나의 폭 (지도 처음 화면 가운데에서 이 거리마다 구역이 하나씩 바깥으로)
+    baseWon: 1450, // 한 구역 안에서만 탈 때
+    stepWon: 200, // 구역을 하나 더 지날 때마다
+  },
+  // 프랑스: 어디까지 가든 같은 요금 (파리 지하철 티켓 한 장처럼)
+  fr: { type: 'flat', won: 1650 },
+};
 // 한 달을 며칠로 칠지 (하루 승객 × 요금 × 이 날수 = 월 수입)
 export const DAYS_PER_MONTH = 30;

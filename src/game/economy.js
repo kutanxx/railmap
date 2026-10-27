@@ -8,13 +8,9 @@ import {
   OPEX_PER_TRACK_KM,
   OPEX_PER_TRAIN,
   OPEX_PER_STATION,
-  FARE_BASE_WON,
-  FARE_BASE_KM,
-  FARE_STEP_WON,
-  FARE_STEP_KM,
-  FARE_LONG_KM,
-  FARE_LONG_STEP_KM,
+  FARES,
 } from '../config.js';
+import { distance } from '@turf/turf';
 import { getRegion } from './region.js';
 import { trackProfile } from './trackProfile.js';
 
@@ -46,16 +42,26 @@ export function monthlyOpex(stationCount, totalTrackKm, totalTrains) {
   );
 }
 
-// 승객 한 명의 요금 (원). 서울 지하철처럼 탄 거리에 따라 오른다
-// 예) 8km → 1,550원, 12km → 1,650원, 30km → 1,950원
-export function fareWon(km) {
-  let fare = FARE_BASE_WON;
-  if (km > FARE_BASE_KM) {
-    const middleKm = Math.min(km, FARE_LONG_KM) - FARE_BASE_KM;
-    fare += Math.ceil(middleKm / FARE_STEP_KM) * FARE_STEP_WON;
+// 승객 한 명의 요금 (원). 나라마다 매기는 방식이 다르다 (config.js의 FARES)
+// km: 탄 거리, from·to: 타고 내린 역 자리 [경도, 위도] (구역제에서 쓴다)
+// 예) 한국 8km → 1,550원, 12km → 1,650원, 30km → 1,950원 / 뉴욕·파리 어디든 1,650원
+export function fareWon(km, from, to) {
+  const fare = FARES[getRegion().country];
+  if (fare.type === 'flat') return fare.won;
+  if (fare.type === 'bands') return fare.bands.find(([upToKm]) => km <= upToKm)[1];
+  if (fare.type === 'zones') {
+    // 지도 처음 화면 가운데가 구역 1의 한가운데다
+    const zone = (coord) => 1 + Math.floor(distance(getRegion().center, coord) / fare.zoneKm);
+    const zonesCrossed = Math.abs(zone(from) - zone(to)) + 1;
+    return fare.baseWon + (zonesCrossed - 1) * fare.stepWon;
   }
-  if (km > FARE_LONG_KM) {
-    fare += Math.ceil((km - FARE_LONG_KM) / FARE_LONG_STEP_KM) * FARE_STEP_WON;
+  // 'distance': 탄 거리에 따라 오른다
+  let won = fare.baseWon;
+  if (km > fare.baseKm) {
+    won += Math.ceil((Math.min(km, fare.longKm) - fare.baseKm) / fare.stepKm) * fare.stepWon;
   }
-  return fare;
+  if (km > fare.longKm) {
+    won += Math.ceil((km - fare.longKm) / fare.longStepKm) * fare.stepWon;
+  }
+  return won;
 }

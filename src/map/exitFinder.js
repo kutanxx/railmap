@@ -3,6 +3,7 @@
 // - 역이 건물 밑이면: 통로가 건물 밑을 지나 길가까지 길어진다
 // - EXIT_SEARCH_M 안에 길가가 없으면: 건물 밑이면 "건물 연결" 출구, 빈 땅(공원 등)이면 그냥 출구
 // - 대합실 가까이 큰 사거리가 있으면: 그 대합실 출구는 양옆 대신 사거리 네 모퉁이 보도에 낸다
+// - 거리 이름으로 출구를 부르는 나라(런던)면 출구마다 가장 가까운 이름 있는 길도 찾아 둔다 (street)
 // 건물·도로는 지도 자료에서 읽는다 (mapFeatures.js: 실제 지도는 불러온 타일, 가상 지도는 GeoJSON).
 // 계산은 역을 원점으로 한 평면 좌표(미터, 동쪽 x·북쪽 y)에서 한다.
 import {
@@ -14,6 +15,7 @@ import {
   EXIT_MIN_GAP_M,
   CORNER_EXIT_REACH_M,
   CORNER_ROAD_CLASSES,
+  STREET_NAME_REACH_M,
 } from '../config.js';
 import { localProjection, inverseProjection } from './population.js';
 import { readMapFeatures } from './mapFeatures.js';
@@ -28,8 +30,8 @@ const CROSSING_MERGE_M = 25;
 const STATION_CLEARANCE_M = 4;
 
 // 지금 불러온 건물과 도로를 한 번 모아 둔다 (여러 역을 한꺼번에 찾을 때 다시 읽지 않도록)
-// 아직 지도 타일이 없으면 null
-export function readSurroundings(map) {
+// withStreets: 길 이름도 읽을지 (거리 이름 출구를 쓰는 나라만). 아직 지도 타일이 없으면 null
+export function readSurroundings(map, withStreets) {
   const buildings = readMapFeatures(map, 'building').map((feature) => {
     const { type, coordinates } = feature.geometry;
     const polygons = type === 'MultiPolygon' ? coordinates : [coordinates];
@@ -53,7 +55,17 @@ export function readSurroundings(map) {
       };
     });
   if (buildings.length === 0 && roads.length === 0) return null;
-  return { buildings, roads };
+  // 길 이름은 도로 모양과 따로 'transportation_name' 층에 있다. 한국어 이름이 있으면 그것을 쓴다
+  const streets = withStreets
+    ? readMapFeatures(map, 'transportation_name')
+        .filter((feature) => feature.properties.name && feature.geometry.type.endsWith('LineString'))
+        .map((feature) => {
+          const { type, coordinates } = feature.geometry;
+          const lines = type === 'MultiLineString' ? coordinates : [coordinates];
+          return { bbox: boundsOf(lines.flat()), lines, name: feature.properties['name:ko'] ?? feature.properties.name };
+        })
+    : null;
+  return { buildings, roads, streets };
 }
 
 // 결과: [{ coord: 출구 [경도, 위도], passage: [대합실 가운데, 출구], building: 건물 연결인지,
@@ -188,12 +200,32 @@ export function findExits(surroundings, stationCoord, parts) {
     }
   }
 
+  // 거리 이름 출구용: 역 둘레의 이름 있는 길 조각들
+  const streetSegments = [];
+  for (const street of surroundings.streets ?? []) {
+    if (!overlaps(street.bbox, area)) continue;
+    for (const line of street.lines) {
+      const points = line.map(toMeters);
+      for (let i = 1; i < points.length; i++) streetSegments.push([points[i - 1], points[i], street.name]);
+    }
+  }
+  // 출구에서 STREET_NAME_REACH_M 안의 가장 가까운 길 이름. 없으면 ''
+  const streetAt = (p) => {
+    let best = { gap: STREET_NAME_REACH_M, name: '' };
+    for (const [a, b, name] of streetSegments) {
+      const gap = segmentDistance(p, a, b);
+      if (gap < best.gap) best = { gap, name };
+    }
+    return best.name;
+  };
+
   return exits.slice(0, MAX_EXITS_PER_STATION).map(({ point, building, from, group }) => ({
     coord: toLngLat(point),
     passage: [toLngLat(from), toLngLat(point)],
     building,
     bearing: ((Math.atan2(point[0], point[1]) * 180) / Math.PI + 360) % 360,
     group,
+    street: streetAt(point),
   }));
 }
 

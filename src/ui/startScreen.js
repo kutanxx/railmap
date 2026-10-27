@@ -1,4 +1,4 @@
-// 시작 화면: 어느 지도에서 할지 고른다 (regions.js의 REGIONS).
+// 시작 화면: 어느 지도에서 할지 고른다 (regions.js의 REGIONS). 한국 도시 / 세계 도시 / 가상 지도로 묶어 보여준다.
 // 지도마다 브라우저에 저장된 게임이 있으면 "이어하기 · 2026년 5월"처럼 알려준다.
 // 지도 카드 아래 [샌드박스]로 돈 무제한(빚·파산·목표 없음) 게임을 따로 할 수 있다 (저장 칸도 따로).
 import { REGIONS } from '../regions.js';
@@ -10,14 +10,24 @@ export function chooseRegion(element) {
     <div class="start-card">
       <h1 class="start-title">레일맵</h1>
       <p class="start-lead">어느 지도에 철도를 놓을까요?</p>
-      <div class="start-choices"></div>
+      <div class="start-groups"></div>
     </div>
   `;
-  const choices = element.querySelector('.start-choices');
+  const groups = element.querySelector('.start-groups');
   element.hidden = false;
 
   return new Promise((resolve) => {
-    for (const [id, region] of Object.entries(REGIONS)) {
+    for (const { title, regions } of groupRegions()) {
+      const heading = document.createElement('h2');
+      heading.className = 'start-group-title';
+      heading.textContent = title;
+      const choices = document.createElement('div');
+      choices.className = 'start-choices';
+      groups.append(heading, choices);
+      for (const [id, region] of regions) addChoice(choices, id, region);
+    }
+
+    function addChoice(choices, id, region) {
       const choose = (sandbox) => {
         element.hidden = true;
         resolve({ id, sandbox });
@@ -26,7 +36,7 @@ export function chooseRegion(element) {
       button.type = 'button';
       button.className = 'start-choice';
       const title = document.createElement('b');
-      title.textContent = region.title;
+      title.textContent = region.name;
       const description = document.createElement('span');
       description.textContent = region.description;
       const save = document.createElement('small');
@@ -46,6 +56,16 @@ export function chooseRegion(element) {
       choices.append(card);
     }
   });
+}
+
+// 지도들을 묶음으로: [{ title, regions: [[id, region], …] }] (빈 묶음은 뺀다)
+function groupRegions() {
+  const entries = Object.entries(REGIONS);
+  return [
+    { title: '한국 도시', regions: entries.filter(([, r]) => !r.virtual && r.country === 'kr') },
+    { title: '세계 도시', regions: entries.filter(([, r]) => !r.virtual && r.country !== 'kr') },
+    { title: '가상 지도', regions: entries.filter(([, r]) => r.virtual) },
+  ].filter((group) => group.regions.length > 0);
 }
 
 function saveText(info) {

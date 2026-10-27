@@ -35,6 +35,16 @@
   font-size: var(--text-body);
 }
 
+.start-group-title {
+  margin: 18px 0 8px;
+  color: #6f6656;
+  font-size: var(--text-body);
+}
+
+.start-group-title:first-child {
+  margin-top: 0;
+}
+
 .start-choices {
   /* 지도가 여럿이라 넓은 화면에서는 두 줄로, 좁은 화면에서는 한 줄로 */
   display: grid;

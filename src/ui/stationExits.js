@@ -5,7 +5,7 @@
 import { EXIT_DOT_ZOOM } from '../config.js';
 import { readSurroundings, findExits } from '../map/exitFinder.js';
 import { updateExits } from '../map/exitLayers.js';
-import { nameExits } from './exitNames.js';
+import { nameExits, usesStreetNames } from './exitNames.js';
 
 export function createStationExits(map) {
   const remembered = new Map(); // 역 id → { key: 역 모양, exits }
@@ -26,7 +26,7 @@ export function createStationExits(map) {
       if (entry?.key !== key) {
         remembered.delete(station.id);
         if (!ready || !bounds.contains(station.coord)) continue;
-        surroundings ??= readSurroundings(map);
+        surroundings ??= readSurroundings(map, usesStreetNames());
         if (!surroundings) continue; // 지도 타일을 아직 불러오는 중
         const found = findExits(surroundings, station.coord, band.parts);
         const names = nameExits(found, band.headings);

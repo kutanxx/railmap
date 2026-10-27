@@ -1,6 +1,6 @@
 // 승객 수요와 수입 계산 (중력 모델).
 // 두 역 사이 하루 승객 = RIDERS_FACTOR × (인구 A ÷ 1000) × (인구 B ÷ 1000) ÷ 소요 시간^DEMAND_TIME_POWER
-// 월 수입 = 하루 승객 × 거리 요금(fareWon) × 한 달 날수
+// 월 수입 = 하루 승객 × 요금(fareWon, 나라마다 방식이 다르다) × 한 달 날수
 // 소요 시간(분) = 처음 타는 열차 기다리는 시간 + 타고 가는 시간 (+ 갈아타기)
 // 타고 가는 시간은 열차가 실제로 달리는 모습(가속·감속·꺾이는 곳 감속, running.js)으로 잰다
 // 열차가 많을수록 기다리는 시간이 줄어서 수요가 늘어난다. 열차가 0대인 노선은 승객을 나르지 않는다.
@@ -115,10 +115,12 @@ export function updateEconomy() {
   const routeLost = zeros(routes);
   const routeKm = zeros(routes); // 노선별 (승객 × 그 노선에서 탄 거리) 합. 평균 거리를 구할 때 쓴다
   const stationRiders = zeros(stations);
+  const coordOf = new Map(stations.map((station) => [station.id, station.coord])); // 구역제 요금에 쓴다
   for (const { origin, destination, riders: wanted, km, routeKm: kmByRoute, share, routeCount } of journeys) {
     const worstLoad = Math.max(1, ...[...kmByRoute.keys()].map((id) => routeLoad.get(id)));
     const riders = wanted / worstLoad;
-    const monthly = (riders * fareWon(km) * DAYS_PER_MONTH) / WON_PER_EOK;
+    const fare = fareWon(km, coordOf.get(origin), coordOf.get(destination));
+    const monthly = (riders * fare * DAYS_PER_MONTH) / WON_PER_EOK;
     revenue += monthly;
     dailyRiders += riders;
     // 두 역 모두 이 승객들이 타고 내린다

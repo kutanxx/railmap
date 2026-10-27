@@ -1,4 +1,5 @@
-// 역 출구를 지도 레이어로 그린다: 대합실에서 길가로 나가는 통로, 노란 출구 배지(번호).
+// 역 출구를 지도 레이어로 그린다: 대합실에서 길가로 나가는 통로, 노란 출구 배지(번호·이름).
+// 이름이 없는 출구(뉴욕식)는 가까이서도 노란 점만 그린다.
 // 화면은 받은 출구를 그리기만 한다. 출구 자리는 map/exitFinder.js, 이름은 ui/exitNames.js가 정한다.
 import { PASSAGE_WIDTH_M, EXIT_DOT_ZOOM, EXIT_LABEL_ZOOM } from '../config.js';
 import { metersWide, outlinePx } from './stationLayers.js';
@@ -37,7 +38,13 @@ export function addPassageLayers(map) {
 
 // 출구 배지는 열차보다 나중에 추가해서 맨 위에 보이게 한다
 export function addExitLayers(map) {
-  map.addImage(BADGE_IMAGE, drawBadge(), { pixelRatio: 2 });
+  // 배지 그림은 글자 길이에 맞춰 늘어난다 ("1"은 네모, "A12"·"Strand"는 알약). 모서리는 늘리지 않는다
+  map.addImage(BADGE_IMAGE, drawBadge(), {
+    pixelRatio: 2,
+    stretchX: [[8, 28]],
+    stretchY: [[8, 28]],
+    content: [8, 8, 28, 28],
+  });
   map.addSource(EXIT_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   // 중간 확대: 작은 노란 점
   map.addLayer({
@@ -53,19 +60,37 @@ export function addExitLayers(map) {
       'circle-stroke-width': 1.2,
     },
   });
-  // 가까이: 노란 네모 배지 + 번호
+  // 가까이, 이름 없는 출구: 조금 큰 노란 점
+  map.addLayer({
+    id: 'exit-dots-nameless',
+    type: 'circle',
+    source: EXIT_SOURCE,
+    minzoom: EXIT_LABEL_ZOOM,
+    filter: ['==', ['get', 'name'], ''],
+    paint: {
+      'circle-radius': 5,
+      'circle-color': COLORS.badge,
+      'circle-stroke-color': COLORS.border,
+      'circle-stroke-width': 1.5,
+    },
+  });
+  // 가까이: 노란 배지 + 번호·이름
   const always = { 'icon-allow-overlap': true, 'icon-ignore-placement': true };
   map.addLayer({
     id: 'exit-badges',
     type: 'symbol',
     source: EXIT_SOURCE,
     minzoom: EXIT_LABEL_ZOOM,
+    filter: ['!=', ['get', 'name'], ''],
     layout: {
       ...always,
       'icon-image': BADGE_IMAGE,
+      'icon-text-fit': 'both',
+      'icon-text-fit-padding': [3, 5, 3, 5],
       'text-field': ['get', 'name'],
       'text-font': ['Noto Sans Bold'],
       'text-size': 11,
+      'text-max-width': 30, // 긴 길 이름도 한 줄로 ("Northumberland Street")
       'text-allow-overlap': true,
       'text-ignore-placement': true,
     },
