@@ -1,6 +1,8 @@
 /* 화면 모양. 역할별로 나눈 파일을 이 순서로 불러온다 (뒤 파일이 앞 파일의 같은 규칙을 덮는다) */
 @import './styles/base.css';
 @import './styles/hud.css';
+@import './styles/hud-bottom.css';
+@import './styles/hud-lists.css';
 @import './styles/panel.css';
 @import './styles/routes.css';
 @import './styles/map.css';

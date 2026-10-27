@@ -1,0 +1,138 @@
+/* 화면 가장자리 조작 (이어서): 왼쪽 아래 한 줄, 펼침 판(메뉴·소리), 혼잡도 설명. 공통 모양 규칙은 hud.css 맨 위 */
+
+/* ── 왼쪽 아래 한 줄: [혼잡도][지형] 묶음 + [메뉴][소리][?] 묶음 ──
+   종단면도(왼쪽 470px부터)와 겹치지 않게 너비 450px 안에 둔다 ([지형]·[관제실]이 있는 가상 지도 기준) */
+.bottom-left {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* 묶음은 펼침 판과 혼잡도 설명의 기준 자리가 된다 */
+.hud-group {
+  position: relative;
+}
+
+/* 보기 버튼 자리 ([지형]은 땅 높이가 있는 지도에서만) */
+.view-toggle {
+  display: flex;
+}
+
+.view-toggle[hidden] {
+  display: none;
+}
+
+/* ── 펼침 판: 자기 버튼 바로 위 12px에 열린다 (꼬리 없음, 연 버튼이 남색으로 채워져 이어진다) ── */
+.pop-anchor {
+  position: relative;
+  display: flex;
+}
+
+.popover {
+  position: absolute;
+  left: -6px;
+  bottom: calc(100% + 12px);
+  z-index: 3;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.popover[hidden] {
+  display: none;
+}
+
+/* 메뉴 항목은 글자를 왼쪽에 맞춘다 */
+.file-button {
+  text-align: left;
+}
+
+/* 메뉴 맨 아래 [새로 시작]은 줄로 떼어 빨갛게 (실수로 누르지 않게) */
+.popover-divider {
+  width: 100%;
+  margin: 3px 0;
+  border: none;
+  border-top: 1px solid var(--divider);
+}
+
+.file-reset {
+  color: var(--danger);
+}
+
+/* [새로 시작]을 한 번 눌러 "정말요?"를 묻는 중 */
+.file-button.confirm {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+/* 소리 펼침: [소리 켬] · 음량 막대 · [음악 켬] */
+.sound-panel {
+  gap: 8px;
+  padding: 8px;
+}
+
+.volume-slider {
+  width: 150px;
+  accent-color: var(--navy);
+}
+
+.volume-slider:disabled {
+  opacity: 1;
+  accent-color: var(--divider);
+}
+
+/* ── 혼잡도 설명: [혼잡도] 위에 뜨는 조용한 정보 띠. 켜 둔 동안 계속 보인다 ──
+   세로로 쌓아 좁게 둔다 (옆 [메뉴]·[소리] 펼침과 겹치지 않게) */
+.congestion-legend {
+  position: absolute;
+  left: -2px;
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 6px 10px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+.congestion-legend[hidden] {
+  display: none;
+}
+
+/* 혼잡도 설명의 막대: 지도의 선로처럼 여유는 가늘게, 넘침은 굵게 (색을 못 봐도 구별되게) */
+.congestion-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.congestion-legend i {
+  width: 16px;
+  border-radius: 2px;
+}
+
+.congestion-legend .load-ok {
+  height: 3px;
+}
+
+.congestion-legend .load-busy {
+  height: 6px;
+}
+
+.congestion-legend .load-over {
+  height: 10px;
+}
+
+/* 넘친 구간 수 */
+.congestion-over-count {
+  margin-top: 2px;
+  color: var(--navy);
+}

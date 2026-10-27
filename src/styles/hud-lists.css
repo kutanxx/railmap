@@ -1,0 +1,148 @@
+/* 화면 가장자리 조작 (이어서): 위쪽 [알림]·[목표] 목록, 매달 정산 숫자. 공통 모양 규칙은 hud.css 맨 위 */
+
+/* ── 위쪽 [알림 n]: 아래로 펼치는 지난 알림 목록 ── */
+.popover-down {
+  top: calc(100% + 12px);
+  right: -6px;
+  bottom: auto;
+  left: auto;
+}
+
+/* 아직 보지 않은 알림이 있으면 글자를 남색 칸으로 (숫자와 함께 바뀐다) */
+.hud-button.has-unread {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.notice-log {
+  width: 280px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notice-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border: none;
+  border-left: 4px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notice-item:disabled {
+  color: var(--navy);
+  cursor: default;
+}
+
+.notice-item:not(:disabled):hover {
+  background: var(--land);
+}
+
+.notice-item small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.notice-warn {
+  border-left-color: #c9772f;
+}
+
+.notice-danger {
+  border-left-color: var(--danger);
+}
+
+.notice-empty {
+  margin: 6px 8px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 매달 정산 때 자금 숫자 바로 아래에 잠깐 떠오르는 그 달 수지 (움직임 줄이기 설정이면 바로 나타난다)
+   자리를 차지하지 않게 띄워서, 위쪽 줄이 매달 밀리지 않는다 */
+.status-flash {
+  position: absolute;
+  top: calc(100% + 4px);
+  padding: 2px 8px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  white-space: nowrap;
+  font-size: var(--text-body);
+  font-weight: 700;
+  animation: status-flash-in 300ms ease-out;
+}
+
+.status-flash.positive {
+  color: #3f7d3f;
+}
+
+.status-flash.negative {
+  color: var(--danger);
+}
+
+@keyframes status-flash-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── 위쪽 [목표 n/10]: 아래로 펼치는 게임 목표 목록 ── */
+.hud-group[hidden],
+.pop-anchor[hidden] {
+  display: none;
+}
+
+.goals-list {
+  width: 260px;
+  gap: 0;
+}
+
+.goal-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.goal-item + .goal-item {
+  border-top: 1px solid var(--divider);
+}
+
+.goal-mark {
+  flex: none;
+  width: 16px;
+  color: #3f7d3f;
+  font-weight: 700;
+}
+
+.goal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-weight: 700;
+}
+
+.goal-text small {
+  font-weight: 400;
+}
+
+/* 다음에 이룰 목표: 남색으로 진하게 */
+.goal-next {
+  color: var(--navy);
+  font-size: var(--text-body);
+}
