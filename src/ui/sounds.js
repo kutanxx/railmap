@@ -1,5 +1,5 @@
 // 효과음: 소리 파일 없이 Web Audio로 만든다. 설계 근거는 docs/sound-research.md.
-// - 음색은 지도마다 다르다 (config.js REGIONS의 soundStyle, instruments.js의 PALETTES):
+// - 음색은 지도마다 다르다 (regions.js REGIONS의 soundStyle, instruments.js의 PALETTES):
 //   서울은 대금 같은 국악 관악기풍, 솔내 지방은 마림바(나무 건반)풍, 'bell'은 벨·마림바 섞음
 // - 노선 개통은 레일맵만의 네 음 차임, 새 노선의 첫 열차가 떠날 때는 멀리서 들리는 듯한 짧은 경적 (경적은 지도와 상관없이 같다)
 //   차임은 처음부터 새로 만든 음 순서다. 실제 역 멜로디(환승 음악, 발차 멜로디 등)의 음 순서는 옮기지 않는다

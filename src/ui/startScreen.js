@@ -1,7 +1,7 @@
-// 시작 화면: 어느 지도에서 할지 고른다 (config.js의 REGIONS).
+// 시작 화면: 어느 지도에서 할지 고른다 (regions.js의 REGIONS).
 // 지도마다 브라우저에 저장된 게임이 있으면 "이어하기 · 2026년 5월"처럼 알려준다.
 // 지도 카드 아래 [샌드박스]로 돈 무제한(빚·파산·목표 없음) 게임을 따로 할 수 있다 (저장 칸도 따로).
-import { REGIONS } from '../config.js';
+import { REGIONS } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
 
 // element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지 }로 끝나는 Promise를 돌려준다

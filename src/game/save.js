@@ -3,7 +3,8 @@
 // - 내보내기: 저장 내용을 JSON 파일로 받는다
 // - 불러오기: JSON 파일을 읽어 그 상태로 바꾼다
 // 지도(지역)마다 저장 칸이 따로 있고, 저장 파일에도 어느 지도인지 적어 둔다
-import { START_YEAR, START_MONTH, REGIONS } from '../config.js';
+import { START_YEAR, START_MONTH } from '../config.js';
+import { REGIONS } from '../regions.js';
 import { getRegion, isSandbox } from './region.js';
 import {
   getState,
