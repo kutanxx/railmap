@@ -1,4 +1,4 @@
-// 위쪽 켜고 끄는 버튼 세 개: [혼잡도 보기] (C 키), [지형] (T 키, 땅 높이가 있는 가상 지도만), [소리] (M 키).
+// 위쪽 켜고 끄는 버튼 세 개: [혼잡도 보기] (C 키), [지형] (T 키, 땅 높이가 있는 가상 지도만), [소리] (M 키)와 음량 막대.
 // 혼잡도·지형은 화면 상태(ui.congestion, ui.terrain)를 바꾸고 다시 그린다. 소리는 sounds.js가 스스로 기억한다.
 import { hasTerrain } from '../game/terrain.js';
 import { setContoursVisible } from '../map/contours.js';
@@ -26,7 +26,10 @@ export function createViewToggles({ map, ui, render }) {
   terrainElement.hidden = !hasTerrain();
   const terrain = createTerrainToggle(terrainElement, toggleTerrain);
 
-  const sound = createSoundToggle(document.getElementById('sound-button'));
+  const sound = createSoundToggle(
+    document.getElementById('sound-button'),
+    document.getElementById('volume-slider'),
+  );
 
   return {
     toggleCongestion,

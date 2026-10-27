@@ -17,7 +17,10 @@
         <div id="speed" class="speed"></div>
         <div id="congestion" class="congestion"></div>
         <div id="terrain" class="congestion" hidden></div>
-        <button id="sound-button" class="help-button sound-button" type="button" title="소리 켜고 끄기 (M 키)"></button>
+        <div class="congestion sound-box">
+          <button id="sound-button" class="congestion-button" type="button" title="소리 켜고 끄기 (M 키)"></button>
+          <input id="volume-slider" class="volume-slider" type="range" min="0" max="100" step="5" aria-label="소리 크기" title="소리 크기" />
+        </div>
         <button id="help-button" class="help-button" type="button" title="조작 안내">?</button>
       </div>
     </div>

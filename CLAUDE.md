@@ -78,7 +78,7 @@ src/
     helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
     startScreen.js    시작 화면 (지도 고르기, 지도별 저장 날짜)
     tutorial.js       처음 온 사람 튜토리얼 (역 → 선로 → 노선 → 열차 출발)
-    sounds.js         효과음 (Web Audio)과 [소리] 버튼
+    sounds.js         효과음 (Web Audio, 벨·마림바, 5음 음계), [소리] 버튼과 음량 막대
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기
     trackEditor.js    선로 경유점 끌기·지우기

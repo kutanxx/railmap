@@ -231,10 +231,34 @@ export const MIN_STATION_POPULATION = 1000;
 // 지도 위 말풍선 알림이 떠 있는 시간 (실제 초)
 export const CALLOUT_SECONDS = 4;
 
-// ── 소리 ──────────────────────────────
-// 효과음 크기 (0 ~ 1)
-export const SOUND_VOLUME = 0.15;
-// 열차가 역에 서는 소리는 열차가 많아도 이만큼(실제 초)에 한 번만 낸다
+// ── 소리 (ui/sounds.js, 설계 근거 docs/sound-research.md) ──
+// 효과음에 쓰는 음: C장조 5음 음계(도·레·미·솔·라). 반음으로 부딪치는 음이 없어서 소리가 겹쳐도 어울린다.
+// 새 소리를 만들 때도 이 음들만 쓴다 (Hz)
+export const SOUND_NOTES = {
+  C5: 523.25, // 도
+  D5: 587.33, // 레
+  E5: 659.25, // 미
+  G5: 783.99, // 솔
+  A5: 880.0, // 라
+};
+// 소리마다 크기 (dB, 노선 개통을 0으로). −6이면 대략 절반. 자주 나는 소리일수록 작게
+export const SOUND_LEVELS = {
+  open: 0, // 노선 개통 (아주 드묾)
+  track: -4, // 선로 완성
+  station: -6, // 역 놓기
+  arrive: -14, // 열차 도착 (계속 남)
+};
+// 가장 큰 소리(노선 개통)의 크기 (0~1). 음량 막대를 끝까지 올렸을 때 기준
+export const SOUND_PEAK = 0.3;
+// 음량 막대 처음 값 (0~1)
+export const DEFAULT_SOUND_VOLUME = 0.8;
+// 매번 크기와 길이를 이만큼(±) 무작위로 바꿔서 똑같이 반복되지 않게 한다 (0.05 = ±5%)
+export const SOUND_VARIATION = 0.05;
+// 맨 끝 압축기: 소리가 겹쳐 갑자기 커질 때만 부드럽게 눌러 준다 (브라우저 기본값보다 약하게)
+// threshold 이 크기(dB)를 넘으면 누르기 시작, ratio 넘친 만큼을 이 비율로 줄임, knee 부드럽게 시작하는 폭(dB),
+// attack·release 누르기 시작·풀리는 데 걸리는 초
+export const SOUND_COMPRESSOR = { threshold: -18, knee: 12, ratio: 4, attack: 0.005, release: 0.2 };
+// 열차가 역에 서는 소리는 열차가 많아도 이만큼(실제 초)에 한 번만 낸다 (3배속이어도 같다)
 export const ARRIVAL_SOUND_GAP_SECONDS = 1.5;
 
 // ── 요금 (서울 지하철 거리 비례 요금, 2025-06-28 기준) ──

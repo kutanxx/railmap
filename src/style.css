@@ -488,16 +488,16 @@ body {
   background: #efe7d6;
 }
 
-/* [소리] 버튼: 글자가 들어가서 조금 넓게. 꺼져 있으면 흐리게 */
-.sound-button {
-  width: auto;
-  padding: 0 10px;
-  font-size: 13px;
-  color: #9a8f7b;
+/* [소리] 버튼 옆 음량 막대 */
+.volume-slider {
+  width: 80px;
+  margin-right: 6px;
+  accent-color: #1f3a55;
 }
 
-.sound-button.active {
-  color: #1f3a55;
+.volume-slider:disabled {
+  opacity: 1;
+  accent-color: #d6c9af;
 }
 
 /* [혼잡도 보기] 버튼과 색 설명 (배속 버튼 옆) */
