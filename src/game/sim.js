@@ -7,7 +7,7 @@ import { distance } from '@turf/turf';
 import { getState, routeCoords, routeTracks, trackLengthKm, settleMonth } from './state.js';
 import { getEconomy } from './demand.js';
 import { buildRun } from './running.js';
-import { STATION_DWELL_SECONDS, TIME_SCALE, SECONDS_PER_MONTH } from '../config.js';
+import { STATION_DWELL_SECONDS, TIME_SCALE, SECONDS_PER_MONTH, TRAIN_SPEED_KMH } from '../config.js';
 const EPSILON = 1e-6; // 아주 작은 거리(km). "역에 딱 서 있음"을 판단할 때 쓴다
 // 배차 간격을 이 비율만큼만 지나도 출발한다 (열차가 한 대일 때 계산 오차로 괜히 기다리지 않게)
 const HOLD_TOLERANCE = 0.95;
@@ -92,6 +92,25 @@ export function trainFeatures(lengthKm) {
     });
   }
   return features;
+}
+
+// 열차마다 지금 자리와 빠르기 (효과음용: 레일 덜컹 소리, ui/railClack.js)
+// 결과: [{ coord: [경도, 위도], speedRatio: 최고 속도 대비 0~1 (서 있으면 0) }]
+export function trainMotion() {
+  const cruise = TRAIN_SPEED_KMH / 3.6; // m/s
+  return getState().trains.map((train) => {
+    const path = paths.get(train.routeId);
+    let speedRatio = 0;
+    if (train.leg !== null && train.dwell <= 0) {
+      // 앞뒤 0.5초(게임 시간) 동안 간 거리로 빠르기를 잰다
+      const run = path.runs[train.leg];
+      const time = train.direction > 0 ? train.legTime : run.seconds - train.legTime;
+      const from = Math.max(0, time - 0.5);
+      const to = Math.min(run.seconds, time + 0.5);
+      if (to > from) speedRatio = ((run.positionAt(to) - run.positionAt(from)) * 1000) / (to - from) / cruise;
+    }
+    return { coord: pointAt(path, train.distance), speedRatio: Math.min(1, speedRatio) };
+  });
 }
 
 // ── 안쪽에서만 쓰는 계산 ──────────────────

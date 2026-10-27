@@ -1,59 +1,32 @@
 // 효과음: 소리 파일 없이 Web Audio로 만든다. 설계 근거는 docs/sound-research.md.
-// - 음색은 지도마다 다르다 (config.js REGIONS의 soundStyle, PALETTES):
+// - 음색은 지도마다 다르다 (config.js REGIONS의 soundStyle, instruments.js의 PALETTES):
 //   서울은 대금 같은 국악 관악기풍, 솔내 지방은 마림바(나무 건반)풍, 'bell'은 벨·마림바 섞음
 // - 노선 개통은 레일맵만의 네 음 차임, 새 노선의 첫 열차가 떠날 때는 멀리서 들리는 듯한 짧은 경적 (경적은 지도와 상관없이 같다)
 //   차임은 처음부터 새로 만든 음 순서다. 실제 역 멜로디(환승 음악, 발차 멜로디 등)의 음 순서는 옮기지 않는다
-// - 큰 소리(개통, 경적)가 나는 동안은 열차 소리를 잠깐 줄인다 (덕킹)
+// - 큰 소리(개통, 경적)가 나는 동안은 열차 소리와 배경 음악을 잠깐 줄인다 (덕킹)
 // - 열차 도착음은 노선마다 다른 음이다 (ARRIVAL_NOTES). 짧은 동안 선 열차들은 묶어서 최대 몇 음만 낸다
 //   가까이 볼 때(ARRIVAL_SOUND_MIN_ZOOM 이상) 화면 안 열차만 소리를 낸다 (ui/animation.js)
+// - 아주 가까이 보면 열차 한 대의 레일 덜컹 소리 (ui/railClack.js가 고른다)
 // - 모든 음은 config.js의 SOUND_NOTES(도·레·미·솔·라 5음 음계) 안에서만 고른다. 겹쳐도 부딪치지 않게
-// - 소리 길: 소리마다 크기(SOUND_LEVELS) → 사건·열차 묶음 → 전체 음량(음량 막대) → 압축기 → 스피커
-//   (묶음은 나중에 큰 소리가 날 때 열차 소리를 잠깐 줄이는 데 쓴다)
+// - 소리 길은 soundEngine.js (묶음 → 울림 → 전체 음량 → 압축기), 악기는 instruments.js, 배경 음악은 music.js
 // - 매번 크기와 길이를 조금씩 바꿔서 똑같이 반복되지 않게 한다
 // - 소리 끄기와 음량은 브라우저에 기억한다
-// 브라우저는 사용자가 한 번 누르기 전에는 소리를 막으므로, 처음 소리를 낼 때 오디오를 만든다.
 import {
   SOUND_NOTES,
   SOUND_LEVELS,
   SOUND_PEAK,
   DEFAULT_SOUND_VOLUME,
   SOUND_VARIATION,
-  SOUND_COMPRESSOR,
   ARRIVAL_SOUND_GAP_SECONDS,
   ARRIVAL_NOTES,
   MAX_ARRIVAL_NOTES,
   ARRIVAL_NOTE_SPACING,
-  DUCK_DB,
 } from '../config.js';
-import { getRegion } from '../game/region.js';
+import { audio, setMasterGain, duck, fromDb } from './soundEngine.js';
+import { paletteFor, play, strikeClack } from './instruments.js';
 
 const MUTED_KEY = 'railmap-muted';
 const VOLUME_KEY = 'railmap-volume';
-// 이보다 높은 배음은 빼서 날카롭지 않게 한다 (Hz)
-const MAX_PARTIAL_HZ = 4000;
-
-// 악기: 배음마다 [기본 음의 몇 배, 크기, 사라지는 데 걸리는 초]
-const BELL = [
-  [1, 1.0, 1.2],
-  [1.003, 0.3, 1.2], // 아주 살짝 어긋난 같은 음: "웅~웅" 하는 벨의 떨림
-  [2, 0.35, 0.8],
-  [2.76, 0.2, 0.5], // 정수배가 아닌 배음이 금속 벨 느낌을 낸다
-  [4.07, 0.08, 0.25],
-];
-const MARIMBA = [
-  [1, 1.0, 0.4],
-  [4, 0.25, 0.12], // 마림바 건반은 4배·10배 배음이 나게 깎는다
-  [9.5, 0.08, 0.05],
-];
-
-// 지도 음색마다 소리별 [악기, 크기 보정(dB)]. 악기는 배음 목록(BELL, MARIMBA)이거나 'fm'(FM 벨), 'flute'(국악 관악기풍)
-// 악기마다 같은 크기로 쳐도 크게 들리는 정도가 달라서, 녹음해 재 보고 SOUND_LEVELS 순서대로 들리게 맞춘 값이다
-// (길게 이어지는 관악기는 같은 크기여도 더 크게 들려서 많이 줄였다)
-const PALETTES = {
-  bell: { station: [BELL, 0], track: [BELL, 0], open: ['fm', 0], arrive: [MARIMBA, 0] },
-  gugak: { station: ['flute', -8.5], track: ['flute', -4.5], open: ['flute', 0], arrive: ['flute', -10.5] },
-  marimba: { station: [MARIMBA, 2], track: [MARIMBA, 1], open: [MARIMBA, 7], arrive: [MARIMBA, 0] },
-};
 
 // 소리마다: 악기(지도 음색을 따르지 않는 소리만), 묶음, 음 이름들과 시작 시각(초), 길이 배율
 const SOUNDS = {
@@ -66,9 +39,6 @@ const SOUNDS = {
   arrive: { group: 'train', notes: [['A5', 0]], length: 0.7 }, // 열차 도착 (음은 노선마다 바뀐다)
 };
 
-let context = null;
-let master = null; // 전체 음량
-const groups = {}; // 묶음별 음량 (event, train)
 let muted = localStorage.getItem(MUTED_KEY) === '1';
 let volume = readVolume();
 let lastArrival = 0;
@@ -84,173 +54,15 @@ function readVolume() {
 
 // 막대 값(0~1)을 실제 크기로: 귀는 작은 소리 쪽 차이를 더 크게 느끼므로 제곱해서 쓴다
 const masterGain = () => (muted ? 0 : volume * volume);
+setMasterGain(masterGain());
 
-// 오디오를 처음 쓸 때 소리 길을 만든다
-function setup() {
-  context = new AudioContext();
-  const compressor = context.createDynamicsCompressor();
-  for (const [key, value] of Object.entries(SOUND_COMPRESSOR)) compressor[key].value = value;
-  compressor.connect(context.destination);
-  master = context.createGain();
-  master.gain.value = masterGain();
-  master.connect(compressor);
-  for (const name of ['event', 'train']) {
-    groups[name] = context.createGain();
-    groups[name].connect(master);
-  }
-}
-
-function applyVolume() {
-  if (master) master.gain.setTargetAtTime(masterGain(), context.currentTime, 0.02);
-}
-
-// dB를 크기 배율로 (−6dB ≈ 절반)
-const fromDb = (db) => 10 ** (db / 20);
 // 1 ± SOUND_VARIATION 사이의 무작위 배율
 const vary = () => 1 + (Math.random() * 2 - 1) * SOUND_VARIATION;
-
-// 악기로 음 하나를 친다 (at: 오디오 시계 기준 시작 시각)
-function strike(instrument, frequency, at, peak, lengthScale, output) {
-  const parts = instrument.filter(([ratio]) => frequency * ratio <= MAX_PARTIAL_HZ);
-  const total = parts.reduce((sum, [, amount]) => sum + amount, 0);
-  for (const [ratio, amount, seconds] of parts) {
-    const duration = seconds * lengthScale;
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = frequency * ratio;
-    // 아주 빠르게 커졌다가(툭 끊기는 소리가 나지 않게) 서서히 사라진다. 0까지는 지수로 줄일 수 없어 0.0001까지
-    gain.gain.setValueAtTime(0, at);
-    gain.gain.linearRampToValueAtTime((peak * amount) / total, at + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-    oscillator.connect(gain).connect(output);
-    oscillator.start(at);
-    oscillator.stop(at + duration + 0.05);
-  }
-}
-
-// FM 벨: 음 하나(carrier)를 1.4배 높이 음(modulator)으로 빠르게 흔들면 벨처럼 어긋난 배음이 생긴다.
-// 흔드는 세기를 점점 줄여서, 처음엔 쨍하다가 맑은 음으로 사라진다. 너무 높은 소리는 필터로 깎는다
-function strikeFm(frequency, at, peak, lengthScale, output) {
-  const duration = 1.8 * lengthScale;
-  const carrier = context.createOscillator();
-  const modulator = context.createOscillator();
-  const depth = context.createGain();
-  const filter = context.createBiquadFilter();
-  const gain = context.createGain();
-  carrier.frequency.value = frequency;
-  modulator.frequency.value = frequency * 1.4;
-  depth.gain.setValueAtTime(frequency * 1.4 * 3.5, at);
-  depth.gain.exponentialRampToValueAtTime(frequency * 0.01, at + duration * 0.6);
-  filter.type = 'lowpass';
-  filter.frequency.value = MAX_PARTIAL_HZ;
-  gain.gain.setValueAtTime(0, at);
-  gain.gain.linearRampToValueAtTime(peak, at + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-  modulator.connect(depth).connect(carrier.frequency);
-  carrier.connect(filter).connect(gain).connect(output);
-  for (const oscillator of [carrier, modulator]) {
-    oscillator.start(at);
-    oscillator.stop(at + duration + 0.05);
-  }
-}
-
-// 숨소리용 흰 잡음 1초 (한 번 만들어 두고 함께 쓴다)
-let noiseBuffer = null;
-function breathNoise() {
-  if (!noiseBuffer) {
-    noiseBuffer = context.createBuffer(1, context.sampleRate, context.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  }
-  return noiseBuffer;
-}
-
-// 국악 관악기풍 (대금·소금 느낌): 맑은 기본 음에 약한 배음, 처음에 "후" 하는 숨소리,
-// 조금 지나서 살짝 떨리는 소리(바이브레이션). 부드럽게 커졌다가 서서히 사라진다
-function strikeFlute(frequency, at, peak, lengthScale, output) {
-  const duration = 0.8 * lengthScale;
-  const gain = context.createGain();
-  gain.gain.setValueAtTime(0, at);
-  gain.gain.linearRampToValueAtTime(peak, at + 0.04);
-  gain.gain.setValueAtTime(peak, at + duration * 0.35);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
-  gain.connect(output);
-  // 떨림: 초당 5.5번, 음 높이의 0.4%만큼. 0.15초 뒤부터 서서히
-  const vibrato = context.createOscillator();
-  const vibratoDepth = context.createGain();
-  vibrato.frequency.value = 5.5;
-  vibratoDepth.gain.setValueAtTime(0, at);
-  vibratoDepth.gain.linearRampToValueAtTime(frequency * 0.004, at + 0.15 + duration * 0.2);
-  vibrato.connect(vibratoDepth);
-  const voices = [vibrato];
-  for (const [ratio, amount] of [[1, 1], [2, 0.18], [3, 0.06]]) {
-    const oscillator = context.createOscillator();
-    const level = context.createGain();
-    oscillator.frequency.value = frequency * ratio;
-    vibratoDepth.connect(oscillator.frequency);
-    level.gain.value = amount / 1.24;
-    oscillator.connect(level).connect(gain);
-    voices.push(oscillator);
-  }
-  // 숨소리: 그 음 높이 둘레만 남긴 잡음을 처음 0.25초 동안 짧게
-  const breath = context.createBufferSource();
-  const band = context.createBiquadFilter();
-  const breathGain = context.createGain();
-  breath.buffer = breathNoise();
-  band.type = 'bandpass';
-  band.frequency.value = frequency * 1.5;
-  band.Q.value = 1.2;
-  breathGain.gain.setValueAtTime(0, at);
-  breathGain.gain.linearRampToValueAtTime(peak * 0.5, at + 0.02);
-  breathGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.25);
-  breath.connect(band).connect(breathGain).connect(output);
-  voices.push(breath);
-  for (const voice of voices) {
-    voice.start(at);
-    voice.stop(at + duration + 0.05);
-  }
-}
-
-// 경적: 거친 톱니파 두 개(아주 살짝 어긋나게)를 한 옥타브 낮게 내고, 높은 소리를 깎아 멀리서 들리는 느낌으로.
-// 처음에 음이 살짝 낮았다가 제 높이로 올라가고, 0.1초에 걸쳐 커졌다가 짧게 끝난다
-function strikeHorn(frequency, at, peak, lengthScale, output) {
-  const low = frequency / 2;
-  const hold = 0.45 * lengthScale;
-  const end = at + hold + 0.2;
-  const filter = context.createBiquadFilter();
-  const gain = context.createGain();
-  filter.type = 'lowpass';
-  filter.frequency.value = 1100;
-  gain.gain.setValueAtTime(0, at);
-  gain.gain.linearRampToValueAtTime(peak, at + 0.1);
-  gain.gain.setValueAtTime(peak, at + hold);
-  gain.gain.linearRampToValueAtTime(0, end);
-  filter.connect(gain).connect(output);
-  for (const detune of [-4, 4]) {
-    const oscillator = context.createOscillator();
-    oscillator.type = 'sawtooth';
-    oscillator.detune.value = detune; // 센트 (반음의 1/100)
-    oscillator.frequency.setValueAtTime(low * 0.97, at);
-    oscillator.frequency.linearRampToValueAtTime(low, at + 0.12);
-    oscillator.connect(filter);
-    oscillator.start(at);
-    oscillator.stop(end + 0.05);
-  }
-}
-
-// 큰 소리가 나는 동안 열차 소리 묶음을 DUCK_DB만큼 줄였다가 천천히 되돌린다
-function duck(from, until) {
-  const train = groups.train.gain;
-  train.cancelScheduledValues(from);
-  train.setTargetAtTime(fromDb(DUCK_DB), from, 0.03);
-  train.setTargetAtTime(1, until, 0.3);
-}
 
 // name: SOUNDS의 이름. notes: 음 목록을 바꿔 낼 때 [[음 이름, 시작 초], …] (없으면 SOUNDS 그대로)
 export function playSound(name, notes) {
   if (muted || volume === 0) return;
-  if (!context) setup();
+  const { context, groups } = audio();
   const sound = SOUNDS[name];
   const played = notes ?? sound.notes;
   let start = context.currentTime + 0.01;
@@ -261,17 +73,12 @@ export function playSound(name, notes) {
     lastHorn = start;
   }
   // 악기: 경적처럼 정해진 것이 아니면 지금 지도의 음색을 따른다
-  const [instrument, trim] = sound.instrument ? [sound.instrument, 0] : PALETTES[getRegion().soundStyle][name];
+  const [instrument, trim] = sound.instrument ? [sound.instrument, 0] : paletteFor(name);
   // 음이 여러 개면 겹쳐서 커지므로, 음 개수에 맞춰 한 음을 줄인다 (그래야 SOUND_LEVELS대로 들린다)
   const peak = (SOUND_PEAK * fromDb(SOUND_LEVELS[name] + trim) * vary()) / played.length ** 0.8;
   const length = sound.length * vary();
   for (const [note, offset] of played) {
-    const frequency = SOUND_NOTES[note];
-    const output = groups[sound.group];
-    if (instrument === 'fm') strikeFm(frequency, start + offset, peak, length, output);
-    else if (instrument === 'horn') strikeHorn(frequency, start + offset, peak, length, output);
-    else if (instrument === 'flute') strikeFlute(frequency, start + offset, peak, length, output);
-    else strike(instrument, frequency, start + offset, peak, length, output);
+    play(instrument, SOUND_NOTES[note], start + offset, peak, length, groups[sound.group]);
   }
   if (name === 'open' || name === 'horn') {
     const lastNote = Math.max(...played.map(([, offset]) => offset));
@@ -305,6 +112,16 @@ export function playArrivals(routeNumbers) {
   );
 }
 
+// 레일 덜컹 "따닥": 바퀴 두 쌍이 이음매를 차례로 넘는 소리. loudness: 0~1 (열차가 화면 가운데에 가깝고 빠를수록 크게)
+export function playClack(loudness) {
+  if (muted || volume === 0 || loudness <= 0) return;
+  const { context, groups } = audio();
+  const peak = SOUND_PEAK * fromDb(SOUND_LEVELS.clack) * loudness * vary();
+  const start = context.currentTime + 0.01;
+  strikeClack(start, peak, groups.train);
+  strikeClack(start + 0.09 * vary(), peak * 0.8, groups.train);
+}
+
 // [소리] 버튼과 음량 막대
 // button: 누르면 켜고 끈다 ("소리 켬"/"소리 끔"), slider: 0~100 음량 막대
 export function createSoundToggle(button, slider) {
@@ -317,14 +134,14 @@ export function createSoundToggle(button, slider) {
   const toggle = () => {
     muted = !muted;
     localStorage.setItem(MUTED_KEY, muted ? '1' : '0');
-    applyVolume();
+    setMasterGain(masterGain());
     show();
   };
   button.addEventListener('click', toggle);
   slider.addEventListener('input', () => {
     volume = Number(slider.value) / 100;
     localStorage.setItem(VOLUME_KEY, String(volume));
-    applyVolume();
+    setMasterGain(masterGain());
   });
   // 막대를 놓으면 그 크기를 들려준다 (얼마나 큰지 바로 알 수 있게)
   slider.addEventListener('change', () => playSound('station'));

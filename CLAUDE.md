@@ -21,7 +21,7 @@
 - 실제 지도(서울) 데이터: OpenFreeMap의 positron 스타일 `https://tiles.openfreemap.org/styles/positron` (가입·API 키 없음)
 - 가상 지도(솔내 지방) 데이터: `src/data/`의 GeoJSON과 높이 격자. `node tools/make-sollae.mjs`로 만든다
 - 선 계산: Turf.js (`@turf/turf`) — 선 길이, 선 위의 위치, 거리
-- 소리: Web Audio로 직접 만든다 (소리 파일 없음)
+- 소리: Web Audio로 직접 만든다 (소리·음악 파일 없음)
 - 실행: `npm run dev`, 빌드: `npm run build`, 빌드 결과 확인: `npm run preview`, 웹 데모 올리기: `docs/deploy.md`
 - 새 라이브러리를 추가해야 하면 이유를 먼저 설명한다.
 
@@ -78,7 +78,11 @@ src/
     helpCard.js       조작 안내 카드 ([?] 버튼, 처음 켤 때)
     startScreen.js    시작 화면 (지도 고르기, 지도별 저장 날짜)
     tutorial.js       처음 온 사람 튜토리얼 (역 → 선로 → 노선 → 열차 출발)
-    sounds.js         효과음 (Web Audio: 지도마다 음색 — 서울 국악 관악기풍, 솔내 마림바풍 — 경적, 5음 음계, 덕킹), [소리] 버튼과 음량 막대
+    sounds.js         효과음 (역·선로·개통·경적·열차 도착·레일 덜컹, 5음 음계, 덕킹), [소리] 버튼과 음량 막대
+    soundEngine.js    소리 길 (오디오 만들기, 묶음·울림·전체 음량·압축기, 덕킹)
+    instruments.js    악기 (벨·마림바·FM 벨·국악 관악기풍·경적·덜컹·화음), 지도마다 음색 (서울 국악풍, 솔내 마림바풍)
+    music.js          배경 음악 (5음 음계 화음 위에 가끔 멜로디, 노선이 많을수록 조금 풍성) + [음악] 버튼
+    railClack.js      아주 가까이 볼 때 화면 가운데 열차 한 대의 레일 덜컹 소리
     trackTool.js      선로 그리기
     routeTool.js      노선 만들기
     trackEditor.js    선로 경유점 끌기·지우기
@@ -88,7 +92,7 @@ src/
     routeControls.js  노선 패널 버튼을 노선 바꾸기로 잇기 (복제, 순서, 열차 수 등)
     trackView.js      선로 그리기 (끌기 미리보기, 혼잡도 색, 지우기 미리보기)
     drawingTools.js   [선로]·[노선] 그리기 도구를 만들고 게임에 잇기
-    viewToggles.js    [혼잡도 보기]·[지형]·[소리] 버튼
+    viewToggles.js    [혼잡도 보기]·[지형]·[소리]·[음악] 버튼
     nameInput.js      이름 입력 칸 공통 동작
     status.js         위쪽 자금·월 수지·하루 승객
     badge.js          왼쪽 위 날짜 배지

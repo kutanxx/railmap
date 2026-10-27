@@ -7,6 +7,7 @@ import { stepSimulation, trainFeatures } from '../game/sim.js';
 import { updateTrains } from '../map/trainLayers.js';
 import { METERS_PER_PIXEL_Z0 } from '../map/stationLayers.js';
 import { playArrivals, playSound } from './sounds.js';
+import { updateRailClack } from './railClack.js';
 
 // 지금 줌에서 그릴 열차 길이 (km): 실제 길이, 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게
 function shownTrainLengthKm(map) {
@@ -44,6 +45,8 @@ export function startAnimation(map) {
       .filter(({ stationId }) => bounds.contains(findStation(stationId).coord))
       .map(({ routeId }) => routeNumber(findRoute(routeId)));
     playArrivals(routes);
+    // 아주 가까이 보면 열차 한 대의 레일 덜컹 소리
+    updateRailClack(map, realSeconds, speed);
     if ((speed > 0 && trains.length > 0) || trainsChanged) {
       updateTrains(map, trainFeatures(shownTrainLengthKm(map)));
       trainsChanged = false;
