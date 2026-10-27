@@ -1,7 +1,8 @@
 // 선로 모양: 직선(역 → 경유점 → 역을 곧게 잇는 꺾인 선) 또는 곡선(경유점을 모두 지나는 부드러운 곡선).
 // 곡선은 "구심 캣멀-롬 곡선"으로 만든다. 경유점을 정확히 지나고, 점 사이가 들쭉날쭉해도 고리가 생기거나 꼬이지 않는다.
+// 팽팽함(config.js의 CURVE_TENSION)만큼 경유점에서의 휘는 기세를 줄여서, 곡선이 바깥으로 덜 부풀게 한다.
 // 선로를 그리는 곳, 길이·공사비, 열차 달리기, 승강장 방향이 모두 이 모양을 쓴다.
-import { CURVE_SAMPLE_M } from '../config.js';
+import { CURVE_SAMPLE_M, CURVE_TENSION } from '../config.js';
 
 // 같은 모양을 여러 번 계산하지 않게 기억해 둔다 (그리기·수요 계산이 같은 선로를 자주 묻는다)
 const remembered = new Map();
@@ -46,22 +47,28 @@ export function curveSegments(points) {
 }
 
 // 구심(alpha 0.5) 캣멀-롬: b에서 c까지, u는 0~1
+// b·c에서 나가는 방향과 기세(접선)를 구심 캣멀-롬 그대로 구한 뒤, 팽팽함만큼 줄여서 이어 그린다 (에르미트 곡선).
+// 팽팽함 0이면 구심 캣멀-롬과 똑같고, 1이면 경유점을 잇는 직선과 같다
 function catmullRom(a, b, c, d, u) {
-  const t0 = 0;
-  const t1 = t0 + knot(a, b);
+  const t1 = knot(a, b);
   const t2 = t1 + knot(b, c);
   const t3 = t2 + knot(c, d);
-  const t = t1 + (t2 - t1) * u;
-  const mix = (p, q, ta, tb) => [
-    ((tb - t) * p[0] + (t - ta) * q[0]) / (tb - ta),
-    ((tb - t) * p[1] + (t - ta) * q[1]) / (tb - ta),
-  ];
-  const a1 = mix(a, b, t0, t1);
-  const a2 = mix(b, c, t1, t2);
-  const a3 = mix(c, d, t2, t3);
-  const b1 = mix(a1, a2, t0, t2);
-  const b2 = mix(a2, a3, t1, t3);
-  return mix(b1, b2, t1, t2);
+  const span = t2 - t1;
+  const keep = 1 - CURVE_TENSION;
+  // b와 c에서의 접선 (한 조각을 u 0~1로 달릴 때 기준)
+  const tangentAt = (p, q, r, tp, tq, tr) =>
+    [0, 1].map(
+      (k) => span * keep * ((q[k] - p[k]) / (tq - tp) - (r[k] - p[k]) / (tr - tp) + (r[k] - q[k]) / (tr - tq)),
+    );
+  const mb = tangentAt(a, b, c, 0, t1, t2);
+  const mc = tangentAt(b, c, d, t1, t2, t3);
+  const u2 = u * u;
+  const u3 = u2 * u;
+  const h00 = 2 * u3 - 3 * u2 + 1;
+  const h10 = u3 - 2 * u2 + u;
+  const h01 = -2 * u3 + 3 * u2;
+  const h11 = u3 - u2;
+  return [0, 1].map((k) => h00 * b[k] + h10 * mb[k] + h01 * c[k] + h11 * mc[k]);
 }
 
 // 점 사이 거리의 제곱근 (구심 곡선의 간격). 겹친 점에서 0으로 나누지 않게 아주 작은 값을 둔다

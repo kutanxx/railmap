@@ -1,22 +1,15 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
-// 선로 그리기 trackView.js, 노선 패널 연결 routeControls.js, [선로]·[노선] 도구 drawingTools.js,
-// 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js
+// 선로 그리기 trackView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
+// 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js
 import { BANKRUPT_GRACE_MONTHS } from '../config.js';
 import { getRegion, isSandbox } from '../game/region.js';
-import {
-  addStationLayers,
-  updateStations,
-  addCatchmentLayer,
-  updateCatchment,
-} from '../map/stationLayers.js';
-import { addTrackLayers, addDraftLayers, addHandleLayers } from '../map/trackLayers.js';
-import { addTrainLayers } from '../map/trainLayers.js';
-import { addPassageLayers, addExitLayers } from '../map/exitLayers.js';
+import { updateStations, updateCatchment } from '../map/stationLayers.js';
+import { addGameLayers } from '../map/gameLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
-import { getState, subscribe, setSpeed, findStation, findTrack, monthlyInterest } from '../game/state.js';
-import { renameStation, rotateStation, removeStation, removeTrack, setTrackCurve, curveChangeCost } from '../game/build.js';
+import { getState, subscribe, setSpeed, findStation, monthlyInterest } from '../game/state.js';
+import { removeStation, removeTrack } from '../game/build.js';
 import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
@@ -25,12 +18,10 @@ import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar, createTrackShapeToggle } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
-import { createPanel } from './panel.js';
-import { createRouteStrip } from './routeStrip.js';
+import { createSidePanels } from './sidePanels.js';
 import { updateSelectionBracket } from '../map/selectionBracket.js';
-import { createRouteControls } from './routeControls.js';
 import { drawTracks } from './trackView.js';
-import { infoPanelView, routePanelView, profilePanelView, routeColors } from './views.js';
+import { profilePanelView, routeColors } from './views.js';
 import { createStatus } from './status.js';
 import { createCursorTip } from './cursorTip.js';
 import { showCallout } from './callouts.js';
@@ -51,11 +42,7 @@ import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
 import { createTutorial } from './tutorial.js';
 import { hasTerrain, terrainGrid } from '../game/terrain.js';
-import { addContourLayers } from '../map/contours.js';
 import { createProfilePanel } from './profilePanel.js';
-
-// 오른쪽 패널을 접었는지 기억하는 브라우저 저장 이름
-const PANEL_FOLDED_KEY = 'railmap-panel-folded';
 
 export function startApp(map, loadMessage) {
   // 화면 상태: 게임 상태가 아니라 지금 고른 도구, 선택한 것, 진행 중인 편집
@@ -71,7 +58,7 @@ export function startApp(map, loadMessage) {
     congestion: false, // 혼잡도 보기: 켜면 선로를 구간 혼잡도 색으로 칠한다
     terrain: false, // 지형 보기: 켜면 등고선이 보인다 (땅 높이가 있는 가상 지도만)
     controlRoom: false, // 관제실 모드: 어두운 지도 (viewToggles.js가 브라우저에 기억한 값으로 정한다)
-    panelFolded: localStorage.getItem(PANEL_FOLDED_KEY) === '1', // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지
+    panelFolded: false, // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지 (sidePanels.js가 브라우저에 기억한 값으로 정한다)
     trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
   };
 
@@ -149,41 +136,6 @@ export function startApp(map, loadMessage) {
 
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
-  // 오른쪽에는 늘 하나만: 노선 만들기 안내 > 고른 노선·역·선로 카드 > 노선 목록 (접었으면 노선 번호 띠)
-  // 카드의 [← 노선 목록]·[✕]는 고른 것을 놓는다 (Esc와 같다)
-  const closeCard = () => {
-    select(null);
-    render();
-  };
-  // 접은 상태는 브라우저에 기억한다
-  const setPanelFolded = (folded) => {
-    ui.panelFolded = folded;
-    localStorage.setItem(PANEL_FOLDED_KEY, folded ? '1' : '0');
-    render();
-  };
-  const panel = createPanel(document.getElementById('panel'), {
-    onRename: (id, name) => renameStation(id, name),
-    onRotate: (id, angle) => rotateStation(id, angle),
-    onDeleteStation: deleteSelected,
-    onDeleteTrack: deleteSelected,
-    onDeletePreview: previewDelete,
-    onClose: closeCard,
-    // 선로 카드의 [직선][곡선]: 길어지면 늘어난 만큼 공사비를 낸다
-    onSetCurve: (id, curve) => {
-      if (!setTrackCurve(id, curve)) notice(shortfall(curveChangeCost(findTrack(id), curve).cost), 'bad');
-    },
-  });
-  const routeStrip = createRouteStrip(document.getElementById('route-strip'), {
-    onUnfold: () => {
-      if (ui.tool === 'track') ui.trackPanelOpen = true;
-      setPanelFolded(false);
-    },
-    onSelect: (id) => {
-      select({ type: 'route', id });
-      render();
-    },
-  });
-
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
   const { trackTool, routeTool, setDraftCurve } = createDrawingTools({ map, select, render, notice });
   // [선로] 도구 옆 [직선][곡선] (V 키)
@@ -192,18 +144,8 @@ export function startApp(map, loadMessage) {
     if (ui.tool === 'track') setDraftCurve(!trackTool.isCurve());
   };
 
-  // 오른쪽 노선 패널 (routeControls.js)
-  const routePanel = createRouteControls(document.getElementById('routes'), {
-    ui,
-    select,
-    render,
-    notice,
-    routeTool,
-    deleteSelected,
-    previewDelete,
-    onClose: closeCard,
-    onFold: setPanelFolded,
-  });
+  // 오른쪽 패널: 역·선로 카드, 노선 패널, 접힌 노선 번호 띠 중 하나 (sidePanels.js)
+  const sidePanels = createSidePanels({ ui, select, render, notice, routeTool, deleteSelected, previewDelete });
 
   // 끌고 있는 역은 끄는 자리에 있는 것처럼 보여준다
   const shownCoord = (station) =>
@@ -278,27 +220,7 @@ export function startApp(map, loadMessage) {
     updateSelectionBracket(map, bracketPoints);
     updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
     updateStationExits();
-    // 오른쪽 패널은 하나만 보여준다
-    // 선로 도구를 쓰는 동안은 노선 목록을 번호 띠로 잠깐 접어 지도를 넓게 쓴다 (도구를 바꾸면 다시 펼친다)
-    const drafting = ui.tool === 'route';
-    const folded = ui.panelFolded || (ui.tool === 'track' && !ui.trackPanelOpen);
-    const card = drafting ? null : infoPanelView(ui.selected, shapes);
-    let mode = null;
-    if (drafting) mode = 'draft';
-    else if (ui.selected?.type === 'route') mode = 'detail';
-    else if (!card && routes.length > 0 && !folded) mode = 'list';
-    panel.show(card);
-    const routeView = routePanelView({
-      mode,
-      selected: ui.selected,
-      draft: routeTool.getDraft(),
-      routes,
-      inserting: ui.insertingInto !== null,
-      message: ui.routeMessage,
-    });
-    routePanel.show(routeView);
-    const showStrip = !drafting && !card && mode !== 'detail' && folded && routes.length > 0;
-    routeStrip.show(showStrip ? routeView.routes : null);
+    sidePanels.show({ routes, shapes });
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);
@@ -341,17 +263,8 @@ export function startApp(map, loadMessage) {
   const trackEditor = createTrackEditor(ctx);
   createStationMover(ctx);
 
-  // 그리는 순서: 등고선 → 역세권 원 → 선로 → 출구 통로 → 역 → 열차 → 출구 배지 → 미리보기 → 선로 손잡이
-  // (나중에 추가한 것이 위에 보인다)
-  if (hasTerrain()) addContourLayers(map, terrainGrid());
-  addCatchmentLayer(map);
-  addTrackLayers(map);
-  addPassageLayers(map);
-  addStationLayers(map);
-  addTrainLayers(map);
-  addExitLayers(map);
-  addDraftLayers(map);
-  addHandleLayers(map);
+  // 지도 레이어를 정한 순서대로 올린다 (map/gameLayers.js)
+  addGameLayers(map, hasTerrain() ? terrainGrid() : null);
   stationExits = createStationExits(map);
   // 관제실 모드를 켜 둔 채 끝냈으면 레이어를 다 올린 지금 어두운 색을 입힌다
   toggles.applyControlRoom();

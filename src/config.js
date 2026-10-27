@@ -116,6 +116,10 @@ export const CURVE_ZONE_M = 60;
 export const CURVE_WINDOW_M = 60;
 // 곡선 선로를 이 간격(미터)마다 점으로 나눠 그린다 (작을수록 매끄럽지만 계산이 늘어난다, game/trackShape.js)
 export const CURVE_SAMPLE_M = 15;
+// 곡선의 팽팽함 (0 ~ 1). 곡선은 경유점을 꼭 지나야 해서 경유점 바깥으로 조금 부풀어 나간다.
+// 0이면 가장 둥글게 출렁이고, 클수록 꺾인 직선에 가까워진다 (1이면 직선과 같다).
+// 0.4면 바깥으로 부풀어 나가는 거리가 0일 때의 60%쯤이다 (직각으로 꺾는 1km 선로에서 75m → 45m)
+export const CURVE_TENSION = 0.4;
 
 // 역에 멈춰 있는 시간 (게임 시간 초)
 export const STATION_DWELL_SECONDS = 30;
