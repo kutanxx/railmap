@@ -45,18 +45,22 @@ export function syncTrains() {
   state.trains = trains;
 }
 
-// 시간을 흘린다. seconds = 실제 흐른 초 × 배속. 결과: 이번에 역에 도착한 열차 수 (효과음용)
+// 시간을 흘린다. seconds = 실제 흐른 초 × 배속
+// 결과: 이번에 역에 도착한 열차들 [{ routeId, stationId }] (효과음용)
 // - 열차는 TIME_SCALE배 빠른 게임 시간으로 움직인다 (1배에서 실제 1초 = 게임 TIME_SCALE초)
 // - 달력은 SECONDS_PER_MONTH초마다 한 달씩 넘어가고, 넘어갈 때 정산한다
 export function stepSimulation(seconds) {
-  if (seconds <= 0) return 0;
+  if (seconds <= 0) return [];
   const state = getState();
   const gameSeconds = seconds * TIME_SCALE;
   const startTime = state.elapsedSeconds;
   state.elapsedSeconds += gameSeconds;
-  let arrivals = 0;
+  const arrivals = [];
   for (const train of state.trains) {
-    arrivals += moveTrain(train, paths.get(train.routeId), gameSeconds, startTime);
+    const path = paths.get(train.routeId);
+    for (const stop of moveTrain(train, path, gameSeconds, startTime)) {
+      arrivals.push({ routeId: train.routeId, stationId: path.stationIds[stop] });
+    }
   }
 
   state.monthProgress += seconds / SECONDS_PER_MONTH;
@@ -100,6 +104,7 @@ function buildPath(route) {
     stops.push(stops[stops.length - 1] + trackLengthKm(track));
   }
   const path = { coords, cumulative, length: cumulative[cumulative.length - 1], stops, color: route.color };
+  path.stationIds = [...route.stations]; // stops[i] 자리의 역 id
   // 역 사이 구간마다 달리는 모습
   path.runs = stops.slice(1).map((end, i) => buildRun(slicePath(path, stops[i], end)));
   // 왕복 한 바퀴 = 달리는 시간 × 2 + 역에 서는 시간 (가운데 역은 오가며 두 번, 끝 역은 한 번)
@@ -133,11 +138,11 @@ function placeTrains(route, path) {
 
 // 열차 하나를 seconds초만큼 움직인다. 역에 닿으면 멈추고, 끝 역에서는 방향을 바꾼다
 // startTime: 이번 움직임이 시작된 게임 시각 (종점에서 배차 간격을 잴 때 쓴다)
-// 결과: 이번에 역에 도착한 횟수
+// 결과: 이번에 도착한 역 번호들 (path.stops의 번호)
 function moveTrain(train, path, seconds, startTime) {
   const last = path.stops.length - 1;
   let remaining = seconds;
-  let arrivals = 0;
+  const arrivals = [];
   while (remaining > 0) {
     if (train.dwell > 0) {
       const waited = Math.min(train.dwell, remaining);
@@ -186,7 +191,7 @@ function moveTrain(train, path, seconds, startTime) {
     train.leg = null;
     train.legTime = 0;
     train.dwell = STATION_DWELL_SECONDS;
-    arrivals += 1;
+    arrivals.push(stop);
     if (stop === 0) train.direction = 1;
     if (stop === last) train.direction = -1;
   }

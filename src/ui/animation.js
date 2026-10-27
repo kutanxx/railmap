@@ -1,11 +1,12 @@
 // 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (requestAnimationFrame).
 // 게임 시간 = 실제 흐른 시간 × 배속. 열차 위치는 GeoJSON source 하나에 setData로 한 번에 바꾼다.
-import { TRAIN_LENGTH_M, TRAIN_MIN_SCREEN_PX } from '../config.js';
-import { getState } from '../game/state.js';
+import { TRAIN_LENGTH_M, TRAIN_MIN_SCREEN_PX, ARRIVAL_SOUND_MIN_ZOOM } from '../config.js';
+import { getState, findRoute, findStation } from '../game/state.js';
+import { routeNumber } from '../game/routes.js';
 import { stepSimulation, trainFeatures } from '../game/sim.js';
 import { updateTrains } from '../map/trainLayers.js';
 import { METERS_PER_PIXEL_Z0 } from '../map/stationLayers.js';
-import { playSound } from './sounds.js';
+import { playArrivals } from './sounds.js';
 
 // 지금 줌에서 그릴 열차 길이 (km): 실제 길이, 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게
 function shownTrainLengthKm(map) {
@@ -25,8 +26,15 @@ export function startAnimation(map) {
     const { speed, trains } = getState();
     // 시간이 흐르면 달력·정산을 위해 매 프레임 계산하지만,
     // 열차를 다시 그리는 건 움직이는 열차가 있거나 열차가 바뀌었을 때만 한다 (지도가 쉴 수 있게)
-    // 열차가 역에 서면 작은 소리 (sounds.js가 너무 잦지 않게 거른다)
-    if (stepSimulation(realSeconds * speed) > 0) playSound('arrive');
+    // 열차가 역에 서면 그 노선의 음으로 작은 소리. 가까이 볼 때만, 화면 안 역에 선 열차만 낸다
+    // (sounds.js가 짧은 동안 선 열차들을 묶어서 너무 잦지 않게 낸다. 아무도 안 서도 불러서 묶은 소리를 내보낸다)
+    const close = map.getZoom() >= ARRIVAL_SOUND_MIN_ZOOM;
+    const arrivals = stepSimulation(realSeconds * speed).filter(() => close);
+    const bounds = arrivals.length > 0 ? map.getBounds() : null;
+    const routes = arrivals
+      .filter(({ stationId }) => bounds.contains(findStation(stationId).coord))
+      .map(({ routeId }) => routeNumber(findRoute(routeId)));
+    playArrivals(routes);
     if ((speed > 0 && trains.length > 0) || trainsChanged) {
       updateTrains(map, trainFeatures(shownTrainLengthKm(map)));
       trainsChanged = false;

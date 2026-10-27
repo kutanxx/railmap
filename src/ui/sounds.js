@@ -1,5 +1,7 @@
 // 효과음: 소리 파일 없이 Web Audio로 만든다. 설계 근거는 docs/sound-research.md.
 // - 역 놓기·선로 완성·노선 개통은 부드러운 벨 "딩~", 열차 도착은 마림바 "톡" (나무 건반 소리)
+// - 열차 도착음은 노선마다 다른 음이다 (ARRIVAL_NOTES). 짧은 동안 선 열차들은 묶어서 최대 몇 음만 낸다
+//   가까이 볼 때(ARRIVAL_SOUND_MIN_ZOOM 이상) 화면 안 열차만 소리를 낸다 (ui/animation.js)
 // - 모든 음은 config.js의 SOUND_NOTES(도·레·미·솔·라 5음 음계) 안에서만 고른다. 겹쳐도 부딪치지 않게
 // - 소리 길: 소리마다 크기(SOUND_LEVELS) → 사건·열차 묶음 → 전체 음량(음량 막대) → 압축기 → 스피커
 //   (묶음은 나중에 큰 소리가 날 때 열차 소리를 잠깐 줄이는 데 쓴다)
@@ -14,6 +16,9 @@ import {
   SOUND_VARIATION,
   SOUND_COMPRESSOR,
   ARRIVAL_SOUND_GAP_SECONDS,
+  ARRIVAL_NOTES,
+  MAX_ARRIVAL_NOTES,
+  ARRIVAL_NOTE_SPACING,
 } from '../config.js';
 
 const MUTED_KEY = 'railmap-muted';
@@ -40,7 +45,7 @@ const SOUNDS = {
   station: { instrument: BELL, group: 'event', notes: [['E5', 0]], length: 0.6 }, // 역 놓기: 미 한 번
   track: { instrument: BELL, group: 'event', notes: [['C5', 0], ['E5', 0.14]], length: 0.6 }, // 선로 완성: 도→미
   open: { instrument: BELL, group: 'event', notes: [['C5', 0], ['E5', 0.16], ['G5', 0.32]], length: 1.3 }, // 개통: 도·미·솔
-  arrive: { instrument: MARIMBA, group: 'train', notes: [['A5', 0]], length: 0.7 }, // 열차 도착: 라
+  arrive: { instrument: MARIMBA, group: 'train', notes: [['A5', 0]], length: 0.7 }, // 열차 도착 (음은 노선마다 바뀐다)
 };
 
 let context = null;
@@ -49,6 +54,8 @@ const groups = {}; // 묶음별 음량 (event, train)
 let muted = localStorage.getItem(MUTED_KEY) === '1';
 let volume = readVolume();
 let lastArrival = 0;
+let lastArrivalNote = null; // 바로 전에 낸 열차 음 (같은 음이 연달아 나지 않게)
+const pendingArrivals = new Set(); // 이번 묶음 동안 열차가 선 노선들의 음
 
 function readVolume() {
   const saved = Number(localStorage.getItem(VOLUME_KEY));
@@ -102,24 +109,43 @@ function strike(instrument, frequency, at, peak, lengthScale, output) {
   }
 }
 
-// name: SOUNDS의 이름
-export function playSound(name) {
+// name: SOUNDS의 이름. notes: 음 목록을 바꿔 낼 때 [[음 이름, 시작 초], …] (없으면 SOUNDS 그대로)
+export function playSound(name, notes) {
   if (muted || volume === 0) return;
-  // 열차가 여러 대 한꺼번에 서도 시끄럽지 않게, 열차 소리는 실제 시간 ARRIVAL_SOUND_GAP_SECONDS에 한 번만
-  if (name === 'arrive') {
-    const now = performance.now() / 1000;
-    if (now - lastArrival < ARRIVAL_SOUND_GAP_SECONDS) return;
-    lastArrival = now;
-  }
   if (!context) setup();
   const sound = SOUNDS[name];
+  const played = notes ?? sound.notes;
   // 음이 여러 개면 겹쳐서 커지므로, 음 개수에 맞춰 한 음을 줄인다 (그래야 SOUND_LEVELS대로 들린다)
-  const peak = (SOUND_PEAK * fromDb(SOUND_LEVELS[name]) * vary()) / sound.notes.length ** 0.8;
+  const peak = (SOUND_PEAK * fromDb(SOUND_LEVELS[name]) * vary()) / played.length ** 0.8;
   const length = sound.length * vary();
   const start = context.currentTime + 0.01;
-  for (const [note, offset] of sound.notes) {
+  for (const [note, offset] of played) {
     strike(sound.instrument, SOUND_NOTES[note], start + offset, peak, length, groups[sound.group]);
   }
+}
+
+// 노선 번호의 열차 도착 음 (1호선은 ARRIVAL_NOTES의 첫 음, 노선이 더 많으면 처음부터 다시)
+const arrivalNote = (routeNumber) => ARRIVAL_NOTES[(routeNumber - 1) % ARRIVAL_NOTES.length];
+
+// 열차 도착: 매 프레임 이번에 선 열차들의 노선 번호를 받는다 (아무도 안 섰으면 빈 목록)
+// 실제 시간 ARRIVAL_SOUND_GAP_SECONDS 동안 선 노선들을 모아 두었다가 한꺼번에, 다른 음 MAX_ARRIVAL_NOTES개까지만 낸다
+// 열차가 많아도, 3배속이어도 소리는 이 간격에 한 번이다
+export function playArrivals(routeNumbers) {
+  for (const number of routeNumbers) pendingArrivals.add(arrivalNote(number));
+  if (pendingArrivals.size === 0) return;
+  const now = performance.now() / 1000;
+  if (now - lastArrival < ARRIVAL_SOUND_GAP_SECONDS) return;
+  lastArrival = now;
+  // 바로 전에 낸 음은 뒤로 미뤄서, 다른 음이 있으면 그것부터 낸다
+  const notes = [...pendingArrivals]
+    .sort((a, b) => (a === lastArrivalNote) - (b === lastArrivalNote))
+    .slice(0, MAX_ARRIVAL_NOTES);
+  pendingArrivals.clear();
+  lastArrivalNote = notes[notes.length - 1];
+  playSound(
+    'arrive',
+    notes.map((note, i) => [note, i * ARRIVAL_NOTE_SPACING]),
+  );
 }
 
 // [소리] 버튼과 음량 막대

@@ -259,7 +259,17 @@ export const SOUND_VARIATION = 0.05;
 // attack·release 누르기 시작·풀리는 데 걸리는 초
 export const SOUND_COMPRESSOR = { threshold: -18, knee: 12, ratio: 4, attack: 0.005, release: 0.2 };
 // 열차가 역에 서는 소리는 열차가 많아도 이만큼(실제 초)에 한 번만 낸다 (3배속이어도 같다)
+// 그 사이에 선 열차들은 묶어서 다음 소리 때 한꺼번에 낸다
 export const ARRIVAL_SOUND_GAP_SECONDS = 1.5;
+// 노선마다 열차 도착 음 (SOUND_NOTES의 이름). 1호선 라, 2호선 미, 3호선 솔, 4호선 도, 5호선 레, 6호선부터 다시 라
+// 소리만 들어도 어느 노선 열차가 섰는지 어렴풋이 알 수 있게
+export const ARRIVAL_NOTES = ['A5', 'E5', 'G5', 'C5', 'D5'];
+// 열차 도착 소리는 이 줌 이상으로 가까이 볼 때만, 화면 안 역에 선 열차만 낸다
+// (15 ≈ 화면에 동네 몇 블록, 가로 2~3km). 멀리서 노선망 전체를 볼 때는 열차가 몇십 대여도 조용하다
+export const ARRIVAL_SOUND_MIN_ZOOM = 15;
+// 한 번에 내는 열차 음은 많아야 이만큼 (서로 다른 노선 음), 음 사이 간격 (초)
+export const MAX_ARRIVAL_NOTES = 2;
+export const ARRIVAL_NOTE_SPACING = 0.12;
 
 // ── 요금 (서울 지하철 거리 비례 요금, 2025-06-28 기준) ──
 // 기본 거리까지는 기본요금, 그 뒤로는 일정 거리마다 추가요금
