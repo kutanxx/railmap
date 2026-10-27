@@ -84,6 +84,8 @@ export function createSidePanels({ ui, select, render, notice, routeTool, delete
     routePanel.show(routeView);
     const showStrip = !drafting && !card && mode !== 'detail' && folded && routes.length > 0;
     routeStrip.show(showStrip ? routeView.routes : null);
+    // 오른쪽 패널이 펼쳐져 있는지 body에 적어 둔다 (위쪽 버튼 묶음이 그만큼 비켜 줄을 바꾼다, base.css)
+    document.body.classList.toggle('side-panel-open', Boolean(card) || mode !== null);
   }
 
   return { show };

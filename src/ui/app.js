@@ -16,7 +16,7 @@ import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
-import { createToolbar, createTrackShapeToggle } from './toolbar.js';
+import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
 import { createSidePanels } from './sidePanels.js';
 import { updateSelectionBracket } from '../map/selectionBracket.js';
@@ -101,7 +101,8 @@ export function startApp(map, loadMessage) {
     else map.doubleClickZoom.disable();
     render();
   }
-  const toolbar = createToolbar(document.getElementById('toolbar'), chooseTool);
+  // 도구 막대 ([선로] 도구일 때 끝의 [곡선]은 아래 toggleDraftCurve)
+  const toolbar = createToolbar(document.getElementById('toolbar'), chooseTool, () => toggleDraftCurve());
 
   // 고른 역·선로·노선 지우기 (패널의 삭제 버튼, Delete 키)
   function deleteSelected() {
@@ -138,8 +139,7 @@ export function startApp(map, loadMessage) {
 
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
   const { trackTool, routeTool, setDraftCurve } = createDrawingTools({ map, select, render, notice });
-  // [선로] 도구 옆 [직선][곡선] (V 키)
-  const trackShape = createTrackShapeToggle(document.getElementById('track-shape'), setDraftCurve);
+  // 새로 그릴 선로를 직선 ↔ 곡선 (도구 막대의 [곡선], V 키)
   const toggleDraftCurve = () => {
     if (ui.tool === 'track') setDraftCurve(!trackTool.isCurve());
   };
@@ -203,8 +203,7 @@ export function startApp(map, loadMessage) {
       status.flashSettlement(getState().lastSettlement.net);
     }
     shownMonth = monthKey;
-    toolbar.setActive(ui.tool);
-    trackShape.show(ui.tool === 'track', trackTool.isCurve());
+    toolbar.setActive(ui.tool, trackTool.isCurve());
     toggles.show();
     speedControl.setActive(speed);
     renderTracks();

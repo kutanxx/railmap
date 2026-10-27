@@ -70,6 +70,45 @@
   color: var(--accent);
 }
 
+/* 도구 막대 끝 [곡선] 앞의 얇은 칸막이 ([선로] 도구일 때만) */
+.toolbar-divider {
+  width: 1px;
+  margin: 4px 4px;
+  background: #cfc0a3;
+}
+
+.toolbar-divider[hidden],
+.tool-button[hidden] {
+  display: none;
+}
+
+/* 자금 줄의 짧은 이름은 좁은 창에서만 쓴다 (status.js) */
+.status-short {
+  display: none;
+}
+
+/* 좁은 창(1100px 아래): 자금 줄 이름을 줄여서 날짜·배속 옆 한 줄에 들어가게 한다 (월 수지 → 월, 하루 승객 → 승객) */
+@media (max-width: 1099px) {
+  .status .status-long {
+    display: none;
+  }
+
+  .status .status-short {
+    display: inline;
+  }
+}
+
+/* 아주 좁은 창(900px 아래): 도구 단추 옆 단축키 표시를 숨긴다 (키는 그대로 쓸 수 있고 [?] 안내에 있다) */
+@media (max-width: 899px) {
+  .toolbar .tool-key {
+    display: none;
+  }
+
+  .tool-button {
+    padding: 7px 11px;
+  }
+}
+
 /* ── 위쪽 첫 줄: 자금 표시 (누를 수 없는 정보라 조용한 띠) ── */
 .status {
   position: relative;

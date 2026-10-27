@@ -58,7 +58,8 @@ body {
   position: fixed;
   top: 16px;
   left: 16px;
-  max-width: calc(100vw - 290px - 48px);
+  /* 오른쪽이 노선 번호 띠로 접혀 있거나 비어 있으면 띠 자리만 비켜 넓게 쓴다 */
+  max-width: calc(100vw - 100px);
   z-index: 3; /* 위쪽 [알림] 목록이 자금 옆 말풍선·오른쪽 패널 위에 펼쳐지게 */
   display: flex;
   flex-direction: column;
@@ -71,6 +72,11 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* 오른쪽 패널(카드·노선 패널)이 펼쳐져 있으면 그 폭(290px)만큼 비켜 둔다 (ui/sidePanels.js가 body에 표시) */
+body.side-panel-open .top-left {
+  max-width: calc(100vw - 290px - 48px);
 }
 
 /* 남색 배지 (날짜 · 지역). 누르면 멈춤·다시 가기 (Space 키와 같다) */
