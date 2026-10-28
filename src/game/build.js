@@ -156,6 +156,24 @@ export function buildPlannedTrack(id) {
   });
 }
 
+// 계획 선로를 모두 지을 때 낼 공사비 합계와 개수
+export function allPlannedCost() {
+  const planned = state.tracks.filter((track) => track.planned);
+  return { count: planned.length, cost: planned.reduce((sum, track) => sum + plannedTrackCost(track), 0) };
+}
+
+// 계획 선로를 모두 한꺼번에 짓는다 (되돌리기 한 번으로 모두 계획으로 돌아간다).
+// 합계를 빚 한도 안에서도 낼 수 없으면 하나도 짓지 않고 null
+export function buildAllPlannedTracks() {
+  return change(null, () => {
+    const { count, cost } = allPlannedCost();
+    if (count === 0 || !canAfford(cost)) return null;
+    state.money -= cost;
+    for (const track of state.tracks) delete track.planned;
+    return count;
+  });
+}
+
 // 선로를 직선 또는 곡선으로 바꾼다. 빚 한도 안에서도 낼 수 없으면 바꾸지 않고 null
 export function setTrackCurve(id, curve) {
   return change(null, () => {

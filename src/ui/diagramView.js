@@ -4,8 +4,10 @@
 // - 일반역은 흰 원 + 노선 색 테두리, 환승역은 흰 원 + 굵은 남색 테두리 (지도의 아주 먼 줌 모양과 같다)
 // - 역 이름은 선이 덜 지나는 쪽에 붙인다
 // - 끌어서 옮기고, 휠로 확대한다. 역을 누르면 노선도를 닫고 지도에서 그 역으로 간다
+// - [그림 저장]으로 PNG 파일을 받는다 (diagramExport.js)
 // - D 키, Esc, [닫기]로 닫는다. 상태는 읽기만 한다
 import { getState, findStation } from '../game/state.js';
+import { saveDiagramPng } from './diagramExport.js';
 import { getRegion } from '../game/region.js';
 import { routeNumber } from '../game/routes.js';
 import { inkOn } from '../map/ink.js';
@@ -45,6 +47,7 @@ export function createDiagramView({ onPickStation }) {
     <div class="diagram-bar">
       <b class="diagram-title"></b>
       <div class="diagram-legend"></div>
+      <button class="hud-button diagram-save" type="button" title="노선도를 PNG 그림 파일로 받기">그림 저장</button>
       <button class="hud-button diagram-close" type="button" title="노선도 닫기 (D 키 · Esc)">닫기 ✕</button>
     </div>
     <p class="diagram-hint">끌어서 옮기기 · 휠로 확대 · 역을 누르면 지도에서 보기</p>
@@ -60,6 +63,17 @@ export function createDiagramView({ onPickStation }) {
   const legend = root.querySelector('.diagram-legend');
   const empty = root.querySelector('.diagram-empty');
   root.querySelector('.diagram-close').addEventListener('click', () => close());
+  // [그림 저장]: 파일 이름에 지도와 게임 날짜를 넣는다 (내보내기 파일과 같은 모양)
+  const saveButton = root.querySelector('.diagram-save');
+  saveButton.addEventListener('click', () => {
+    const { routes, year, month } = getState();
+    saveDiagramPng({
+      world,
+      title: title.textContent,
+      routes: routes.filter((route) => route.stations.length >= 2),
+      fileName: `railmap-diagram-${getRegion().id}-${year}-${String(month).padStart(2, '0')}.png`,
+    });
+  });
 
   let drawnKey = null; // 마지막으로 그린 노선망 (같으면 다시 계산하지 않는다)
   let layoutCache = { key: null, positions: null };
@@ -85,6 +99,7 @@ export function createDiagramView({ onPickStation }) {
     const routes = getState().routes.filter((route) => route.stations.length >= 2);
     title.textContent = `노선도 · ${getRegion().name}`;
     empty.hidden = routes.length > 0;
+    saveButton.hidden = routes.length === 0;
     const key = networkKey(routes);
     if (key === drawnKey) return;
     drawnKey = key;

@@ -1,0 +1,54 @@
+/* 오른쪽 선로 카드만의 모양: [직선][곡선], 계획 선로의 [짓기]·[계획 선로 모두 짓기] (공통 모양은 panel.css) */
+
+/* 선로 카드 [직선][곡선]: 지금 모양을 남색으로 채운다 */
+.panel-track-shape {
+  margin-top: 10px;
+}
+
+.panel-track-shape button.active {
+  border-color: #1f3a55;
+  background: #1f3a55;
+  color: #ffffff;
+}
+
+/* 계획 선로 카드: 안내 글과 [짓기 · 공사비 n억] (고른 것처럼 남색으로 꽉 채운 버튼: 이 카드에서 할 일) */
+.panel-plan {
+  margin-bottom: 10px;
+}
+
+.panel-build {
+  width: 100%;
+  padding: 7px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-build:hover {
+  background: #ffffff;
+  color: var(--navy);
+}
+
+/* [계획 선로 모두 짓기]: [짓기] 아래 흰 바탕 남색 테두리 (한 개 짓기보다 한 단계 약하게) */
+.panel-build-all {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-build-all:hover {
+  background: var(--land);
+}

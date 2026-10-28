@@ -54,8 +54,10 @@
   white-space: nowrap;
 }
 
+/* [그림 저장]·[닫기]는 노선 목록(늘어나는 칸) 오른쪽 끝에 붙는다 */
+.diagram-save,
 .diagram-close {
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* 아래쪽 안내와 빈 노선도 안내 */

@@ -7,13 +7,25 @@ import { inkOn } from '../map/ink.js';
 // 맨 위 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose, Esc와 같다).
 // 역 카드: 이름(눌러서 고치기) · 환승/종착 · 지나는 노선 번호, 큰 숫자 셋(이용객, 주변 인구, 가장 붐빔),
 // 한 줄 설명, [역 삭제], 접힌 "자세히"(승강장 방향, 인구를 센 근거, 위치)
-// 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]. 계획 선로면 제목이 "계획 선로"이고 [짓기] (onBuildTrack)
-// 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onBuildTrack, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
+// 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]. 계획 선로면 제목이 "계획 선로"이고 [짓기] (onBuildTrack),
+// 계획 선로가 둘 이상이면 [계획 선로 모두 짓기] (onBuildAllTracks)
+// 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onBuildTrack, onBuildAllTracks, onDeleteStation, onDeleteTrack으로
+// 알려주기만 한다.
 
 // onDeletePreview(true | false): 삭제 버튼에 마우스를 올리고 내릴 때 (지도에 사라질 것을 보여준다)
 export function createPanel(
   element,
-  { onRename, onRotate, onSetCurve, onBuildTrack, onDeleteStation, onDeleteTrack, onDeletePreview, onClose },
+  {
+    onRename,
+    onRotate,
+    onSetCurve,
+    onBuildTrack,
+    onBuildAllTracks,
+    onDeleteStation,
+    onDeleteTrack,
+    onDeletePreview,
+    onClose,
+  },
 ) {
   const head = `
       <div class="panel-head">
@@ -57,6 +69,7 @@ export function createPanel(
       <div class="panel-plan" hidden>
         <p class="panel-hint">아직 짓지 않은 계획이에요. 돈이 들지 않지만 노선이 지나갈 수 없어요.</p>
         <button type="button" class="panel-build"></button>
+        <button type="button" class="panel-build-all"></button>
       </div>
       <dl class="panel-facts">
         <dt>길이</dt><dd class="panel-track-length"></dd>
@@ -142,6 +155,8 @@ export function createPanel(
   buildButton.addEventListener('click', () => {
     if (track) onBuildTrack(track.id);
   });
+  const buildAllButton = element.querySelector('.panel-build-all');
+  buildAllButton.addEventListener('click', onBuildAllTracks);
 
   // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균,
   //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지, removal: 지우면 사라지는 것,
@@ -194,13 +209,17 @@ export function createPanel(
   }
 
   // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지,
-  //          planned: 계획 선로인지, buildCost: 지을 때 공사비 }, removal: 지우면 사라지는 것
+  //          planned: 계획 선로인지, buildCost: 지을 때 공사비, allPlanned: 계획 선로 전체 { count, cost } }, removal: 지우면 사라지는 것
   function showTrack(info, removal) {
     track = { id: info.id };
     trackRemoval.textContent = removal;
     trackTitle.textContent = info.planned ? '계획 선로' : '선로 정보';
     planBox.hidden = !info.planned;
     buildButton.textContent = `짓기 · 공사비 ${formatMoney(info.buildCost)}`;
+    buildAllButton.hidden = !(info.allPlanned?.count >= 2);
+    if (info.allPlanned) {
+      buildAllButton.textContent = `계획 선로 모두 짓기 · ${info.allPlanned.count}개 · ${formatMoney(info.allPlanned.cost)}`;
+    }
     // 교량·터널 구간이 있으면 그 길이도 함께 적는다
     const structures = [];
     if (info.bridgeKm >= 0.01) structures.push(`교량 ${info.bridgeKm.toFixed(2)} km`);

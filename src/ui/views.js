@@ -11,7 +11,7 @@ import {
   trackCoords,
 } from '../game/state.js';
 import { getEconomy } from '../game/demand.js';
-import { removalPreview, plannedTrackCost } from '../game/build.js';
+import { removalPreview, plannedTrackCost, allPlannedCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
@@ -69,6 +69,8 @@ export function infoPanelView(selected, shapes) {
         curve: Boolean(track.curve),
         planned: Boolean(track.planned),
         buildCost: track.planned ? plannedTrackCost(track) : 0,
+        // 계획 선로 전체 { count, cost } ([계획 선로 모두 짓기]는 2개 이상일 때만 보인다)
+        allPlanned: track.planned ? allPlannedCost() : null,
       },
       removal: removalText(selected),
     };

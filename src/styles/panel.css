@@ -1,4 +1,4 @@
-/* 오른쪽 정보 패널 (역·선로) */
+/* 오른쪽 정보 패널 (역·선로 공통과 역 카드, 접은 노선 번호 띠). 선로 카드만의 모양은 panel-track.css */
 
 /* ── 오른쪽 정보 패널 ── */
 /* 오른쪽 세로 줄: 역·선로 패널 위, 노선 패널 아래 */
@@ -123,17 +123,6 @@
 
 .panel-angle-presets button:hover {
   border-color: #1f3a55;
-}
-
-/* 선로 카드 [직선][곡선]: 지금 모양을 남색으로 채운다 */
-.panel-track-shape {
-  margin-top: 10px;
-}
-
-.panel-track-shape button.active {
-  border-color: #1f3a55;
-  background: #1f3a55;
-  color: #ffffff;
 }
 
 /* 선로가 이어진 역은 방향을 돌리지 않으므로 조절을 숨긴다 */
@@ -374,27 +363,4 @@
   font-size: var(--text-small);
   font-weight: 700;
   cursor: pointer;
-}
-
-/* 계획 선로 카드: 안내 글과 [짓기 · 공사비 n억] (고른 것처럼 남색으로 꽉 채운 버튼: 이 카드에서 할 일) */
-.panel-plan {
-  margin-bottom: 10px;
-}
-
-.panel-build {
-  width: 100%;
-  padding: 7px;
-  border: 2px solid var(--navy);
-  border-radius: var(--radius-button);
-  background: var(--navy);
-  color: #ffffff;
-  font: inherit;
-  font-size: var(--text-body);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.panel-build:hover {
-  background: #ffffff;
-  color: var(--navy);
 }
