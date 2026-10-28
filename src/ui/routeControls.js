@@ -13,6 +13,7 @@ import {
 } from '../game/routes.js';
 import { createRoutePanel } from './routePanel.js';
 import { shortfall } from './costText.js';
+import { FINGER } from '../map/hitPad.js';
 
 // ctx: app.js가 넘겨주는 화면 상태와 도구들
 // onClose: 노선 정보를 닫고 목록으로, onFold(true | false): 패널 접기·펼치기
@@ -58,10 +59,11 @@ export function createRouteControls(
       ui.routeMessage = removeStationFromRoute(routeId, stationId) ?? '';
       render();
     },
-    // [역 끼워넣기]: 켜면 지도에서 역을 클릭해 넣는다 (mapInput.js가 처리)
+    // [역 끼워넣기]: 켜면 지도에서 역을 눌러 넣는다 (mapInput.js가 처리)
     onToggleInsert: (routeId) => {
       ui.insertingInto = ui.insertingInto === routeId ? null : routeId;
-      ui.routeMessage = ui.insertingInto ? '노선에 넣을 역을 지도에서 클릭하세요. (Esc로 끝내기)' : '';
+      const howToEnd = FINGER ? '끝내려면 [역 끼워넣기]를 다시 누르세요.' : '(Esc로 끝내기)';
+      ui.routeMessage = ui.insertingInto ? `노선에 넣을 역을 지도에서 누르세요. ${howToEnd}` : '';
       render();
     },
     onFinishDraft: () => routeTool.finish(),

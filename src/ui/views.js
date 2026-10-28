@@ -17,6 +17,7 @@ import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
 import { routeHeadway } from '../game/sim.js';
 import { formatPopulation } from './format.js';
+import { FINGER } from '../map/hitPad.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 const pick = (object, keys) => Object.fromEntries(keys.map((key) => [key, object[key]]));
@@ -85,7 +86,8 @@ function removalText(selected) {
   if (selected.type === 'station' && trackIds.length > 0) lost.push(`선로 ${trackIds.length}개`);
   if (routes.length > 0) lost.push(`노선 ${routes.length}개(${routes.map((r) => r.name).join(', ')})`);
   if (lost.length === 0) return '지워도 다른 것은 그대로예요.';
-  return `지우면 ${lost.join('와 ')}도 함께 사라져요. 버튼에 마우스를 올리면 지도에 빨갛게 보여요.`;
+  const hover = FINGER ? '' : ' 버튼에 마우스를 올리면 지도에 빨갛게 보여요.';
+  return `지우면 ${lost.join('와 ')}도 함께 사라져요.${hover}`;
 }
 
 // 화면 아래 종단면도 (ui/profilePanel.js): 고른 선로나 노선의 높이 분석. 고른 게 없으면 null

@@ -6,6 +6,7 @@ import { colorChoices } from '../game/routeColors.js';
 import { bindNameInput } from './nameInput.js';
 import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
 import { renderRouteList, loadTone } from './routeList.js';
+import { FINGER } from '../map/hitPad.js';
 
 export function createRoutePanel(
   element,
@@ -28,13 +29,13 @@ export function createRoutePanel(
 ) {
   element.innerHTML = `
     <section class="route-draft">
-      <div class="panel-title">새 노선 만들기</div>
+      <div class="panel-title" role="heading" aria-level="2">새 노선 만들기</div>
       <p class="route-hint"></p>
       <div class="route-sequence"></div>
       <p class="route-message"></p>
       <div class="route-draft-buttons">
-        <button type="button" class="route-finish">완성 (Enter)</button>
-        <button type="button" class="route-cancel">취소 (Esc)</button>
+        <button type="button" class="route-finish">${FINGER ? '완성' : '완성 (Enter)'}</button>
+        <button type="button" class="route-cancel">${FINGER ? '취소' : '취소 (Esc)'}</button>
       </div>
     </section>
     <section class="route-detail">
@@ -42,7 +43,7 @@ export function createRoutePanel(
         <button type="button" class="panel-back">← 노선 목록</button>
         <button type="button" class="panel-close" title="닫기 (Esc)" aria-label="닫기">✕</button>
       </div>
-      <div class="panel-title">노선 정보</div>
+      <div class="panel-title" role="heading" aria-level="2">노선 정보</div>
       <div class="route-readout">
         <span>승객<b class="readout-riders"></b></span>
         <span>혼잡<b class="readout-load"></b></span>
@@ -85,7 +86,7 @@ export function createRoutePanel(
     </section>
     <section class="route-list-section">
       <div class="panel-head">
-        <span class="panel-title">노선 목록</span>
+        <span class="panel-title" role="heading" aria-level="2">노선 목록</span>
         <button type="button" class="panel-fold" title="접기 (노선 번호만 남겨요)" aria-label="접기">▸</button>
       </div>
       <div class="route-list"></div>
@@ -183,8 +184,8 @@ export function createRoutePanel(
 
     if (showDraft) {
       hintText.textContent = draft
-        ? '이어서 다음 역을 클릭하세요. 앞 역과 선로로 이어져 있어야 해요.'
-        : '노선의 첫 역을 클릭하세요.';
+        ? '이어서 다음 역을 누르세요. 앞 역과 선로로 이어져 있어야 해요.'
+        : '노선의 첫 역을 누르세요.';
       sequenceText.textContent = draft ? draft.stationNames.join(' → ') : '';
       messageText.textContent = draft?.message ?? '';
     }

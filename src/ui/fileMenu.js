@@ -9,7 +9,7 @@ const CONFIRM_MS = 4000; // "정말요?" 상태로 기다리는 시간
 
 export function createFileMenu(element, { onSearch, onExport, onImport, onReset, onChangeMap }) {
   element.innerHTML = `
-    <button type="button" class="file-button file-search">역·노선 찾기<span class="tool-key">/</span></button>
+    <button type="button" class="file-button file-search" aria-keyshortcuts="/">역·노선 찾기<span class="tool-key" aria-hidden="true">/</span></button>
     <hr class="popover-divider" />
     <button type="button" class="file-button file-export">내보내기</button>
     <button type="button" class="file-button file-import">불러오기</button>

@@ -41,6 +41,13 @@
   min-height: 36px;
 }
 
+/* 손가락 화면(휴대폰·태블릿)에는 키보드가 없으니 버튼 옆 단축키 글자(C, D, N…)를 숨긴다 */
+@media (pointer: coarse) {
+  .tool-key {
+    display: none;
+  }
+}
+
 @media (max-width: 699px) {
   .top-left {
     top: 8px;

@@ -69,10 +69,13 @@
   outline-color: var(--navy);
 }
 
+/* 노선이 많아도 지도를 너무 가리지 않게: 화면 높이의 반까지만, 넘치면 목록 안에서 굴린다 */
 .route-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .route-empty {
@@ -86,8 +89,10 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  /* 줄 높이 32px (번호 배지 22px + 위아래 3px + 테두리): 마우스로도 손가락으로도 누르기 넉넉한 만큼만 */
+  flex: none;
   gap: 2px 8px;
-  padding: 6px 8px;
+  padding: 3px 8px;
   border: 2px solid transparent;
   border-radius: 5px;
   background: #ffffff;

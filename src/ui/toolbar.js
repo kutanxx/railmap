@@ -19,6 +19,9 @@ export function createToolbar(element, onSelect, onToggleCurve, onTogglePlan) {
     const shortcut = document.createElement('span');
     shortcut.className = 'tool-key';
     shortcut.textContent = tool.key;
+    // 화면 읽기 프로그램이 "선택1"처럼 이름에 붙여 읽지 않게 숨기고, 단축키는 따로 알린다
+    shortcut.setAttribute('aria-hidden', 'true');
+    button.setAttribute('aria-keyshortcuts', tool.key);
     button.append(tool.label, shortcut);
     button.title = `${tool.label} (숫자키 ${tool.key})`;
     button.addEventListener('click', () => onSelect(tool.id));
@@ -35,6 +38,8 @@ export function createToolbar(element, onSelect, onToggleCurve, onTogglePlan) {
   const curveKey = document.createElement('span');
   curveKey.className = 'tool-key';
   curveKey.textContent = 'V';
+  curveKey.setAttribute('aria-hidden', 'true');
+  curveButton.setAttribute('aria-keyshortcuts', 'V');
   curveButton.append('곡선', curveKey);
   curveButton.addEventListener('click', onToggleCurve);
   // [계획 P]: 켜면(남색) 돈을 내지 않고 주황 점선으로 그려만 둔다. 선로 카드의 [짓기]로 나중에 짓는다
@@ -44,6 +49,8 @@ export function createToolbar(element, onSelect, onToggleCurve, onTogglePlan) {
   const planKey = document.createElement('span');
   planKey.className = 'tool-key';
   planKey.textContent = 'P';
+  planKey.setAttribute('aria-hidden', 'true');
+  planButton.setAttribute('aria-keyshortcuts', 'P');
   planButton.append('계획', planKey);
   planButton.addEventListener('click', onTogglePlan);
   element.append(divider, curveButton, planButton);

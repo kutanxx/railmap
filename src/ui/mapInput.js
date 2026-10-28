@@ -16,6 +16,7 @@ import { stationHoverText } from './views.js';
 import { togglePause } from './speedControl.js';
 import { playSound } from './sounds.js';
 import { isNarrowScreen } from './sidePanels.js';
+import { FINGER } from '../map/hitPad.js';
 import { formatMoney, formatPopulation } from './format.js';
 
 // 너무 멀리서 역을 놓으려 할 때 안내
@@ -111,6 +112,9 @@ export function bindMapInput(ctx) {
     if (ui.tool === 'track') {
       if (stationId) trackTool.clickStation(stationId, findStation(stationId).coord);
       else trackTool.clickEmpty(coord);
+      // 손가락 화면은 마우스 움직임이 없으니, 누를 때마다 종단면도를 바꾼다 (가상 지도)
+      const coords = FINGER && trackTool.previewCoords();
+      if (coords) showDraftProfile(coords);
       return;
     }
     if (ui.tool === 'route') {
@@ -154,6 +158,9 @@ export function bindMapInput(ctx) {
   });
 
   map.on('mousemove', (event) => {
+    // 손가락 화면: 누를 때 브라우저가 흉내 내는 마우스 움직임은 무시한다
+    // (미리보기 선·마우스 옆 안내가 마지막으로 누른 자리에 남는다. 길이·공사비는 아래 그리기 막대에)
+    if (FINGER) return;
     const stationId = stationAt(event.point);
 
     if (ui.tool === 'track') {

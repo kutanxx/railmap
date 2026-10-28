@@ -99,6 +99,7 @@
 
 /* ── 화면 아래 종단면도 (땅 높이가 있는 가상 지도) ──
    왼쪽 아래 버튼 줄 오른쪽부터 오른쪽 패널 왼쪽까지 (지도를 덜 가리게 낮게) */
+/* left·right·bottom은 처음 자리이고, 보일 때마다 profilePanel.js가 버튼 줄·오른쪽 패널을 피해 다시 정한다 */
 .profile-panel {
   position: fixed;
   left: 470px;

@@ -4,6 +4,11 @@
 // 조작 안내 카드의 [튜토리얼 다시 하기]로 언제든 다시 볼 수 있다.
 import { getState } from '../game/state.js';
 import { TOOLS } from './toolbar.js';
+import { isNarrowScreen } from './sidePanels.js';
+import { FINGER } from '../map/hitPad.js';
+
+// 도구 단축키 안내 "(숫자키 2)": 손가락 화면에서는 키보드가 없으니 뺀다
+const keyHint = (text) => (FINGER ? '' : text);
 
 const DONE_KEY = 'railmap-tutorial-done';
 const CHECK_MS = 400;
@@ -15,21 +20,24 @@ const STEPS = [
   {
     title: '역 놓기',
     text: (s) =>
-      `위쪽 [역 놓기]를 누르고(숫자키 2) 지도에서 사람이 많아 보이는 곳 두 군데를 눌러 역을 놓으세요. (${Math.min(2, s.stations.length)}/2)`,
+      `위쪽 [역 놓기]를 누르고${keyHint('(숫자키 2)')} 지도에서 사람이 많아 보이는 곳 두 군데를 눌러 역을 놓으세요. (${Math.min(2, s.stations.length)}/2)`,
     tool: 'station',
     done: (s) => s.stations.length >= 2,
   },
   {
     title: '선로 잇기',
     text: () =>
-      '[선로]를 누르고(3) 첫 역 → 둘째 역을 차례로 누르면 선로가 깔려요. 중간에 빈 땅을 누르면 꺾이는 점이 생겨요.',
+      `[선로]를 누르고${keyHint('(3)')} 첫 역 → 둘째 역을 차례로 누르면 선로가 깔려요. 중간에 빈 땅을 누르면 꺾이는 점이 생겨요.`,
     tool: 'track',
     done: (s) => s.tracks.length >= 1,
   },
   {
     title: '노선 만들기',
-    text: () =>
-      '[노선]을 누르고(4) 선로로 이어진 역을 순서대로 누른 뒤, Enter 또는 오른쪽 패널의 [완성]을 누르세요.',
+    text: () => {
+      // 좁은 화면에서는 패널이 아래에서 올라온다
+      const finish = `${isNarrowScreen() ? '아래 판' : '오른쪽 패널'}의 [완성]`;
+      return `[노선]을 누르고${keyHint('(4)')} 선로로 이어진 역을 순서대로 누른 뒤, ${FINGER ? finish : `Enter 또는 ${finish}`}을 누르세요.`;
+    },
     tool: 'route',
     done: (s) => s.routes.length >= 1,
   },

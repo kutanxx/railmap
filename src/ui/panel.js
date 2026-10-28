@@ -65,7 +65,7 @@ export function createPanel(
     </section>
     <section class="panel-track">
       ${head}
-      <div class="panel-title panel-track-title">선로 정보</div>
+      <div class="panel-title panel-track-title" role="heading" aria-level="2">선로 정보</div>
       <div class="panel-plan" hidden>
         <p class="panel-hint">아직 짓지 않은 계획이에요. 돈이 들지 않지만 노선이 지나갈 수 없어요.</p>
         <button type="button" class="panel-build"></button>
@@ -81,7 +81,7 @@ export function createPanel(
         <button type="button" data-curve="1">곡선</button>
       </div>
       <p class="panel-hint panel-track-shape-hint"></p>
-      <p class="panel-hint">흰 점을 끌어서 경유점을 옮기고, 두 번 클릭해 지워요. 선 중간의 작은 점을 끌면 경유점이 생겨요.</p>
+      <p class="panel-hint">흰 점을 끌어서 경유점을 옮기고, 두 번 눌러 지워요. 선 중간의 작은 점을 끌면 경유점이 생겨요.</p>
       <button type="button" class="panel-delete panel-delete-track">선로 삭제</button>
       <p class="panel-removal panel-track-removal"></p>
     </section>

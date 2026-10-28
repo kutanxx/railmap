@@ -17,7 +17,17 @@ export async function createMap(containerId, region, virtualData) {
   const workerBlob = new Blob([mapWorkerCode], { type: 'text/javascript' });
   setWorkerUrl(URL.createObjectURL(workerBlob));
 
-  const options = { container: containerId, center: region.center, zoom: region.zoom };
+  const options = {
+    container: containerId,
+    center: region.center,
+    zoom: region.zoom,
+    // 지도 라이브러리가 화면 읽기 프로그램에 알리는 이름들을 한국어로 (기본은 영어 "Map")
+    locale: {
+      'Map.Title': '지도: 화살표 키로 움직이고 + − 키로 확대',
+      'AttributionControl.ToggleAttribution': '지도 출처 보기',
+      'AttributionControl.MapFeedback': '지도 고치기 제안 (OpenStreetMap)',
+    },
+  };
   if (virtualData) {
     options.style = sollaeStyle(virtualData);
     // 가상 지도는 실제 지도 자료를 쓰지 않지만, 글꼴은 OpenFreeMap에서 받아 쓰므로 밝혀 둔다

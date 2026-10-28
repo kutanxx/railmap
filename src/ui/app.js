@@ -19,7 +19,7 @@ import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
-import { createSidePanels } from './sidePanels.js';
+import { createSidePanels, isNarrowScreen } from './sidePanels.js';
 import { updateSelectionBracket } from '../map/selectionBracket.js';
 import { drawTracks } from './trackView.js';
 import { profilePanelView, routeColors } from './views.js';
@@ -209,8 +209,16 @@ export function startApp(map, loadMessage) {
     if (!mapDataLoaded(map)) return;
     if (stationExits && lastBands) {
       stationExits.update(lastBands.stations, lastBands.bands, ui.stationPreview?.id);
-      arrangeStationLabels(map, stationExits.coords());
+      arrangeStationLabels(map, stationExits.coords(), labelArea());
     }
+  }
+
+  // 역 말풍선을 놓을 수 있는 지도 화면 { right, bottom } (px): 펼친 오른쪽 패널(좁은 화면은 아래 판)이 덮은 곳은 뺀다
+  function labelArea() {
+    const { clientWidth: width, clientHeight: height } = map.getContainer();
+    if (!document.body.classList.contains('side-panel-open')) return { right: width, bottom: height };
+    const side = document.querySelector('.side').getBoundingClientRect();
+    return isNarrowScreen() ? { right: width, bottom: side.top } : { right: side.left, bottom: height };
   }
 
   // 되돌리기·불러오기로 사라진 것을 붙잡고 있지 않게: 고른 것·역 끼워넣는 노선이 없어졌으면 놓는다
@@ -281,8 +289,9 @@ export function startApp(map, loadMessage) {
       : null;
     updateSelectionBracket(map, bracketPoints);
     updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
-    updateStationExits();
     sidePanels.show({ routes, shapes });
+    // 패널을 펼치고 접은 뒤에 (말풍선이 패널 밑으로 들어가지 않게 자리를 고른다)
+    updateStationExits();
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);

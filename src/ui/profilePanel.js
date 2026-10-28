@@ -1,6 +1,7 @@
 // 화면 아래 종단면도: 선로를 따라 가며 땅 높이와 선로 높이, 터널·교량 구간을 옆에서 본 그림으로 보여준다.
 // 선로를 그리는 중이거나, 선로·노선을 골랐을 때 나온다 (땅 높이가 있는 가상 지도만).
 // 그림은 canvas에 그린다. 상태를 고치지 않고 받은 분석 결과(game/trackProfile.js)를 그리기만 한다.
+import { isNarrowScreen } from './sidePanels.js';
 
 const COLORS = {
   groundFill: '#E6D9BE', // 땅 (옆에서 본 단면)
@@ -14,6 +15,8 @@ const COLORS = {
   axis: '#6F6656', // 눈금 글자 (흰 바탕에서 읽기 충분히 진하게)
 };
 const PAD = { left: 44, right: 12, top: 10, bottom: 20 };
+// 왼쪽 아래 버튼 줄·오른쪽 패널과 띄우는 간격 (px)
+const GAP_PX = 12;
 
 export function createProfilePanel(element) {
   element.innerHTML = `
@@ -23,10 +26,32 @@ export function createProfilePanel(element) {
   const title = element.querySelector('.profile-title');
   const canvas = element.querySelector('.profile-canvas');
 
+  // 자리: 왼쪽 아래 버튼 줄 오른쪽 ~ 오른쪽 패널 왼쪽 (버튼 줄 폭은 단계적 공개·화면 크기로 바뀌어서 볼 때마다 잰다).
+  // 좁은 화면(휴대폰)에서는 화면 폭으로, 아래 버튼 줄(판이 열려 있으면 그 판) 바로 위에
+  function place() {
+    const buttons = document.querySelector('.bottom-left').getBoundingClientRect();
+    const side = document.querySelector('.side').getBoundingClientRect();
+    const sideOpen = document.body.classList.contains('side-panel-open');
+    // 화면 크기 [작게][크게]는 판을 CSS zoom으로 줄이고 키워서, 자리 숫자도 그만큼 나눠 적는다
+    const zoom = Number(getComputedStyle(element).zoom) || 1;
+    const px = (value) => `${value / zoom}px`;
+    if (isNarrowScreen()) {
+      const above = sideOpen ? side.top : buttons.height > 0 ? buttons.top : window.innerHeight;
+      element.style.left = px(8);
+      element.style.right = px(8);
+      element.style.bottom = px(window.innerHeight - above + 8);
+    } else {
+      element.style.left = px(buttons.right + GAP_PX);
+      element.style.right = px(sideOpen ? window.innerWidth - side.left + GAP_PX : 16);
+      element.style.bottom = px(16);
+    }
+  }
+
   // view = { title: 제목, parts: [trackProfile 결과, …] (이어서 그린다) } 또는 null (숨김)
   function show(view) {
     element.hidden = !view;
     if (!view) return;
+    place();
     const parts = view.parts.filter((part) => part.km > 0);
     const km = parts.reduce((sum, part) => sum + part.km, 0);
     const sum = (key) => parts.reduce((total, part) => total + part[key], 0);

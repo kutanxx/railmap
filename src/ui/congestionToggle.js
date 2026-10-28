@@ -5,7 +5,7 @@ import { LOAD_COLORS } from '../map/trackLayers.js';
 
 export function createCongestionToggle(element, onToggle) {
   element.innerHTML = `
-    <button type="button" class="hud-button" title="출퇴근 시간 구간별 혼잡도 (C 키)">혼잡도<span class="tool-key">C</span></button>
+    <button type="button" class="hud-button" title="출퇴근 시간 구간별 혼잡도 (C 키)" aria-keyshortcuts="C">혼잡도<span class="tool-key" aria-hidden="true">C</span></button>
     <span class="congestion-legend" hidden>
       <span><i class="load-ok" style="background:${LOAD_COLORS.ok}"></i>여유</span>
       <span><i class="load-busy" style="background:${LOAD_COLORS.busy}"></i>붐빔</span>
