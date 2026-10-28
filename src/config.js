@@ -204,6 +204,16 @@ export const SPEED_RATIO_AT_MAX_GRADE = 0.75;
 // 1배속에서 한 달이 실제 몇 초인지
 export const SECONDS_PER_MONTH = 20;
 
+// ── 통계 그래프 (위쪽 [통계]) ──────────────
+// 매달 정산 기록을 이만큼(달)까지 기억한다 (저장 파일에도 들어간다. 오래된 달부터 지운다)
+export const STATS_KEEP_MONTHS = 240;
+// 그래프에 보여주는 최근 달 수
+export const STATS_SHOWN_MONTHS = 36;
+
+// ── 노선도 보기 ([노선도], D 키) ────────────
+// 역 자리를 가로·세로·45도 선에 맞게 고치는 계산을 몇 번 되풀이할지 (많을수록 반듯하지만 열 때 느리다. 역 50개에 300번이면 0.1초쯤)
+export const DIAGRAM_ITERATIONS = 300;
+
 // ── 승객 수요 (중력 모델) ─────────────────
 // 두 역 사이 하루 승객(명, 오가는 사람 모두) =
 //   RIDERS_FACTOR × (역 A 인구 ÷ 1000) × (역 B 인구 ÷ 1000) ÷ 소요 시간(분)^DEMAND_TIME_POWER

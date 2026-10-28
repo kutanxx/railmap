@@ -273,3 +273,53 @@ body.ui-size-large :is(.top-left, .bottom-left, .side, .route-strip, .tutorial, 
   padding: 4px 8px;
   font-size: var(--text-small);
 }
+
+/* ── 위쪽 [통계]: 아래로 펼치는 그래프 판 (statsPanel.js) ──
+   판이 넓어서 버튼 왼쪽 끝에 맞춘다 (오른쪽 끝에 맞추면 좁은 창에서 화면 왼쪽 밖으로 나간다) */
+.stats-panel {
+  right: auto;
+  left: -6px;
+  width: 316px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.stats-title {
+  margin: 2px 0 6px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.stats-chart + .stats-chart {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider);
+}
+
+/* 제목 줄: 왼쪽 그래프 이름, 오른쪽 마지막 달 (또는 마우스를 올린 달) 숫자 */
+.stats-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+  color: var(--navy);
+  font-size: var(--text-body);
+}
+
+.stats-readout {
+  font-size: var(--text-small);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.stats-chart svg {
+  display: block;
+  overflow: visible;
+  cursor: crosshair;
+}
+
+.stats-axis {
+  fill: var(--muted);
+  font-size: var(--text-small);
+}

@@ -70,8 +70,8 @@ export function stepSimulation(seconds) {
   state.monthProgress += seconds / SECONDS_PER_MONTH;
   while (state.monthProgress >= 1) {
     state.monthProgress -= 1;
-    const { revenue, opex } = getEconomy();
-    settleMonth(revenue, opex);
+    const { revenue, opex, dailyRiders } = getEconomy();
+    settleMonth(revenue, opex, dailyRiders);
   }
   return { arrivals, departures };
 }

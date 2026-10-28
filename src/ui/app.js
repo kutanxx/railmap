@@ -31,8 +31,10 @@ import { bindMapInput } from './mapInput.js';
 import { createWarnings } from './warnings.js';
 import { createNoticeLog } from './noticeLog.js';
 import { createGoalsPanel } from './goalsPanel.js';
+import { createStatsPanel } from './statsPanel.js';
 import { createReveal } from './reveal.js';
 import { createSearch } from './search.js';
+import { createDiagramView } from './diagramView.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -104,7 +106,12 @@ export function startApp(map, loadMessage) {
     render();
   }
   // 도구 막대 ([선로] 도구일 때 끝의 [곡선]은 아래 toggleDraftCurve)
-  const toolbar = createToolbar(document.getElementById('toolbar'), chooseTool, () => toggleDraftCurve());
+  const toolbar = createToolbar(
+    document.getElementById('toolbar'),
+    chooseTool,
+    () => toggleDraftCurve(),
+    () => toggleDraftPlan(),
+  );
 
   // 고른 역·선로·노선 지우기 (패널의 삭제 버튼, Delete 키)
   function deleteSelected() {
@@ -129,6 +136,17 @@ export function startApp(map, loadMessage) {
   const status = createStatus(document.getElementById('status'));
   // 단계적 공개: 쓸 일이 생기면 버튼이 하나씩 나타난다 (reveal.js)
   const reveal = createReveal({ notice });
+  // 위쪽 [통계]: 최근 달들의 자금·월 수지·하루 승객 그래프 (statsPanel.js)
+  const stats = createStatsPanel(document.getElementById('stats-button'), document.getElementById('stats-panel'));
+  // 노선도 보기 ([노선도], D 키, diagramView.js): 역을 누르면 지도에서 그 역으로 가서 고른다
+  const diagram = createDiagramView({
+    onPickStation: (id) => {
+      select({ type: 'station', id });
+      map.flyTo({ center: findStation(id).coord, zoom: Math.max(map.getZoom(), 15) });
+      render();
+    },
+  });
+  document.getElementById('diagram-button').addEventListener('click', diagram.toggle);
   // 위쪽 [알림]: 지난 알림 목록
   createNoticeLog(document.getElementById('notice-button'), document.getElementById('notice-log'), map);
   // 달이 바뀌면 정산 숫자를 자금 옆에 띄운다 (불러온 첫 화면에서는 띄우지 않는다)
@@ -142,10 +160,14 @@ export function startApp(map, loadMessage) {
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
-  const { trackTool, routeTool, setDraftCurve } = createDrawingTools({ map, select, render, notice });
+  const { trackTool, routeTool, setDraftCurve, setDraftPlan } = createDrawingTools({ map, select, render, notice });
   // 새로 그릴 선로를 직선 ↔ 곡선 (도구 막대의 [곡선], V 키)
   const toggleDraftCurve = () => {
     if (ui.tool === 'track') setDraftCurve(!trackTool.isCurve());
+  };
+  // 새로 그릴 선로를 바로 짓기 ↔ 계획 선로 (도구 막대의 [계획], P 키)
+  const toggleDraftPlan = () => {
+    if (ui.tool === 'track') setDraftPlan(!trackTool.isPlan());
   };
 
   // 오른쪽 패널: 역·선로 카드, 노선 패널, 접힌 노선 번호 띠 중 하나 (sidePanels.js)
@@ -209,7 +231,9 @@ export function startApp(map, loadMessage) {
       status.flashSettlement(getState().lastSettlement.net);
     }
     shownMonth = monthKey;
-    toolbar.setActive(ui.tool, trackTool.isCurve());
+    stats.update();
+    diagram.update();
+    toolbar.setActive(ui.tool, trackTool.isCurve(), trackTool.isPlan());
     toggles.show();
     speedControl.setActive(speed);
     renderTracks();
@@ -259,7 +283,9 @@ export function startApp(map, loadMessage) {
     toggleControlRoom: toggles.toggleControlRoom,
     toggleHideUi: toggles.toggleHideUi,
     openSearch: search.open,
+    diagram,
     toggleDraftCurve,
+    toggleDraftPlan,
     showDraftProfile,
     renderTracks,
     trackTool,

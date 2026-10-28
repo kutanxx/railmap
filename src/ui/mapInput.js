@@ -32,8 +32,10 @@ export function bindMapInput(ctx) {
     toggleSound,
     toggleControlRoom,
     toggleDraftCurve,
+    toggleDraftPlan,
     toggleHideUi,
     openSearch,
+    diagram,
   } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
 
@@ -146,7 +148,9 @@ export function bindMapInput(ctx) {
         if (bridgeKm >= 0.01) structures.push(`교량 ${bridgeKm.toFixed(2)} km`);
         if (tunnelKm >= 0.01) structures.push(`터널 ${tunnelKm.toFixed(2)} km`);
         const detail = structures.length ? ` (${structures.join(' · ')})` : '';
-        tip(event.point, `${km.toFixed(2)} km${detail} · 공사비 ${formatMoney(cost)}`, cost);
+        // 계획 선로는 지금 돈을 내지 않으므로 빚 안내 없이 "지을 때 공사비"로 보여준다
+        if (trackTool.isPlan()) tip(event.point, `계획 ${km.toFixed(2)} km${detail} · 지을 때 ${formatMoney(cost)}`, 0);
+        else tip(event.point, `${km.toFixed(2)} km${detail} · 공사비 ${formatMoney(cost)}`, cost);
         // 땅 높이가 있으면 화면 아래 종단면도도 같이 바꾼다
         showDraftProfile(coords);
       } else {
@@ -210,7 +214,7 @@ export function bindMapInput(ctx) {
   });
 
   // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리, N: 관제실 모드,
-  // V: 새로 그릴 선로를 직선 ↔ 곡선 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기
+  // V: 새로 그릴 선로를 직선 ↔ 곡선, P: 새로 그릴 선로를 계획 선로로 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기, D: 노선도 보기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   document.addEventListener('keydown', (event) => {
@@ -231,6 +235,11 @@ export function bindMapInput(ctx) {
     }
 
     if (command || event.altKey) return;
+    // 노선도를 보는 동안에는 D·Esc(닫기)만 받는다 (보이지 않는 지도에서 무언가 바뀌지 않게)
+    if (diagram.isOpen()) {
+      if (event.key === 'Escape' || event.key.toLowerCase() === 'd') diagram.close();
+      return;
+    }
     const tool = TOOLS.find((t) => t.key === event.key);
     if (tool) {
       chooseTool(tool.id);
@@ -250,8 +259,12 @@ export function bindMapInput(ctx) {
       toggleControlRoom();
     } else if (event.key.toLowerCase() === 'v') {
       toggleDraftCurve();
+    } else if (event.key.toLowerCase() === 'p') {
+      toggleDraftPlan();
     } else if (event.key.toLowerCase() === 'h') {
       if (toggleHideUi()) notice('버튼을 숨겼어요. H나 Esc로 다시 보여요');
+    } else if (event.key.toLowerCase() === 'd') {
+      diagram.open();
     } else if (event.key === '/') {
       event.preventDefault();
       openSearch();

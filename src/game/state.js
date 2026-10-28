@@ -10,6 +10,7 @@ import {
   DEBT_INTEREST_PER_MONTH,
   DEBT_LIMIT,
   BANKRUPT_GRACE_MONTHS,
+  STATS_KEEP_MONTHS,
 } from '../config.js';
 import { createHistory } from './history.js';
 import { getRegion, isSandbox } from './region.js';
@@ -22,9 +23,10 @@ const state = {
   // cells: 반경 안 건물 면적을 칸마다 적은 것 [[경도, 위도, 면적㎡], …] (못 쟀으면 null)
   //        이웃 역과 인구를 나눌 때 쓴다 (game/catchment.js)
   stations: [],
-  // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …], curve: 곡선인지 }
+  // 선로 하나 = { id: 't1', from: 역 id, to: 역 id, waypoints: [[경도, 위도], …], curve: 곡선인지, planned: 계획만 했는지 }
   // 양 끝은 역 위치를 그대로 쓰고, 경유점만 따로 저장한다. curve가 true면 경유점을 지나는 부드러운 곡선
   // (game/trackShape.js), 없거나 false면 꺾인 직선 (예전 저장은 모두 직선)
+  // planned가 true면 돈을 내지 않고 그려만 둔 계획 선로: 노선이 쓸 수 없고 운영비도 없다. [짓기]를 누르면 공사비를 내고 진짜 선로가 된다
   tracks: [],
   // 노선 하나 = { id: 'r1', name: '1호선', color: '#3F6E9A', stations: [역 id, …], trainCount: 1 }
   // 이웃한 두 역 사이에는 반드시 선로가 있다
@@ -44,6 +46,9 @@ const state = {
   monthProgress: 0,
   // 지난달 정산 결과 { revenue, opex, interest, net } (아직 없으면 null)
   lastSettlement: null,
+  // 매달 정산 기록 (통계 그래프, ui/statsPanel.js). 오래된 달부터, 최근 STATS_KEEP_MONTHS달까지
+  // 한 달 = { year, month: 정산한 달, revenue, opex, interest, net: 억, riders: 그달 하루 승객(명), money: 정산 뒤 자금(억) }
+  monthlyRecords: [],
   // 자금이 빚 한도(DEBT_LIMIT)보다 낮은 채로 이어진 달 수. BANKRUPT_GRACE_MONTHS가 되면 파산
   monthsOverDebtLimit: 0,
   // 파산했는지. 파산하면 시간이 멈추고 아무것도 지을 수 없다
@@ -174,13 +179,15 @@ export function monthlyInterest() {
   return state.money < 0 && !isSandbox() ? -state.money * DEBT_INTEREST_PER_MONTH : 0;
 }
 
-// 한 달을 마무리한다: 수입 − 운영비 − 이자를 자금에 더하고 날짜를 한 달 넘긴다
+// 한 달을 마무리한다: 수입 − 운영비 − 이자를 자금에 더하고 날짜를 한 달 넘긴다. riders: 그달 하루 승객 (기록용)
 // 빚이 한도보다 깊은 달이 BANKRUPT_GRACE_MONTHS만큼 이어지면 파산한다
-export function settleMonth(revenue, opex) {
+export function settleMonth(revenue, opex, riders) {
   const interest = monthlyInterest();
   const net = revenue - opex - interest;
   state.money += net;
   state.lastSettlement = { revenue, opex, interest, net };
+  state.monthlyRecords.push({ year: state.year, month: state.month, revenue, opex, interest, net, riders, money: state.money });
+  if (state.monthlyRecords.length > STATS_KEEP_MONTHS) state.monthlyRecords.shift();
   // 샌드박스는 빚 한도도 파산도 없다
   state.monthsOverDebtLimit = state.money < DEBT_LIMIT && !isSandbox() ? state.monthsOverDebtLimit + 1 : 0;
   if (state.monthsOverDebtLimit >= BANKRUPT_GRACE_MONTHS) {
@@ -208,10 +215,17 @@ export function findTrack(id) {
 }
 
 // 두 역을 바로 잇는 선로를 찾는다 (방향은 상관없다). 없으면 undefined
-export function findTrackBetween(a, b) {
+// 노선은 지은 선로만 쓰므로 계획 선로는 빼고 찾는다. 계획 선로까지 찾으려면 { planned: true }
+export function findTrackBetween(a, b, { planned = false } = {}) {
   return state.tracks.find(
-    (track) => (track.from === a && track.to === b) || (track.from === b && track.to === a),
+    (track) =>
+      ((track.from === a && track.to === b) || (track.from === b && track.to === a)) && (planned || !track.planned),
   );
+}
+
+// 지은 선로들 (계획 선로를 뺀 것. 운영비·선로 길이 합계에 쓴다)
+export function builtTracks() {
+  return state.tracks.filter((track) => !track.planned);
 }
 
 // 선로를 정하는 점들: 출발역 → 경유점들 → 도착역 (경유점 손잡이를 놓을 때 쓴다)

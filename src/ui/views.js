@@ -11,7 +11,7 @@ import {
   trackCoords,
 } from '../game/state.js';
 import { getEconomy } from '../game/demand.js';
-import { removalPreview } from '../game/build.js';
+import { removalPreview, plannedTrackCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
@@ -67,6 +67,8 @@ export function infoPanelView(selected, shapes) {
         toName: findStation(track.to).name,
         waypointCount: track.waypoints.length,
         curve: Boolean(track.curve),
+        planned: Boolean(track.planned),
+        buildCost: track.planned ? plannedTrackCost(track) : 0,
       },
       removal: removalText(selected),
     };

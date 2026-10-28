@@ -3,6 +3,7 @@
 // - 가운데 줄은 노선 색, 혼잡도 보기를 켜면 구간 혼잡도 색과 굵기 (넘친 구간은 "128%" 글자도)
 // - 삭제 버튼에 마우스를 올렸으면 함께 사라질 선로·노선을 빨갛게
 // - 땅 높이가 있는 가상 지도면 터널 구간을 점선으로
+// - 계획 선로는 공사 중 색(주황) 점선으로 (터널 표시는 하지 않는다)
 import { CROWDED_WARNING } from '../config.js';
 import { updateTracks, LOAD_COLORS } from '../map/trackLayers.js';
 import { getState, findStation, routeTracks } from '../game/state.js';
@@ -85,7 +86,8 @@ export function drawTracks(map, ui, shownCoord) {
         load: level,
         loadLabel: level === 'over' ? `${Math.round(trackLoad.get(track.id) * 100)}%` : '',
         removing: removing.get(track.id) ?? null,
-        tunnels: hasTerrain() ? tunnelsOf(track.id, coords) : [],
+        planned: Boolean(track.planned),
+        tunnels: hasTerrain() && !track.planned ? tunnelsOf(track.id, coords) : [],
       };
     }),
     highlightedTracks(ui.selected),

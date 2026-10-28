@@ -375,3 +375,26 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* 계획 선로 카드: 안내 글과 [짓기 · 공사비 n억] (고른 것처럼 남색으로 꽉 채운 버튼: 이 카드에서 할 일) */
+.panel-plan {
+  margin-bottom: 10px;
+}
+
+.panel-build {
+  width: 100%;
+  padding: 7px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.panel-build:hover {
+  background: #ffffff;
+  color: var(--navy);
+}

@@ -31,6 +31,7 @@ export function saveData() {
     month: state.month,
     monthProgress: state.monthProgress,
     lastSettlement: state.lastSettlement,
+    monthlyRecords: state.monthlyRecords,
     monthsOverDebtLimit: state.monthsOverDebtLimit,
     bankrupt: state.bankrupt,
     achievedGoals: state.achievedGoals,
@@ -61,6 +62,8 @@ export function loadData(data) {
   state.month = data.month;
   state.monthProgress = data.monthProgress;
   state.lastSettlement = data.lastSettlement;
+  // 통계 기록이 없는 예전 저장 파일은 기록 없이 시작한다 (다음 정산부터 쌓인다)
+  state.monthlyRecords = Array.isArray(data.monthlyRecords) ? [...data.monthlyRecords] : [];
   // 빚·파산 기록이 없는 예전 저장 파일은 빚이 없던 것으로 친다
   state.monthsOverDebtLimit = data.monthsOverDebtLimit ?? 0;
   state.bankrupt = data.bankrupt ?? false;
@@ -88,6 +91,7 @@ export function resetGame() {
   state.month = START_MONTH;
   state.monthProgress = 0;
   state.lastSettlement = null;
+  state.monthlyRecords = [];
   state.monthsOverDebtLimit = 0;
   state.bankrupt = false;
   state.achievedGoals = [];

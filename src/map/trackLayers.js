@@ -8,6 +8,9 @@ const TRACK_SELECTED_LAYER = 'track-selected';
 const TRACK_CASING_LAYER = 'track-casing';
 const TRACK_BODY_LAYER = 'track-body';
 const TRACK_CENTER_LAYER = 'track-center';
+const TRACK_PLANNED_LAYER = 'track-planned';
+// 지은 선로만 (계획 선로는 몸통·가운데 줄 대신 주황 점선으로 그린다)
+const BUILT = ['!', ['get', 'planned']];
 
 const TRACK_COLORS = {
   casing: '#D8C9AA', // 테두리
@@ -15,6 +18,7 @@ const TRACK_COLORS = {
   center: '#D8C9AA', // 가운데 줄
   selected: '#F2C230', // 선택 표시
   removing: '#B0402F', // 지우면 사라질 것 (경고 말풍선과 같은 빨강)
+  planned: '#C9772F', // 계획 선로 (아트 규칙의 "공사 중" 주황 점선, 그리는 중인 선로와 같은 색)
 };
 
 // 혼잡도 보기를 켰을 때 선로 가운데 줄 색 (노선 패널의 혼잡도 글자색과 같은 뜻)
@@ -92,6 +96,7 @@ export function addTrackLayers(map) {
     id: TRACK_BODY_LAYER,
     type: 'line',
     source: TRACK_SOURCE,
+    filter: BUILT,
     layout: ROUND_LINE,
     paint: { 'line-color': TRACK_COLORS.body, 'line-width': TRACK_BODY_WIDTH },
   });
@@ -110,8 +115,21 @@ export function addTrackLayers(map) {
     id: TRACK_CENTER_LAYER,
     type: 'line',
     source: TRACK_SOURCE,
+    filter: BUILT,
     layout: ROUND_LINE,
     paint: { 'line-color': TRACK_CENTER_COLOR, 'line-width': TRACK_CENTER_WIDTH },
+  });
+  // 계획 선로: 옅은 테두리 위에 주황 점선 (누르면 고를 수 있게 테두리는 지은 선로와 같이 깐다)
+  map.addLayer({
+    id: TRACK_PLANNED_LAYER,
+    type: 'line',
+    source: TRACK_SOURCE,
+    filter: ['get', 'planned'],
+    paint: {
+      'line-color': TRACK_COLORS.planned,
+      'line-width': zoomWidth(1.5, 3.5, 9),
+      'line-dasharray': [2, 1.5],
+    },
   });
   // 혼잡도 보기에서 넘친 구간 가운데에 혼잡도 숫자 ("128%"). 굵은 빨간 줄 위에 흰 글자 + 빨간 테두리라
   // 선로 위에 빨간 이름표처럼 보인다 (말풍선에 가리지 않게 선 위에 바로 쓴다)
@@ -158,6 +176,7 @@ export function addTrackLayers(map) {
 // lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null,
 //            load: 혼잡도 보기의 단계 'ok' | 'busy' | 'over' 또는 null, loadLabel: 넘친 구간에 쓸 글자 ("128%"),
 //            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null,
+//            planned: 계획 선로인지,
 //            tunnels: 터널 구간들 [[[경도, 위도], …], …] (없으면 빈 목록) }]
 // selectedIds = 노란색으로 강조할 선로 id들 (Set)
 export function updateTracks(map, lines, selectedIds) {
@@ -173,6 +192,7 @@ export function updateTracks(map, lines, selectedIds) {
         loadLabel: line.loadLabel ?? '',
         selected: selectedIds.has(line.id),
         removing: line.removing ?? null,
+        planned: Boolean(line.planned),
       },
     })),
   });

@@ -1,5 +1,5 @@
 import { bindNameInput } from './nameInput.js';
-import { formatPopulation, formatPeopleShort } from './format.js';
+import { formatPopulation, formatPeopleShort, formatMoney } from './format.js';
 import { loadTone } from './routeList.js';
 import { inkOn } from '../map/ink.js';
 
@@ -7,13 +7,13 @@ import { inkOn } from '../map/ink.js';
 // 맨 위 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose, Esc와 같다).
 // 역 카드: 이름(눌러서 고치기) · 환승/종착 · 지나는 노선 번호, 큰 숫자 셋(이용객, 주변 인구, 가장 붐빔),
 // 한 줄 설명, [역 삭제], 접힌 "자세히"(승강장 방향, 인구를 센 근거, 위치)
-// 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]
-// 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
+// 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]. 계획 선로면 제목이 "계획 선로"이고 [짓기] (onBuildTrack)
+// 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onBuildTrack, onDeleteStation, onDeleteTrack으로 알려주기만 한다.
 
 // onDeletePreview(true | false): 삭제 버튼에 마우스를 올리고 내릴 때 (지도에 사라질 것을 보여준다)
 export function createPanel(
   element,
-  { onRename, onRotate, onSetCurve, onDeleteStation, onDeleteTrack, onDeletePreview, onClose },
+  { onRename, onRotate, onSetCurve, onBuildTrack, onDeleteStation, onDeleteTrack, onDeletePreview, onClose },
 ) {
   const head = `
       <div class="panel-head">
@@ -53,7 +53,11 @@ export function createPanel(
     </section>
     <section class="panel-track">
       ${head}
-      <div class="panel-title">선로 정보</div>
+      <div class="panel-title panel-track-title">선로 정보</div>
+      <div class="panel-plan" hidden>
+        <p class="panel-hint">아직 짓지 않은 계획이에요. 돈이 들지 않지만 노선이 지나갈 수 없어요.</p>
+        <button type="button" class="panel-build"></button>
+      </div>
       <dl class="panel-facts">
         <dt>길이</dt><dd class="panel-track-length"></dd>
         <dt>구간</dt><dd class="panel-track-ends"></dd>
@@ -132,6 +136,12 @@ export function createPanel(
   element.querySelector('.panel-delete-track').addEventListener('click', () => {
     if (track) onDeleteTrack(track.id);
   });
+  const trackTitle = element.querySelector('.panel-track-title');
+  const planBox = element.querySelector('.panel-plan');
+  const buildButton = element.querySelector('.panel-build');
+  buildButton.addEventListener('click', () => {
+    if (track) onBuildTrack(track.id);
+  });
 
   // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균,
   //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지, removal: 지우면 사라지는 것,
@@ -183,10 +193,14 @@ export function createPanel(
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
   }
 
-  // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지 }, removal: 지우면 사라지는 것
+  // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지,
+  //          planned: 계획 선로인지, buildCost: 지을 때 공사비 }, removal: 지우면 사라지는 것
   function showTrack(info, removal) {
     track = { id: info.id };
     trackRemoval.textContent = removal;
+    trackTitle.textContent = info.planned ? '계획 선로' : '선로 정보';
+    planBox.hidden = !info.planned;
+    buildButton.textContent = `짓기 · 공사비 ${formatMoney(info.buildCost)}`;
     // 교량·터널 구간이 있으면 그 길이도 함께 적는다
     const structures = [];
     if (info.bridgeKm >= 0.01) structures.push(`교량 ${info.bridgeKm.toFixed(2)} km`);
@@ -201,6 +215,7 @@ export function createPanel(
       info.curve && info.waypointCount === 0
         ? '경유점이 없으면 곡선도 곧게 이어져요. 선 가운데 작은 점을 끌어 경유점을 만들어 보세요.'
         : '곡선은 경유점을 모두 지나는 부드러운 선이에요. 좁게 휠수록 열차가 느려져요.';
+    if (info.planned) shapeHint.textContent += ' 계획 선로는 모양을 바꿔도 돈이 들지 않아요.';
   }
 
   // view = { type: 'station', station } | { type: 'track', track: info } | null (숨김)

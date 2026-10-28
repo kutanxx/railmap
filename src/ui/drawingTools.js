@@ -16,13 +16,14 @@ import { playSound } from './sounds.js';
 const CURVE_KEY = 'railmap-track-curve';
 
 // select: 고른 것 바꾸기, render: 화면 다시 그리기, notice: 화면 가운데 말풍선 (app.js)
-// 결과: { trackTool, routeTool, setDraftCurve: 새로 그릴 선로 모양 정하기 (곡선이면 true) }
+// 결과: { trackTool, routeTool, setDraftCurve: 새로 그릴 선로 모양 정하기 (곡선이면 true),
+//         setDraftPlan: 새로 그릴 선로를 계획 선로로 할지 }
 export function createDrawingTools({ map, select, render, notice }) {
   const trackTool = createTrackTool({
     curve: localStorage.getItem(CURVE_KEY) === '1',
     onChange: (draft) => updateDraft(map, draft),
-    onComplete: (from, to, waypoints, curve) => {
-      const track = addTrack(from, to, waypoints, curve);
+    onComplete: (from, to, waypoints, curve, plan) => {
+      const track = addTrack(from, to, waypoints, curve, plan);
       if (!track) {
         const coords = shapeCoords([findStation(from).coord, ...waypoints, findStation(to).coord], curve);
         const { cost } = trackCostForCoords(coords);
@@ -37,11 +38,14 @@ export function createDrawingTools({ map, select, render, notice }) {
   });
 
   const routeTool = createRouteTool({
-    // 앞 역과 다음 역 사이에 선로가 없으면 이유를 알려준다
-    checkLink: (from, to) =>
-      findTrackBetween(from, to)
-        ? null
-        : `${findStation(from).name}과(와) ${findStation(to).name} 사이에 선로가 없어요. [선로] 도구로 먼저 이어주세요.`,
+    // 앞 역과 다음 역 사이에 지은 선로가 없으면 이유를 알려준다 (계획 선로만 있으면 먼저 지으라고)
+    checkLink: (from, to) => {
+      if (findTrackBetween(from, to)) return null;
+      const names = `${findStation(from).name}과(와) ${findStation(to).name}`;
+      return findTrackBetween(from, to, { planned: true })
+        ? `${names} 사이 선로는 아직 계획이에요. 선로를 눌러 [짓기]로 먼저 지어주세요.`
+        : `${names} 사이에 선로가 없어요. [선로] 도구로 먼저 이어주세요.`;
+    },
     onChange: () => {
       // 고른 역들을 잇는 선로를 점선으로 미리 보여준다
       const draft = routeTool.getDraft();
@@ -77,5 +81,10 @@ export function createDrawingTools({ map, select, render, notice }) {
     render();
   }
 
-  return { trackTool, routeTool, setDraftCurve };
+  function setDraftPlan(plan) {
+    trackTool.setPlan(plan);
+    render();
+  }
+
+  return { trackTool, routeTool, setDraftCurve, setDraftPlan };
 }

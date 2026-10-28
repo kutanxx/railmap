@@ -10,7 +10,7 @@
 // 같은 두 역 사이를 여러 노선이 함께 다니면 (같은 선로를 쓰는 노선들) 그 구간 승객·수입·혼잡을 열차 수에 비례해 나눠 가진다
 // (길찾기는 그중 한 노선만 고르므로, 그대로 두면 나중에 만든 노선은 승객이 0명이 된다)
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
-import { getState, routeTracks, trackLengthKm, trackCoords, findTrackBetween } from './state.js';
+import { getState, routeTracks, trackLengthKm, trackCoords, findTrackBetween, builtTracks } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
 import { buildRun } from './running.js';
@@ -142,7 +142,8 @@ export function updateEconomy() {
     routeAvgKm.set(id, riders > 0 ? routeKm.get(id) / riders : 0);
   }
 
-  const trackKm = tracks.reduce((sum, track) => sum + trackLengthKm(track), 0);
+  // 운영비는 지은 선로만 (계획 선로는 돈이 들지 않는다)
+  const trackKm = builtTracks().reduce((sum, track) => sum + trackLengthKm(track), 0);
   const trainCount = routes.reduce((sum, route) => sum + route.trainCount, 0);
   const opex = monthlyOpex(stations.length, trackKm, trainCount);
   economy = {

@@ -1,14 +1,17 @@
 // 선로 그리기 도구.
 // 역 A 클릭 → (빈 곳 클릭으로 경유점 추가) → 역 B 클릭으로 완성. 직선 또는 곡선(경유점을 지나는 부드러운 곡선)으로 그린다.
+// [계획]을 켜면 돈을 내지 않는 계획 선로로 그린다 (나중에 선로 카드의 [짓기]로 짓는다).
 // 그리는 중인 상태는 게임 상태가 아니라 화면 쪽 임시 상태라서 여기서 따로 들고 있는다.
 
 import { shapeCoords } from '../game/trackShape.js';
 
-// curve: 처음에 곡선으로 그릴지. onComplete(출발역, 도착역, 경유점들, 곡선인지)
+// curve: 처음에 곡선으로 그릴지. onComplete(출발역, 도착역, 경유점들, 곡선인지, 계획인지)
 export function createTrackTool({ onChange, onComplete, curve: startCurve }) {
   // 그리는 중이면 { from: 역 id, fromCoord, waypoints: [[경도, 위도], …], cursor }
   let draft = null;
   let curve = startCurve;
+  // 계획 선로로 그릴지 (게임을 켤 때마다 꺼진 채로 시작한다. 모르고 계속 계획만 그리지 않게)
+  let plan = false;
 
   function changed() {
     onChange(preview());
@@ -23,7 +26,7 @@ export function createTrackTool({ onChange, onComplete, curve: startCurve }) {
     }
     if (stationId === draft.from) return; // 같은 역으로 돌아오는 선로는 만들지 않는다
     // onComplete가 false를 돌려주면 (예: 자금 부족) 그리던 선로를 그대로 둔다
-    if (onComplete(draft.from, stationId, draft.waypoints, curve) === false) return;
+    if (onComplete(draft.from, stationId, draft.waypoints, curve, plan) === false) return;
     draft = null;
     changed();
   }
@@ -39,6 +42,12 @@ export function createTrackTool({ onChange, onComplete, curve: startCurve }) {
   // 직선 ↔ 곡선 (그리는 중이면 미리보기도 바로 바뀐다)
   function setCurve(on) {
     curve = on;
+    changed();
+  }
+
+  // 계획 선로로 그릴지 켜고 끄기
+  function setPlan(on) {
+    plan = on;
     changed();
   }
 
@@ -85,6 +94,8 @@ export function createTrackTool({ onChange, onComplete, curve: startCurve }) {
     previewCoords,
     setCurve,
     isCurve: () => curve,
+    setPlan,
+    isPlan: () => plan,
     isDrawing: () => draft !== null,
   };
 }

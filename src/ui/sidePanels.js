@@ -2,7 +2,8 @@
 // 카드는 panel.js, 노선 패널은 routeControls.js, 번호 띠는 routeStrip.js가 그리고, 여기서는 무엇을 보일지 정하고 잇는다.
 // 카드의 [← 노선 목록]·[✕]는 고른 것을 놓는다 (Esc와 같다). 노선 목록을 접은 상태는 브라우저에 기억한다.
 import { findTrack } from '../game/state.js';
-import { renameStation, rotateStation, setTrackCurve, curveChangeCost } from '../game/build.js';
+import { renameStation, rotateStation, setTrackCurve, curveChangeCost, buildPlannedTrack, plannedTrackCost } from '../game/build.js';
+import { playSound } from './sounds.js';
 import { createPanel } from './panel.js';
 import { createRouteStrip } from './routeStrip.js';
 import { createRouteControls } from './routeControls.js';
@@ -38,6 +39,11 @@ export function createSidePanels({ ui, select, render, notice, routeTool, delete
     // 선로 카드의 [직선][곡선]: 길어지면 늘어난 만큼 공사비를 낸다
     onSetCurve: (id, curve) => {
       if (!setTrackCurve(id, curve)) notice(shortfall(curveChangeCost(findTrack(id), curve).cost), 'bad');
+    },
+    // 계획 선로 카드의 [짓기]: 공사비를 내고 진짜 선로로
+    onBuildTrack: (id) => {
+      if (buildPlannedTrack(id)) playSound('track');
+      else notice(shortfall(plannedTrackCost(findTrack(id))), 'bad');
     },
   });
   const routeStrip = createRouteStrip(document.getElementById('route-strip'), {
