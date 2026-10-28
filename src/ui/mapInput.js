@@ -11,6 +11,7 @@ import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
 import { showCallout } from './callouts.js';
 import { TOOLS } from './toolbar.js';
+import { stationHoverText } from './views.js';
 import { togglePause } from './speedControl.js';
 import { playSound } from './sounds.js';
 import { formatMoney, formatPopulation } from './format.js';
@@ -31,6 +32,8 @@ export function bindMapInput(ctx) {
     toggleSound,
     toggleControlRoom,
     toggleDraftCurve,
+    toggleHideUi,
+    openSearch,
   } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
 
@@ -166,6 +169,10 @@ export function bindMapInput(ctx) {
       // 역이나 선로 위에 올리면 손가락 모양으로 바꾼다
       const onSomething = stationId || trackIdAt(map, event.point);
       map.getCanvas().style.cursor = onSomething ? 'pointer' : '';
+      // 역 위에 올리면 마우스 옆에 이름·하루 이용객·지나는 노선 (누르지 않아도 알 수 있게)
+      const hoverText = stationId && !ui.stationPreview ? stationHoverText(stationId) : null;
+      if (hoverText) cursorTip.show(event.point.x, event.point.y, hoverText);
+      else cursorTip.hide();
     }
   });
 
@@ -203,7 +210,7 @@ export function bindMapInput(ctx) {
   });
 
   // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리, N: 관제실 모드,
-  // V: 새로 그릴 선로를 직선 ↔ 곡선 ([선로] 도구일 때)
+  // V: 새로 그릴 선로를 직선 ↔ 곡선 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   document.addEventListener('keydown', (event) => {
@@ -243,8 +250,15 @@ export function bindMapInput(ctx) {
       toggleControlRoom();
     } else if (event.key.toLowerCase() === 'v') {
       toggleDraftCurve();
+    } else if (event.key.toLowerCase() === 'h') {
+      if (toggleHideUi()) notice('버튼을 숨겼어요. H나 Esc로 다시 보여요');
+    } else if (event.key === '/') {
+      event.preventDefault();
+      openSearch();
     } else if (event.key === 'Escape') {
-      cancelWork();
+      // 버튼을 숨긴 중이면 먼저 다시 보이게 한다
+      if (document.body.classList.contains('ui-hidden')) toggleHideUi(false);
+      else cancelWork();
     } else if (event.key === 'Backspace') {
       if (trackTool.isDrawing()) trackTool.undoWaypoint();
       else if (routeTool.isDrawing()) routeTool.undoStation();

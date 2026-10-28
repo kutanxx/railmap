@@ -5,9 +5,10 @@ import { createPopover } from './popovers.js';
 import { createBankruptDialog } from './bankruptDialog.js';
 
 // notice: 화면 가운데 말풍선, loadMessage: 시작할 때 저장된 게임을 불러온 결과 (없으면 null)
-// clearWork: 불러오기·새로 시작 뒤 고르던 것과 그리던 것을 놓는다, render: 화면 다시 그리기
+// clearWork: 불러오기·새로 시작 뒤 고르던 것과 그리던 것을 놓는다, render: 화면 다시 그리기,
+// onSearch: [메뉴]의 [역·노선 찾기] (search.js)
 // 결과: { bankruptDialog } — render가 파산했는지에 맞춰 창을 띄우고 숨긴다
-export function bindSaveControls({ notice, loadMessage, clearWork, render }) {
+export function bindSaveControls({ notice, loadMessage, clearWork, render, onSearch }) {
   startAutosave((problem) => notice(problem, 'warn'));
   if (loadMessage) notice(loadMessage.text, loadMessage.tone);
 
@@ -29,6 +30,7 @@ export function bindSaveControls({ notice, loadMessage, clearWork, render }) {
   // [메뉴]를 누르면 위로 펼쳐지는 파일 버튼들
   createPopover(document.getElementById('menu-button'), document.getElementById('file-menu'));
   createFileMenu(document.getElementById('file-menu'), {
+    onSearch,
     onExport: exportToFile,
     onImport: importGame,
     onReset: startOver,

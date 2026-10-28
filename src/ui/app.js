@@ -32,6 +32,7 @@ import { createWarnings } from './warnings.js';
 import { createNoticeLog } from './noticeLog.js';
 import { createGoalsPanel } from './goalsPanel.js';
 import { createReveal } from './reveal.js';
+import { createSearch } from './search.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -240,7 +241,9 @@ export function startApp(map, loadMessage) {
     trackTool.cancel();
     routeTool.cancel();
   };
-  const { bankruptDialog } = bindSaveControls({ notice, loadMessage, clearWork, render });
+  // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
+  const search = createSearch({ map, select, render });
+  const { bankruptDialog } = bindSaveControls({ notice, loadMessage, clearWork, render, onSearch: search.open });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {
@@ -254,6 +257,8 @@ export function startApp(map, loadMessage) {
     toggleTerrain: toggles.toggleTerrain,
     toggleSound: toggles.toggleSound,
     toggleControlRoom: toggles.toggleControlRoom,
+    toggleHideUi: toggles.toggleHideUi,
+    openSearch: search.open,
     toggleDraftCurve,
     showDraftProfile,
     renderTracks,

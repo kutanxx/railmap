@@ -16,6 +16,7 @@ import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
 import { routeNumber } from '../game/routes.js';
 import { routeHeadway } from '../game/sim.js';
+import { formatPopulation } from './format.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
 const pick = (object, keys) => Object.fromEntries(keys.map((key) => [key, object[key]]));
@@ -177,4 +178,14 @@ export function highlightedTracks(selected) {
     if (route) for (const track of routeTracks(route)) ids.add(track.id);
   }
   return ids;
+}
+
+// [선택] 도구로 역에 마우스를 올렸을 때 마우스 옆에 띄울 짧은 글: "회현동1가 · 하루 1.2만 명 · 1호선, 4호선"
+export function stationHoverText(stationId) {
+  const station = findStation(stationId);
+  if (!station) return null;
+  const routes = getState().routes.filter((route) => route.stations.includes(stationId));
+  if (routes.length === 0) return `${station.name} · 아직 노선 없음`;
+  const riders = getEconomy().stationRiders.get(stationId) ?? 0;
+  return `${station.name} · 하루 ${formatPopulation(riders)} · ${routes.map((route) => route.name).join(', ')}`;
 }

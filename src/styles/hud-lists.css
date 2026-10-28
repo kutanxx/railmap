@@ -146,3 +146,130 @@
   color: var(--navy);
   font-size: var(--text-body);
 }
+
+/* ── 역·노선 찾기 (/ 키, ui/search.js): 화면 위쪽 가운데 ── */
+.search-box {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 6;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+  padding: 6px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+  transform: translateX(-50%);
+}
+
+.search-box[hidden] {
+  display: none;
+}
+
+.search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cfc0a3;
+  border-radius: var(--radius-button);
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.search-results:empty {
+  display: none;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-item small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 고른 줄(↑↓)과 마우스를 올린 줄 */
+.search-item.active,
+.search-item:hover {
+  background: var(--land);
+}
+
+/* 역 결과 앞의 작은 승강장 색 동그라미 */
+.search-station-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 0 5px;
+  border: 2px solid var(--navy);
+  border-radius: 50%;
+  background: #a7bed4;
+}
+
+.search-empty {
+  margin: 4px 8px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* ── 화면 UI 숨기기 (H 키, body.ui-hidden): 버튼·패널을 숨기고 지도와 역 이름표만. 지도 출처 표기는 그대로 ── */
+body.ui-hidden .top-left,
+body.ui-hidden .bottom-left,
+body.ui-hidden .side,
+body.ui-hidden .route-strip,
+body.ui-hidden .profile-panel,
+body.ui-hidden .tutorial,
+body.ui-hidden .cursor-tip,
+body.ui-hidden .search-box {
+  display: none !important;
+}
+
+/* ── 화면 UI 크기 ([메뉴]의 [작게][보통][크게], ui/uiSize.js): 화면 판들만 줄이거나 키운다 ── */
+body.ui-size-small :is(.top-left, .bottom-left, .side, .route-strip, .tutorial, .search-box, .profile-panel) {
+  zoom: 0.85;
+}
+
+body.ui-size-large :is(.top-left, .bottom-left, .side, .route-strip, .tutorial, .search-box, .profile-panel) {
+  zoom: 1.15;
+}
+
+/* [메뉴] 안의 "화면 크기 [작게][보통][크게]" 줄 */
+.ui-size-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+}
+
+.ui-size-label {
+  margin-right: 6px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+.ui-size-button {
+  padding: 4px 8px;
+  font-size: var(--text-small);
+}

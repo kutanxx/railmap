@@ -15,7 +15,7 @@ import { applyMapTheme } from '../map/theme.js';
 const CONTROL_ROOM_KEY = 'railmap-control-room';
 
 // ui: app.js의 화면 상태, render: 화면 다시 그리기
-// 결과: { toggleCongestion, toggleTerrain, toggleSound, toggleControlRoom (단축키용),
+// 결과: { toggleCongestion, toggleTerrain, toggleSound, toggleControlRoom, toggleHideUi (단축키용),
 //         applyControlRoom (지도 레이어를 다 올린 뒤 한 번 불러 기억한 관제실 모드를 입힌다),
 //         show: 버튼 모양을 화면 상태에 맞추기 }
 export function createViewToggles({ map, ui, render }) {
@@ -63,11 +63,19 @@ export function createViewToggles({ map, ui, render }) {
   ui.controlRoom = localStorage.getItem(CONTROL_ROOM_KEY) === '1';
   controlRoomButton.addEventListener('click', toggleControlRoom);
 
+  // 화면 UI 숨기기 (H 키): 버튼·패널을 모두 숨기고 지도와 역 이름표만 남긴다 (깔끔한 스크린샷용, body.ui-hidden).
+  // hidden을 안 주면 뒤집는다. 결과: 이제 숨겼는지
+  const toggleHideUi = (hidden = !document.body.classList.contains('ui-hidden')) => {
+    document.body.classList.toggle('ui-hidden', hidden);
+    return hidden;
+  };
+
   return {
     toggleCongestion,
     toggleTerrain,
     toggleSound: sound.toggle,
     toggleControlRoom,
+    toggleHideUi,
     applyControlRoom,
     show() {
       const over = [...getEconomy().trackLoad.values()].filter((load) => load > 1).length;
