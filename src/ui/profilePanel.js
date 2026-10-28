@@ -17,6 +17,8 @@ const COLORS = {
 const PAD = { left: 44, right: 12, top: 10, bottom: 20 };
 // 왼쪽 아래 버튼 줄·오른쪽 패널과 띄우는 간격 (px)
 const GAP_PX = 12;
+// 버튼 줄 옆 자리가 이보다 좁으면 (오른쪽 패널을 펼쳤을 때 등) 버튼 줄 위로 올려 넓게 그린다 (px)
+const MIN_WIDTH_PX = 480;
 
 export function createProfilePanel(element) {
   element.innerHTML = `
@@ -27,6 +29,7 @@ export function createProfilePanel(element) {
   const canvas = element.querySelector('.profile-canvas');
 
   // 자리: 왼쪽 아래 버튼 줄 오른쪽 ~ 오른쪽 패널 왼쪽 (버튼 줄 폭은 단계적 공개·화면 크기로 바뀌어서 볼 때마다 잰다).
+  // 그 사이가 MIN_WIDTH_PX보다 좁으면 버튼 줄 바로 위에, 버튼 줄 왼쪽 끝부터 넓게.
   // 좁은 화면(휴대폰)에서는 화면 폭으로, 아래 버튼 줄(판이 열려 있으면 그 판) 바로 위에
   function place() {
     const buttons = document.querySelector('.bottom-left').getBoundingClientRect();
@@ -41,9 +44,12 @@ export function createProfilePanel(element) {
       element.style.right = px(8);
       element.style.bottom = px(window.innerHeight - above + 8);
     } else {
-      element.style.left = px(buttons.right + GAP_PX);
-      element.style.right = px(sideOpen ? window.innerWidth - side.left + GAP_PX : 16);
-      element.style.bottom = px(16);
+      const right = sideOpen ? window.innerWidth - side.left + GAP_PX : 16;
+      const besideWidth = window.innerWidth - right - (buttons.right + GAP_PX);
+      const beside = besideWidth >= MIN_WIDTH_PX;
+      element.style.left = px(beside ? buttons.right + GAP_PX : buttons.left);
+      element.style.right = px(right);
+      element.style.bottom = px(beside ? 16 : window.innerHeight - buttons.top + GAP_PX);
     }
   }
 

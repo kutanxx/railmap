@@ -78,6 +78,8 @@
   white-space: nowrap;
   font-size: var(--text-body);
   font-weight: 700;
+  /* 알려 주기만 하는 숫자라 밑의 버튼 누르기를 막지 않는다 */
+  pointer-events: none;
   animation: status-flash-in 300ms ease-out;
 }
 

@@ -1,26 +1,23 @@
 // 게임 화면의 중심: 화면 상태(도구, 선택), 패널과 도구 만들기, 다시 그리기, 상태 바뀜 연결.
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
-// 선로 그리기 trackView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
+// 선로 그리기 trackView.js, 역·이름표·출구 그리기 mapView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
 // 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js
 import { BANKRUPT_GRACE_MONTHS } from '../config.js';
 import { getRegion, isSandbox } from '../game/region.js';
-import { updateStations, updateCatchment } from '../map/stationLayers.js';
 import { addGameLayers } from '../map/gameLayers.js';
-import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
 import { getState, subscribe, setSpeed, findStation, findTrack, findRoute, monthlyInterest } from '../game/state.js';
 import { removeStation, removeTrack } from '../game/build.js';
 import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
-import { onMapDataSettled, mapDataLoaded } from '../map/mapFeatures.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
-import { createSidePanels, isNarrowScreen } from './sidePanels.js';
-import { updateSelectionBracket } from '../map/selectionBracket.js';
+import { createSidePanels } from './sidePanels.js';
+import { createMapView } from './mapView.js';
 import { drawTracks } from './trackView.js';
 import { profilePanelView, routeColors } from './views.js';
 import { createStatus } from './status.js';
@@ -40,9 +37,6 @@ import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
 import { createStationMover } from './stationMover.js';
-import { stationShapes } from './stationShapes.js';
-import { stationBands } from './stationBands.js';
-import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
 import { createTips } from './tips.js';
@@ -184,41 +178,13 @@ export function startApp(map, loadMessage) {
   // 오른쪽 패널: 역·선로 카드, 노선 패널, 접힌 노선 번호 띠 중 하나 (sidePanels.js)
   const sidePanels = createSidePanels({ ui, select, render, notice, routeTool, deleteSelected, previewDelete });
 
-  // 끌고 있는 역은 끄는 자리에 있는 것처럼 보여준다
-  const shownCoord = (station) =>
-    ui.stationPreview?.id === station.id ? ui.stationPreview.coord : station.coord;
-  const shownStations = () =>
-    getState().stations.map((station) =>
-      ui.stationPreview?.id === station.id ? { ...station, coord: ui.stationPreview.coord } : station,
-    );
+  // 지도 위 역·500m 원·괄호·이름표·출구 (mapView.js)
+  const mapView = createMapView({ map, ui });
 
   // 선로만 다시 그린다 (선로를 끄는 동안 매 마우스 움직임마다 부르므로 가볍게, trackView.js)
   function renderTracks() {
-    drawTracks(map, ui, shownCoord);
+    drawTracks(map, ui, mapView.shownCoord);
     trackEditor.showHandles();
-  }
-
-  // 역 출구 (stationExits.js): 역 모양이 바뀌었거나, 지도를 움직여 새 역이 보일 때 찾는다
-  // 끌어서 옮기는 중인 역은 출구를 숨긴다. 그다음 역 말풍선을 출구를 덮지 않는 쪽으로 옮긴다
-  let stationExits = null;
-  let lastBands = null; // 마지막으로 그린 역들과 그 모양
-  function updateStationExits() {
-    // 역을 끌어 옮기는 동안은 찾지 않는다 (이웃 역 출구까지 매 마우스 움직임마다 건물을 다시 읽어 끊겼다). 놓으면 찾는다
-    if (ui.stationPreview) return;
-    // 지도 조각을 덜 받았으면 다음에 (조각이 다 오면 onMapDataSettled가 다시 부른다). 빈 땅으로 잘못 기억하지 않게
-    if (!mapDataLoaded(map)) return;
-    if (stationExits && lastBands) {
-      stationExits.update(lastBands.stations, lastBands.bands, ui.stationPreview?.id);
-      arrangeStationLabels(map, stationExits.coords(), labelArea());
-    }
-  }
-
-  // 역 말풍선을 놓을 수 있는 지도 화면 { right, bottom } (px): 펼친 오른쪽 패널(좁은 화면은 아래 판)이 덮은 곳은 뺀다
-  function labelArea() {
-    const { clientWidth: width, clientHeight: height } = map.getContainer();
-    if (!document.body.classList.contains('side-panel-open')) return { right: width, bottom: height };
-    const side = document.querySelector('.side').getBoundingClientRect();
-    return isNarrowScreen() ? { right: width, bottom: side.top } : { right: side.left, bottom: height };
   }
 
   // 되돌리기·불러오기로 사라진 것을 붙잡고 있지 않게: 고른 것·역 끼워넣는 노선이 없어졌으면 놓는다
@@ -267,31 +233,15 @@ export function startApp(map, loadMessage) {
     dropMissing();
     renderHud();
     const { routes } = getState();
-    const stations = shownStations();
     const { stationRoutes } = routeColors(routes);
-    // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
-    const shapes = stationShapes(stations, getState().tracks, routes);
-    const bands = stationBands(stations, getState().tracks, routes, shapes);
-    lastBands = { stations, bands };
-    const economy = getEconomy();
     diagram.update();
     toolbar.setActive(ui.tool, trackTool.isCurve(), trackTool.isPlan());
     toggles.show();
     renderTracks();
-    updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands, stationRoutes);
-    // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
-    const selectedStation = ui.selected?.type === 'station' ? findStation(ui.selected.id) : null;
-    const selectedCoord = selectedStation ? shownCoord(selectedStation) : null;
-    updateCatchment(map, ui.tool === 'station' ? ui.hover : selectedCoord);
-    // 고른 역 둘레 모서리 괄호: 역 모양(띠·대합실)의 점들과 역 자리를 감싼다
-    const bracketPoints = selectedStation
-      ? [selectedCoord, ...(bands.get(selectedStation.id)?.parts ?? []).flatMap((part) => part.coords)]
-      : null;
-    updateSelectionBracket(map, bracketPoints);
-    updateStationLabels(map, stations, stationRoutes, economy.stationRiders, shapes, selectedStation?.id ?? null);
+    const shapes = mapView.drawStations(stationRoutes, getEconomy().stationRiders);
     sidePanels.show({ routes, shapes });
     // 패널을 펼치고 접은 뒤에 (말풍선이 패널 밑으로 들어가지 않게 자리를 고른다)
-    updateStationExits();
+    mapView.updateStationExits();
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);
@@ -346,11 +296,9 @@ export function startApp(map, loadMessage) {
 
   // 지도 레이어를 정한 순서대로 올린다 (map/gameLayers.js)
   addGameLayers(map, hasTerrain() ? terrainGrid() : null);
-  stationExits = createStationExits(map);
+  mapView.start();
   // 관제실 모드를 켜 둔 채 끝냈으면 레이어를 다 올린 지금 어두운 색을 입힌다
   toggles.applyControlRoom();
-  // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾고 말풍선 자리를 다시 고른다
-  onMapDataSettled(map, updateStationExits);
 
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──
   const animation = startAnimation(map);
