@@ -10,7 +10,7 @@
 // 같은 두 역 사이를 여러 노선이 함께 다니면 (같은 선로를 쓰는 노선들) 그 구간 승객·수입·혼잡을 열차 수에 비례해 나눠 가진다
 // (길찾기는 그중 한 노선만 고르므로, 그대로 두면 나중에 만든 노선은 승객이 0명이 된다)
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
-import { getState, routeTracks, trackLengthKm, trackCoords, findTrackBetween, builtTracks } from './state.js';
+import { getState, routeTracks, trackLengthKm, trackCoords, builtTracks } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
 import { buildRun } from './running.js';
@@ -75,9 +75,8 @@ export function updateEconomy() {
   const wantedKm = zeros(routes); // 노선별 (타려는 승객 × 그 노선에서 탈 거리) 합
   const segmentWanted = new Map(); // 노선의 이웃한 두 역 사이를 지나려는 승객 ("노선|역|역" → 명)
   for (const origin of servedStations) {
+    // 같은 두 역을 두 번 세지 않도록 한 방향(origin보다 뒤 이름의 역)만 센다 (riders에 오가는 사람이 모두 들어 있다)
     for (const [destination, trip] of shortestTrips(graph, origin)) {
-      // 같은 두 역을 두 번 세지 않도록 한 방향만 센다 (riders에 오가는 사람이 모두 들어 있다)
-      if (destination <= origin) continue;
       const minutes = Math.max(trip.minutes, MIN_TRIP_MINUTES);
       const riders =
         (RIDERS_FACTOR * (population.get(origin) / 1000) * (population.get(destination) / 1000)) /
@@ -217,11 +216,9 @@ function spreadOverSharers(trip, sharers, riders, segmentWanted) {
   const add = (map, key, value) => map.set(key, (map.get(key) ?? 0) + value);
   // 원래 노선별로 구간 길이를 모아, 원래 노선 하나의 몫(1)을 구간 길이 비율로 나눈다
   const segmentsByRoute = new Map();
-  for (const key of trip.segments) {
-    const [routeId, a, b] = key.split('|');
-    const km = trackKm(findTrackBetween(a, b));
+  for (const { route: routeId, a, b, km } of trip.segments) {
     const list = segmentsByRoute.get(routeId) ?? [];
-    list.push({ pair: `${a}|${b}`, km });
+    list.push({ a, b, pair: `${a}|${b}`, km });
     segmentsByRoute.set(routeId, list);
   }
   for (const [routeId, totalKm] of trip.routeKm) {
@@ -231,11 +228,11 @@ function spreadOverSharers(trip, sharers, riders, segmentWanted) {
       add(share, routeId, 1);
       continue;
     }
-    for (const { pair, km } of segments) {
+    for (const { a, b, pair, km } of segments) {
       for (const { routeId: sharer, weight } of sharers.get(pair) ?? [{ routeId, weight: 1 }]) {
         add(routeKm, sharer, km * weight);
         add(share, sharer, (km / totalKm) * weight);
-        add(segmentWanted, segmentKey(sharer, ...pair.split('|')), riders * weight);
+        add(segmentWanted, segmentKey(sharer, a, b), riders * weight);
       }
     }
   }
@@ -308,7 +305,7 @@ function buildGraph(routes) {
     });
     // 이웃한 역 사이: 달리는 시간 + 다음 역에 서는 시간, 탄 거리는 선로 길이
     routeTracks(route).forEach((track, i) => {
-      const km = trackLengthKm(track);
+      const km = trackKm(track);
       const minutes = trackRunSeconds(track) / 60 + DWELL_MINUTES;
       const a = nodeOf(route.stations[i], route.id);
       const b = nodeOf(route.stations[i + 1], route.id);
@@ -334,9 +331,10 @@ function buildGraph(routes) {
   return { nodes, edges, boarding, byStation };
 }
 
-// 출발역에서 갈 수 있는 모든 역까지 가장 빠른 여행
+// 출발역에서 갈 수 있는 역까지 가장 빠른 여행. 같은 두 역을 두 번 세지 않게, 이름이 출발역보다 뒤인 역만 돌려준다
 // 결과: Map(도착역 id → { minutes, km: 탄 거리, routeKm: Map(탄 노선 id → 그 노선에서 탄 거리),
-//                        segments: 지나는 구간 이름들 (segmentKey) })
+//                        segments: 지나는 구간들 [{ route, a, b (a < b), km: 그 구간 선로 길이 }] })
+// 구간 길이는 길을 찾을 때 이미 아는 값이라 그대로 적는다 (승객마다 선로를 다시 찾으면 역 100곳에서 느렸다)
 function shortestTrips(graph, origin) {
   const { nodes, edges, boarding, byStation } = graph;
   const minutes = new Array(nodes.length).fill(Infinity);
@@ -369,7 +367,7 @@ function shortestTrips(graph, origin) {
   // 역마다 가장 빨리 도착하는 점을 고르고, 거꾸로 따라가며 탄 노선을 모은다
   const trips = new Map();
   for (const [station, group] of byStation) {
-    if (station === origin) continue;
+    if (station <= origin) continue;
     let best = -1;
     for (const i of group) if (best < 0 || minutes[i] < minutes[best]) best = i;
     if (minutes[best] === Infinity) continue;
@@ -383,7 +381,8 @@ function shortestTrips(graph, origin) {
       // 같은 노선의 두 역 사이를 달린 것이면 그 구간을 적는다 (갈아타기는 빼고)
       const from = nodes[previous[i]];
       if (from && from.route === route && from.station !== nodes[i].station) {
-        segments.push(segmentKey(route, from.station, nodes[i].station));
+        const [a, b] = from.station < nodes[i].station ? [from.station, nodes[i].station] : [nodes[i].station, from.station];
+        segments.push({ route, a, b, km: km[i] - before });
       }
     }
     trips.set(station, { minutes: minutes[best], km: km[best], routeKm, segments });
