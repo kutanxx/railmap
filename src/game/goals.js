@@ -1,4 +1,5 @@
-// 게임 목표: config.js의 GOALS를 위에서부터 차례로. 이룬 목표는 상태(state.achievedGoals)에 번호로 남고 저장된다.
+// 게임 목표: config.js의 GOALS를 위에서부터 차례로. 이룬 목표는 상태(state.achievedGoals)에 이름(goalKey: "routes:3")으로 남고 저장된다.
+// (목록 사이에 목표를 더해도 이미 이룬 목표가 바뀌지 않게 순서 번호가 아니라 이름으로 적는다)
 // 이루면 보상(억)을 자금에 더한다. 샌드박스에는 목표가 없다.
 // 목표는 매달 정산할 때만, 위에서부터 차례로 확인한다 (아직 못 이룬 첫 목표에서 멈춘다).
 // 멈춘 채 짓고 보상을 받은 뒤 되돌려 공사비를 돌려받는 일을 막으려고: 정산이 지나면 그 공사는 되돌려도 돈이 안 돌아온다.
@@ -35,6 +36,19 @@ function currentValue(goal) {
 // 지도에 맞춘 목표 값 (하루 승객 목표는 지도마다 줄인다)
 const targetOf = (goal) => (goal.kind === 'riders' ? goal.value * (getRegion().riderGoalScale ?? 1) : goal.value);
 
+// 목표의 이름: 종류와 값 ("routes:3"). 저장 파일에 이룬 목표를 이 이름으로 적는다
+export const goalKey = (goal) => `${goal.kind}:${goal.value}`;
+
+// 예전 저장 파일은 이룬 목표를 순서 번호로 적었다. 그때(2026-10-28 전)의 목표 순서로 이름을 찾는다
+const LEGACY_GOAL_KEYS = [
+  'routes:1', 'riders:20000', 'transfers:1', 'net:10', 'routes:3',
+  'riders:50000', 'stations:20', 'riders:100000', 'net:50', 'riders:300000',
+];
+// 저장 파일의 이룬 목표 목록을 이름 목록으로 (번호면 예전 순서로 바꾼다)
+export function achievedGoalKeys(list) {
+  return list.map((entry) => (typeof entry === 'number' ? LEGACY_GOAL_KEYS[entry] : entry)).filter(Boolean);
+}
+
 // 목표 목록: [{ index, goal, target, current, done }]. 샌드박스면 빈 목록
 export function goalList() {
   if (isSandbox()) return [];
@@ -44,7 +58,7 @@ export function goalList() {
     goal,
     target: targetOf(goal),
     current: currentValue(goal),
-    done: done.has(index),
+    done: done.has(goalKey(goal)),
   }));
 }
 
@@ -69,7 +83,7 @@ export function checkGoals() {
   }
   if (reached.length === 0) return [];
   for (const item of reached) {
-    state.achievedGoals.push(item.index);
+    state.achievedGoals.push(goalKey(item.goal));
     state.money += item.goal.reward;
   }
   notify('time');

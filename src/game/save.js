@@ -6,6 +6,7 @@
 // 역 주변 건물 칸은 격자 번호로 작게 적는다 (cellPacking.js. 예전 파일의 경도·위도 칸도 그대로 읽는다)
 import { START_YEAR, START_MONTH } from '../config.js';
 import { packCells, unpackCells } from './cellPacking.js';
+import { achievedGoalKeys } from './goals.js';
 import { REGIONS } from '../regions.js';
 import { getRegion, isSandbox } from './region.js';
 import {
@@ -83,7 +84,7 @@ export function loadData(data) {
   state.monthsOverDebtLimit = data.monthsOverDebtLimit ?? 0;
   state.bankrupt = data.bankrupt ?? false;
   // 목표 기록이 없는 예전 저장 파일은 아직 아무 목표도 이루지 않은 것으로 친다 (지금 상태로 다시 확인된다)
-  state.achievedGoals = Array.isArray(data.achievedGoals) ? [...data.achievedGoals] : [];
+  state.achievedGoals = Array.isArray(data.achievedGoals) ? achievedGoalKeys(data.achievedGoals) : [];
   clearHistory();
   notify();
 }

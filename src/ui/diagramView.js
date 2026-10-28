@@ -21,8 +21,33 @@ const STATION_RADIUS = 5; // 일반역 원
 const MAX_UNIT = 110; // 역 간격 1이 화면에서 가장 클 때 (역이 몇 개 없을 때 너무 커지지 않게)
 const MARGIN = 90; // 화면 가장자리 여백 (역 이름이 잘리지 않게)
 const LABEL_GAP = 6; // 역 원과 이름 사이
+const LABEL_PAD = 2; // 이름끼리 띄울 여유 (px)
 // 역 이름을 붙일 수 있는 8방향 (앞쪽이 먼저 고려된다: 오른쪽, 왼쪽, 위, 아래, 대각선)
 const LABEL_SIDES = [0, 180, -90, 90, -45, -135, 45, 135].map((deg) => (deg * Math.PI) / 180);
+
+// 선 토막 p–q가 네모(box)를 지나는지 (리앙–바스키 자르기: 토막을 네모 안으로 잘라 남는 부분이 있으면 지난다)
+function segmentHitsBox([x1, y1], [x2, y2], box) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  let t0 = 0;
+  let t1 = 1;
+  for (const [p, q] of [
+    [-dx, x1 - box.left],
+    [dx, box.right - x1],
+    [-dy, y1 - box.top],
+    [dy, box.bottom - y1],
+  ]) {
+    if (p === 0) {
+      if (q < 0) return false;
+    } else {
+      const r = q / p;
+      if (p < 0) t0 = Math.max(t0, r);
+      else t1 = Math.min(t1, r);
+      if (t0 > t1) return false;
+    }
+  }
+  return true;
+}
 
 const angleGap = (a, b) => {
   const d = Math.abs(a - b) % (2 * Math.PI);
@@ -156,6 +181,7 @@ export function createDiagramView({ onPickStation }) {
       edgeShape.set(edgeKey, { points: edgePoints(px(edge.a), px(edge.b)), offsets });
     }
     const lines = svgElement('g', { fill: 'none', 'stroke-width': LINE_WIDTH, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+    const segments = []; // 그린 선 토막들 [[x, y], [x, y]] (역 이름이 선을 덮지 않게 피할 때 쓴다)
     for (const route of routes) {
       const points = [];
       for (let i = 1; i < route.stations.length; i++) {
@@ -168,6 +194,7 @@ export function createDiagramView({ onPickStation }) {
         points.push(...part);
       }
       lines.append(svgElement('polyline', { points: points.map((p) => p.join(',')).join(' '), stroke: route.color }));
+      for (let i = 1; i < points.length; i++) segments.push([points[i - 1], points[i]]);
     }
     world.append(lines);
 
@@ -184,8 +211,9 @@ export function createDiagramView({ onPickStation }) {
     });
     // 이름표끼리, 이름표와 다른 역 원이 겹치지 않게 놓은 자리들 { left, top, right, bottom }
     const taken = marks.map(({ x, y, radius }) => ({ left: x - radius, top: y - radius, right: x + radius, bottom: y + radius }));
-    const overlaps = (box) =>
-      taken.some((other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top);
+    const boxesHit = (box) =>
+      taken.filter((other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top).length;
+    const linesHit = (box) => segments.filter(([p, q]) => segmentHitsBox(p, q, box)).length;
 
     const stationLayer = svgElement('g');
     world.append(stationLayer);
@@ -226,17 +254,21 @@ export function createDiagramView({ onPickStation }) {
         label.setAttribute('y', y + sin * (radius + LABEL_GAP));
         label.setAttribute('text-anchor', Math.abs(cos) < 0.1 ? 'middle' : cos > 0 ? 'start' : 'end');
         label.setAttribute('dominant-baseline', Math.abs(sin) < 0.1 ? 'central' : sin > 0 ? 'hanging' : 'alphabetic');
+        // 이름 둘레에 조금 여유를 두고 잰다 (이름끼리 딱 붙어 보이지 않게)
         const { x: left, y: top, width, height } = label.getBBox();
-        return { left, top, right: left + width, bottom: top + height };
+        return { left: left - LABEL_PAD, top: top - LABEL_PAD, right: left + width + LABEL_PAD, bottom: top + height + LABEL_PAD };
       };
-      let box = null;
+      // 트인 쪽부터 놓아 보고, 아무것도 덮지 않는 첫 자리에 둔다. 어디든 덮으면 가장 덜 덮는 자리
+      // (다른 이름·역을 덮는 것이 선을 덮는 것보다 훨씬 나쁘다)
+      let best = null;
       for (const { angle } of sides) {
-        box = place(angle);
-        if (!overlaps(box)) break;
-        box = null;
+        const box = place(angle);
+        const hits = boxesHit(box) * 100 + linesHit(box);
+        if (!best || hits < best.hits) best = { angle, box, hits };
+        if (hits === 0) break;
       }
-      // 어디에 놓아도 겹치면 가장 트인 쪽에 둔다
-      taken.push(box ?? place(sides[0].angle));
+      place(best.angle);
+      taken.push(best.box);
 
       const pick = () => {
         close();

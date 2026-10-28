@@ -263,6 +263,9 @@ export const NOTICE_LOG_SIZE = 20;
 //   첫 노선(역 6개·열차 1대): 공사비 약 450억, 하루 승객 약 1.4만, 수지 +2억/월 → 열차를 늘리면 2만
 //   노선 3개(역 30개): 승객 약 10만, 수지 +22억/월 / 역 50개·노선 8개·환승 15곳: 승객 약 28만, 수지 +76억/월
 // 역 하나 40억, 선로 1km 60억, 열차 한 대 5억이니 첫 보상들은 역 한두 개, 뒤 보상들은 노선 하나쯤을 지을 수 있다
+// 목표는 매달 정산 때 위에서부터 확인하고 못 이룬 첫 목표에서 멈추므로, 실제로 짓는 순서대로 놓는다.
+// 2026-10-28: 노선 3개쯤에서 목표 4개(노선 3·승객 5만·역 20·승객 10만, 470억)가 한꺼번에 이뤄지고
+// 그 뒤 흑자 +50억까지 한참 비어서, 사이에 환승역 3곳·흑자 +25억·노선 6개를 넣었다
 export const GOALS = [
   { kind: 'routes', value: 1, reward: 30 },
   { kind: 'riders', value: 20000, reward: 40 },
@@ -271,7 +274,10 @@ export const GOALS = [
   { kind: 'routes', value: 3, reward: 100 },
   { kind: 'riders', value: 50000, reward: 100 },
   { kind: 'stations', value: 20, reward: 120 },
+  { kind: 'transfers', value: 3, reward: 120 },
   { kind: 'riders', value: 100000, reward: 150 },
+  { kind: 'net', value: 25, reward: 150 },
+  { kind: 'routes', value: 6, reward: 200 },
   { kind: 'net', value: 50, reward: 200 },
   { kind: 'riders', value: 300000, reward: 300 },
 ];

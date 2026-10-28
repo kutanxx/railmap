@@ -53,7 +53,7 @@ const state = {
   monthsOverDebtLimit: 0,
   // 파산했는지. 파산하면 시간이 멈추고 아무것도 지을 수 없다
   bankrupt: false,
-  // 이룬 게임 목표 번호들 (config.js GOALS의 순서, game/goals.js)
+  // 이룬 게임 목표 이름들 ("routes:3", game/goals.js의 goalKey)
   achievedGoals: [],
   // 이번 판에서 정산한 달 수 (저장하지 않는다). 목표는 이 값이 바뀔 때만 확인한다 (game/goals.js)
   settledMonths: 0,

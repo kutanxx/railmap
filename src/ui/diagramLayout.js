@@ -12,9 +12,9 @@ import { DIAGRAM_ITERATIONS } from '../config.js';
 const MIN_EDGE = 1;
 const MAX_EDGE = 1.8;
 // 역끼리 이보다 가까우면 밀어낸다
-const MIN_GAP = 0.9;
+const MIN_GAP = 1.1;
 // 역이 자기가 서지 않는 선에 이보다 가까우면 밀어낸다
-const EDGE_GAP = 0.45;
+const EDGE_GAP = 0.55;
 // 원래 자리로 당기는 힘 (클수록 실제 지도와 비슷하고, 작을수록 반듯하다)
 const ANCHOR = 0.04;
 
