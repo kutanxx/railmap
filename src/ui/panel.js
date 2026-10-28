@@ -174,7 +174,7 @@ export function createPanel(
       .join(' / ');
     tagText.textContent = view.tag ? `${view.tag}역` : '';
     badges.replaceChildren(
-      ...view.routes.map((route) => routeBadge(route.color, route.number)),
+      ...view.routes.map((route) => routeBadge(route.color, route.number, 'span', route.express)),
     );
     station = { id: nextStation.id };
     stationRemoval.textContent = view.removal;

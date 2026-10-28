@@ -1,34 +1,42 @@
 // 노선 고치기: 만들기, 이름·색·열차 수 바꾸기, 역 끼워넣기·빼기, 지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
-import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
+import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
-import { routeColorFor, routeNameFor } from './routeColors.js';
+import { routeColorFor, routeNameFor, expressNameAndColor } from './routeColors.js';
+import { kindOf, trainSpec } from './routeKinds.js';
 
 // 노선 번호 (1호선이면 1). 노선 id가 "r번호"라서 이름을 바꿔도 번호는 그대로다
 export const routeNumber = (route) => Number(route.id.slice(1));
 
-// 노선을 만들 때 내는 돈: 기본 열차 값
-export function newRouteCost() {
-  return DEFAULT_TRAINS_PER_ROUTE * TRAIN_COST;
+// 노선을 만들 때 내는 돈: 기본 열차 값 (kind: 'subway' 지하철 | 'express' 광역급행, routeKinds.js)
+export function newRouteCost(kind = 'subway') {
+  return DEFAULT_TRAINS_PER_ROUTE * trainSpec(kind).trainCost;
 }
 
 // 역 id 목록 순서대로 노선을 만들고, 만든 노선을 돌려준다
 // 이름과 색은 그 도시의 실제 노선을 차례로 받는다 (서울 "1호선"·남색, 런던 "베이커루선"·갈색 …. 모자라면 "n호선"·추천 색, routeColors.js)
 // 기본 열차 값을 빚 한도 안에서 낼 수 없으면 만들지 않고 null을 돌려준다
-export function addRoute(stationIds) {
+// kind: 'subway'(지하철) | 'express'(광역급행). 광역급행은 이름·색을 광역급행 목록에서 받는다 (서울 "GTX-A")
+export function addRoute(stationIds, kind = 'subway') {
   return change(null, () => {
     const state = getState();
-    if (!canAfford(newRouteCost())) return null;
-    state.money -= newRouteCost();
+    if (!canAfford(newRouteCost(kind))) return null;
+    state.money -= newRouteCost(kind);
     const number = state.nextRouteNumber;
     state.nextRouteNumber += 1;
+    const express = kindOf(kind) === 'express';
+    const { name, color } = express
+      ? expressNameAndColor(number, new Set(state.routes.map((route) => route.name)))
+      : { name: routeNameFor(number), color: routeColorFor(number) };
     const route = {
       id: `r${number}`,
-      name: routeNameFor(number),
-      color: routeColorFor(number),
+      name,
+      color,
       stations: stationIds,
       trainCount: DEFAULT_TRAINS_PER_ROUTE,
     };
+    // 지하철은 따로 적지 않는다 (예전 저장 파일과 같은 모양)
+    if (express) route.kind = 'express';
     state.routes.push(route);
     return route;
   });
@@ -56,16 +64,35 @@ export function recolorRoute(id, color) {
   });
 }
 
-// 열차 수를 바꿀 때 내는 돈: 늘린 대수 × 열차 값 (줄이면 0, 돌려받지 않는다)
+// 열차 수를 바꿀 때 내는 돈: 늘린 대수 × 그 노선 종류의 열차 값 (줄이면 0, 돌려받지 않는다)
 export function trainPurchaseCost(route, count) {
-  return Math.max(0, count - route.trainCount) * TRAIN_COST;
+  return Math.max(0, count - route.trainCount) * trainSpec(route).trainCost;
+}
+
+// 노선 종류를 바꿀 때 내는 돈: 지금 열차들을 새 종류로 바꾸는 값 차이 (더 싼 종류로 바꾸면 0, 돌려받지 않는다)
+export function kindChangeCost(route, kind) {
+  return Math.max(0, route.trainCount * (trainSpec(kind).trainCost - trainSpec(route).trainCost));
+}
+
+// 노선 종류를 바꾼다 (지하철 ↔ 광역급행). 이름·색은 그대로 둔다. 돈이 모자라면 바꾸지 않고 null
+export function setRouteKind(id, kind) {
+  return change(null, () => {
+    const route = findRoute(id);
+    if (!route || kindOf(route) === kindOf(kind)) return null;
+    const cost = kindChangeCost(route, kind);
+    if (!canAfford(cost)) return null;
+    getState().money -= cost;
+    if (kindOf(kind) === 'express') route.kind = 'express';
+    else delete route.kind;
+    return route;
+  });
 }
 
 // 노선을 복제한다: 같은 역 순서로 새 노선을 만든다 (이름·색은 다음 차례, 기본 열차 값을 낸다)
 // 급행·완행처럼 비슷한 노선을 여러 개 만들 때 쓴다. 결과: 새 노선, 돈이 모자라면 null
 export function duplicateRoute(id) {
   const route = findRoute(id);
-  return route ? addRoute([...route.stations]) : null;
+  return route ? addRoute([...route.stations], kindOf(route)) : null;
 }
 
 // 노선의 역 순서를 바꾼다: from번째 역을 to번째 자리로 옮긴다

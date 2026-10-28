@@ -51,7 +51,8 @@ const TRACK_BODY_WIDTH = zoomWidth(2, 5.5, 15);
 // 혼잡도 보기를 켜면 혼잡도 단계(load: 'ok' | 'busy' | 'over')마다 굵기가 다르다
 const HAS_ROUTE = ['!=', ['get', 'routeColor'], null];
 const LOAD = ['get', 'load'];
-const centerWidth = ({ route, none, ok, busy, over }) => [
+// 가운데 줄 굵기: 혼잡도 보기 단계 → 광역급행이 지나는 선로(노선 색으로 더 굵게) → 노선이 지나는 선로 → 아무 노선도 없음
+const centerWidth = ({ express, route, none, ok, busy, over }) => [
   'case',
   ['==', LOAD, 'over'],
   over,
@@ -59,14 +60,16 @@ const centerWidth = ({ route, none, ok, busy, over }) => [
   busy,
   ['==', LOAD, 'ok'],
   ok,
+  ['all', HAS_ROUTE, ['get', 'express']],
+  express,
   HAS_ROUTE,
   route,
   none,
 ];
 const TRACK_CENTER_WIDTH = zoomWidth(
-  centerWidth({ route: 1.2, none: 0.5, ok: 0.8, busy: 1.4, over: 1.9 }),
-  centerWidth({ route: 2.5, none: 1, ok: 1.5, busy: 3, over: 4.6 }),
-  centerWidth({ route: 6, none: 2.5, ok: 3.5, busy: 7.5, over: 12.5 }),
+  centerWidth({ express: 2, route: 1.2, none: 0.5, ok: 0.8, busy: 1.4, over: 1.9 }),
+  centerWidth({ express: 4, route: 2.5, none: 1, ok: 1.5, busy: 3, over: 4.6 }),
+  centerWidth({ express: 9.5, route: 6, none: 2.5, ok: 3.5, busy: 7.5, over: 12.5 }),
 );
 const TRACK_CENTER_COLOR = ['coalesce', ['get', 'routeColor'], TRACK_COLORS.center];
 
@@ -177,7 +180,7 @@ export function addTrackLayers(map) {
 // lines = [{ id, coords: [[경도, 위도], …], routeColor: 노선 색 또는 null,
 //            load: 혼잡도 보기의 단계 'ok' | 'busy' | 'over' 또는 null, loadLabel: 넘친 구간에 쓸 글자 ("128%"),
 //            removing: 지우기 미리보기 'gone'(선로가 사라짐) | 'route'(지나는 노선이 사라짐) | null,
-//            planned: 계획 선로인지,
+//            planned: 계획 선로인지, express: 광역급행 노선이 지나는지 (가운데 줄을 더 굵게),
 //            tunnels: 터널 구간들 [[[경도, 위도], …], …] (없으면 빈 목록) }]
 // selectedIds = 노란색으로 강조할 선로 id들 (Set)
 export function updateTracks(map, lines, selectedIds) {
@@ -194,6 +197,7 @@ export function updateTracks(map, lines, selectedIds) {
         selected: selectedIds.has(line.id),
         removing: line.removing ?? null,
         planned: Boolean(line.planned),
+        express: Boolean(line.express),
       },
     })),
   });

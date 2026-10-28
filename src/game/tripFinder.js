@@ -2,7 +2,8 @@
 // 승객 수요 계산(demand.js)이 쓴다. 선로 길이와 달리는 시간은 한 번 계산할 때마다 선로별로 기억해 둔다.
 import { routeTracks, trackLengthKm, trackCoords } from './state.js';
 import { buildRun } from './running.js';
-import { STATION_DWELL_SECONDS, TRANSFER_MINUTES } from '../config.js';
+import { kindOf, trainSpec, isExpress } from './routeKinds.js';
+import { STATION_DWELL_SECONDS, TRANSFER_MINUTES, EXPRESS_FARE_MINUTES_PER_KM } from '../config.js';
 
 const DWELL_MINUTES = STATION_DWELL_SECONDS / 60;
 
@@ -19,11 +20,13 @@ export function trackKm(track) {
   return lengthKm.get(track.id);
 }
 
-// 선로 하나를 역에서 역까지 달리는 데 걸리는 시간 (게임 초). 한 번 계산할 때마다 선로별로 기억해 둔다
+// 선로 하나를 역에서 역까지 달리는 데 걸리는 시간 (게임 초). 열차 종류(kind: 지하철·광역급행)마다 다르다.
+// 한 번 계산할 때마다 "선로|종류"별로 기억해 둔다
 const runSeconds = new Map();
-export function trackRunSeconds(track) {
-  if (!runSeconds.has(track.id)) runSeconds.set(track.id, buildRun(trackCoords(track)).seconds);
-  return runSeconds.get(track.id);
+export function trackRunSeconds(track, kind = 'subway') {
+  const key = `${track.id}|${kindOf(kind)}`;
+  if (!runSeconds.has(key)) runSeconds.set(key, buildRun(trackCoords(track), trainSpec(kind)).seconds);
+  return runSeconds.get(key);
 }
 
 export const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) => sum + trackKm(track), 0);
@@ -31,7 +34,7 @@ export const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) =
 // 노선 하나를 왕복하는 데 걸리는 시간 (분): 달리는 시간 × 2 + 역에 서는 시간
 // (가운데 역은 오가며 두 번, 끝 역은 한 번 선다. sim.js의 배차 간격과 같은 계산)
 export function roundTripMinutes(route) {
-  const running = routeTracks(route).reduce((sum, track) => sum + trackRunSeconds(track), 0) / 60;
+  const running = routeTracks(route).reduce((sum, track) => sum + trackRunSeconds(track, kindOf(route)), 0) / 60;
   return 2 * running + (2 * route.stations.length - 2) * DWELL_MINUTES;
 }
 
@@ -86,7 +89,9 @@ export function buildGraph(routes) {
     // 이웃한 역 사이: 달리는 시간 + 다음 역에 서는 시간, 탄 거리는 선로 길이
     routeTracks(route).forEach((track, i) => {
       const km = trackKm(track);
-      const minutes = trackRunSeconds(track) / 60 + DWELL_MINUTES;
+      // 광역급행은 비싼 요금을 탄 거리만큼 시간처럼 더 친다 (EXPRESS_FARE_MINUTES_PER_KM)
+      const fareMinutes = isExpress(route) ? km * EXPRESS_FARE_MINUTES_PER_KM : 0;
+      const minutes = trackRunSeconds(track, kindOf(route)) / 60 + DWELL_MINUTES + fareMinutes;
       const a = nodeOf(route.stations[i], route.id);
       const b = nodeOf(route.stations[i + 1], route.id);
       connect(a, b, minutes, km);

@@ -108,6 +108,7 @@ export function createSidePanels({ ui, select, render, notice, routeTool, delete
     panel.show(card);
     const routeView = routePanelView({
       mode,
+      draftKind: ui.newRouteKind,
       selected: ui.selected,
       draft: routeTool.getDraft(),
       routes,

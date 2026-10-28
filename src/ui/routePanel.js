@@ -1,7 +1,8 @@
 // 오른쪽 노선 패널: 한 번에 하나만 보여준다 — 새 노선 만들기 안내('draft'), 고른 노선 정보('detail'), 노선 목록('list').
 // 노선 정보 맨 위의 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose). 목록의 [▸]는 패널을 접는다 (onFold).
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
-import { MAX_TRAINS_PER_ROUTE, TRAIN_COST } from '../config.js';
+import { MAX_TRAINS_PER_ROUTE } from '../config.js';
+import { ROUTE_KINDS, trainSpec } from '../game/routeKinds.js';
 import { colorChoices } from '../game/routeColors.js';
 import { bindNameInput } from './nameInput.js';
 import { formatMoney, formatSignedMoney, formatPopulation, formatPeopleShort } from './format.js';
@@ -23,6 +24,8 @@ export function createRoutePanel(
     onToggleInsert,
     onFinishDraft,
     onCancelDraft,
+    onSetDraftKind,
+    onSetKind,
     onClose,
     onFold,
   },
@@ -31,6 +34,8 @@ export function createRoutePanel(
     <section class="route-draft">
       <div class="panel-title" role="heading" aria-level="2">새 노선 만들기</div>
       <p class="route-hint"></p>
+      <div class="route-kind route-draft-kind" role="group" aria-label="노선 종류"></div>
+      <p class="route-kind-note route-draft-kind-note"></p>
       <div class="route-sequence"></div>
       <p class="route-message"></p>
       <div class="route-draft-buttons">
@@ -57,6 +62,11 @@ export function createRoutePanel(
       <div class="panel-field">
         <span>색</span>
         <div class="route-swatches"></div>
+      </div>
+      <div class="panel-field">
+        <span>종류</span>
+        <div class="route-kind route-detail-kind" role="group" aria-label="노선 종류"></div>
+        <p class="route-kind-note route-detail-kind-note"></p>
       </div>
       <div class="panel-field">
         <span>열차 수</span>
@@ -105,7 +115,7 @@ export function createRoutePanel(
   const revenueText = element.querySelector('.route-revenue');
   const ridersText = element.querySelector('.route-riders');
   const loadText = element.querySelector('.route-load');
-  element.querySelector('.route-trains-price').textContent = `1대 ${formatMoney(TRAIN_COST)}`;
+  const trainPrice = element.querySelector('.route-trains-price');
   const avgKmText = element.querySelector('.route-avg-km');
   const stopList = element.querySelector('.route-stops');
   const insertButton = element.querySelector('.route-insert');
@@ -117,6 +127,27 @@ export function createRoutePanel(
     load: element.querySelector('.readout-load'),
     headway: element.querySelector('.readout-headway'),
     trains: element.querySelector('.readout-trains'),
+  };
+
+  // 노선 종류 버튼 [지하철][광역급행]: 새 노선 만들기와 노선 정보에 하나씩 (game/routeKinds.js)
+  const kindButtons = (group, onPick) =>
+    ROUTE_KINDS.map((kind) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = trainSpec(kind).label;
+      button.dataset.kind = kind;
+      button.addEventListener('click', () => onPick(kind));
+      group.append(button);
+      return button;
+    });
+  const draftKindButtons = kindButtons(element.querySelector('.route-draft-kind'), (kind) => onSetDraftKind(kind));
+  const detailKindButtons = kindButtons(element.querySelector('.route-detail-kind'), (kind) => {
+    if (routeId) onSetKind(routeId, kind);
+  });
+  const draftKindNote = element.querySelector('.route-draft-kind-note');
+  const detailKindNote = element.querySelector('.route-detail-kind-note');
+  const pressKind = (buttons, kind) => {
+    for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.kind === kind));
   };
 
   const trainCountText = element.querySelector('.route-trains-count');
@@ -170,12 +201,14 @@ export function createRoutePanel(
   // view = {
   //   mode: 'draft' | 'detail' | 'list' | null (숨김),
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
+  //   draftKind: 새로 만들 노선의 종류 ('subway' | 'express'),
   //   routes: [{ id, name, color, lengthKm, revenue, riders, load }],
-  //   selected: { id, name, color, lengthKm, stops: [{ id, name }], trainCount, revenue, riders, avgKm, load, lost, headwayMinutes } 또는 null,
+  //   selected: { id, name, color, kind, kindChangeCost: 다른 종류로 바꾸는 값, lengthKm, stops: [{ id, name }], trainCount,
+  //               revenue, riders, avgKm, load, lost, headwayMinutes } 또는 null,
   //   (load: 혼잡도, 1 = 100%. lost: 자리가 없어 놓친 하루 승객)
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
   // }
-  function show({ mode, draft, routes, selected, inserting, message }) {
+  function show({ mode, draft, draftKind, routes, selected, inserting, message }) {
     const showDraft = mode === 'draft';
     draftSection.hidden = !showDraft;
     detailSection.hidden = mode !== 'detail';
@@ -186,6 +219,8 @@ export function createRoutePanel(
       hintText.textContent = draft
         ? '이어서 다음 역을 누르세요. 앞 역과 선로로 이어져 있어야 해요.'
         : '노선의 첫 역을 누르세요.';
+      pressKind(draftKindButtons, draftKind);
+      draftKindNote.textContent = kindNote(draftKind);
       sequenceText.textContent = draft ? draft.stationNames.join(' → ') : '';
       messageText.textContent = draft?.message ?? '';
     }
@@ -197,6 +232,13 @@ export function createRoutePanel(
         button.classList.toggle('active', button.dataset.color === selected.color);
       }
       trainCount = selected.trainCount;
+      pressKind(detailKindButtons, selected.kind);
+      const other = selected.kind === 'express' ? 'subway' : 'express';
+      detailKindNote.textContent =
+        selected.kindChangeCost > 0
+          ? `${other === 'express' ? '광역급행으로' : '지하철로'} 바꾸면 열차 ${trainCount}대 값 차이 ${formatMoney(selected.kindChangeCost)}`
+          : kindNote(selected.kind);
+      trainPrice.textContent = `1대 ${formatMoney(trainSpec(selected.kind).trainCost)}`;
       removalText.textContent = `지우면 열차 ${trainCount}대도 함께 사라져요 (열차 값은 돌려받지 않아요). 선로와 역은 남아요.`;
       trainCountText.textContent = `${trainCount}대`;
       minusButton.disabled = trainCount <= 0;
@@ -217,6 +259,13 @@ export function createRoutePanel(
     }
 
     if (mode === 'list') renderRouteList(list, routes, onSelect);
+  }
+
+  // 노선 종류 한 줄 설명: 열차 값 · 최고 속도 · 정원 (광역급행은 요금과 역 간격 안내도)
+  function kindNote(kind) {
+    const spec = trainSpec(kind);
+    const base = `열차 1대 ${formatMoney(spec.trainCost)} · 최고 ${spec.speedKmh}km/h · 정원 ${spec.capacity.toLocaleString()}명`;
+    return kind === 'express' ? `${base} · 요금 ${spec.fareRatio}배. 역 사이가 멀수록 빨라요` : base;
   }
 
   // 판독값 줄. 열차가 없으면 승객·혼잡·배차는 "-"

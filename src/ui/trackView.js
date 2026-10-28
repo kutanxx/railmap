@@ -9,6 +9,7 @@ import { updateTracks, LOAD_COLORS } from '../map/trackLayers.js';
 import { getState, findStation, routeTracks } from '../game/state.js';
 import { removalPreview } from '../game/build.js';
 import { getEconomy } from '../game/demand.js';
+import { isExpress } from '../game/routeKinds.js';
 import { routeColors, highlightedTracks } from './views.js';
 import { hasTerrain } from '../game/terrain.js';
 import { trackProfile } from '../game/trackProfile.js';
@@ -49,6 +50,10 @@ export function drawTracks(map, ui, shownCoord) {
     for (const id of tunnelCache.keys()) if (!ids.has(id)) tunnelCache.delete(id);
   }
   const { trackColor } = routeColors(routes);
+  // 광역급행 노선이 지나는 선로 (가운데 줄을 더 굵게 그린다)
+  const expressTracks = new Set(
+    routes.filter(isExpress).flatMap((route) => routeTracks(route).filter(Boolean).map((track) => track.id)),
+  );
   // 혼잡도 보기를 켜면 가운데 줄을 노선 색 대신 구간 혼잡도 단계로 (열차가 다니지 않는 선로는 칠하지 않는다)
   const { trackLoad } = getEconomy();
   const loadLevel = (track) => {
@@ -92,6 +97,7 @@ export function drawTracks(map, ui, shownCoord) {
         loadLabel: level === 'over' ? `${Math.round(trackLoad.get(track.id) * 100)}%` : '',
         removing: removing.get(track.id) ?? null,
         planned: Boolean(track.planned),
+        express: expressTracks.has(track.id),
         tunnels: hasTerrain() && !track.planned ? tunnelsOf(track.id, coords) : [],
       };
     }),

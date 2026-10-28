@@ -48,6 +48,38 @@
   color: #ffffff;
 }
 
+/* 노선 종류 [지하철][광역급행]: 고른 쪽만 남색으로 채운다 (새 노선 만들기, 노선 정보) */
+.route-kind {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.route-kind button {
+  flex: 1;
+  padding: 6px;
+  border: 2px solid var(--navy);
+  border-radius: 5px;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.route-kind button[aria-pressed='true'] {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.route-kind-note {
+  margin: 6px 0 8px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+
 /* 색 견본: 도시의 실제 노선 색 + 추천 색이라 많을 때는 여러 줄로 (마우스를 올리면 노선 이름) */
 .route-swatches {
   display: flex;
@@ -123,6 +155,11 @@
   color: #ffffff;
   font-size: var(--text-small);
   font-weight: 700;
+}
+
+/* 광역급행 노선 번호 배지: 동그라미 대신 모서리가 둥근 네모 (routeBadge.js) */
+.route-item-dot-express {
+  border-radius: 5px;
 }
 
 /* 이름 칸: 이름은 다 보이게, "혼잡"은 한 덩어리로 (한 글자씩 꺾이지 않게) */

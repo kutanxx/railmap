@@ -18,7 +18,7 @@ export function renderRouteList(list, routes, onSelect) {
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'route-item';
-      const dot = routeBadge(route.color, route.number);
+      const dot = routeBadge(route.color, route.number, 'span', route.express);
       // 이름 칸: 이름 + 넘치면 빨간 "혼잡" (이름이 길면 숫자가 다음 줄로 내려간다)
       const name = document.createElement('span');
       name.className = 'route-item-name';

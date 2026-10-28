@@ -108,3 +108,24 @@ export const LINE_COLORS = {
     { name: '14호선', color: '#640082' },
   ],
 };
+
+// 광역급행 노선(노선 종류 [광역급행], game/routeKinds.js)의 실제 이름과 색. 광역급행 노선이 이 순서대로 받고,
+// 모자라거나 목록이 없는 도시는 "급행 n호선"과 추천 색으로 이어 간다 (game/routeColors.js)
+// - 서울: GTX(수도권 광역급행철도) A·B·C. 색은 공식 색을 확인하지 못해 다른 서울 노선과 구별되게 게임에서 고른 색이다
+// - 런던: 엘리자베스선(크로스레일) — 위 지하철 목록에도 있어서, 이미 쓴 이름이면 건너뛴다
+// - 파리: RER A~E. 색은 널리 쓰이는 RER 노선색 (공식 자료와 다시 맞춰 볼 것)
+export const EXPRESS_LINE_COLORS = {
+  seoul: [
+    { name: 'GTX-A', color: '#9A6292' },
+    { name: 'GTX-B', color: '#1E4F9C' },
+    { name: 'GTX-C', color: '#3C8C5A' },
+  ],
+  london: [{ name: '엘리자베스선', color: '#6950A1' }],
+  paris: [
+    { name: 'RER A', color: '#E3051C' },
+    { name: 'RER B', color: '#5291CE' },
+    { name: 'RER C', color: '#FFCE00' },
+    { name: 'RER D', color: '#00814F' },
+    { name: 'RER E', color: '#C04191' },
+  ],
+};

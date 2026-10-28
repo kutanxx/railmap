@@ -10,7 +10,10 @@ import {
   moveRouteStop,
   newRouteCost,
   trainPurchaseCost,
+  setRouteKind,
+  kindChangeCost,
 } from '../game/routes.js';
+import { kindOf } from '../game/routeKinds.js';
 import { createRoutePanel } from './routePanel.js';
 import { shortfall } from './costText.js';
 import { FINGER } from '../map/hitPad.js';
@@ -42,7 +45,8 @@ export function createRouteControls(
     onDuplicate: (id) => {
       const copy = duplicateRoute(id);
       if (!copy) {
-        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
+        const route = getState().routes.find((r) => r.id === id);
+        notice(`${shortfall(newRouteCost(kindOf(route)))} (열차 값)`, 'bad');
         return;
       }
       select({ type: 'route', id: copy.id });
@@ -68,5 +72,16 @@ export function createRouteControls(
     },
     onFinishDraft: () => routeTool.finish(),
     onCancelDraft: () => routeTool.cancel(),
+    // 새로 만들 노선의 종류 [지하철][광역급행] (만들기 전에 고른다)
+    onSetDraftKind: (kind) => {
+      ui.newRouteKind = kind;
+      render();
+    },
+    // 노선 종류 바꾸기: 더 비싼 열차로 바꾸면 값 차이를 낸다
+    onSetKind: (id, kind) => {
+      const route = getState().routes.find((r) => r.id === id);
+      if (kindOf(route) === kindOf(kind)) return;
+      if (!setRouteKind(id, kind)) notice(shortfall(kindChangeCost(route, kind)), 'bad');
+    },
   });
 }

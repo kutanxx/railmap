@@ -4,6 +4,7 @@
 import { bbox } from '@turf/turf';
 import { getState, routeCoords } from '../game/state.js';
 import { routeNumber } from '../game/routes.js';
+import { isExpress } from '../game/routeKinds.js';
 import { routeBadge } from './routeBadge.js';
 
 // 한 번에 보여줄 결과 수
@@ -30,7 +31,7 @@ export function createSearch({ map, select, render }) {
     if (!text) return [];
     const { stations, routes } = getState();
     const items = [
-      ...routes.map((route) => ({ type: 'route', id: route.id, name: route.name, color: route.color, number: routeNumber(route) })),
+      ...routes.map((route) => ({ type: 'route', id: route.id, name: route.name, color: route.color, number: routeNumber(route), express: isExpress(route) })),
       ...stations.map((station) => ({ type: 'station', id: station.id, name: station.name })),
     ].filter((item) => item.name.toLowerCase().includes(text));
     items.sort((a, b) => a.name.toLowerCase().indexOf(text) - b.name.toLowerCase().indexOf(text));
@@ -54,7 +55,7 @@ export function createSearch({ map, select, render }) {
         row.className = `search-item${index === active ? ' active' : ''}`;
         row.setAttribute('role', 'option');
         if (item.type === 'route') {
-          row.append(routeBadge(item.color, item.number));
+          row.append(routeBadge(item.color, item.number, 'span', item.express));
         } else {
           const dot = document.createElement('span');
           dot.className = 'search-station-dot';

@@ -1,11 +1,11 @@
-// 역 사이 한 구간을 달리는 모습: 출발하면 TRAIN_ACCELERATION으로 빨라지고, 도착 전에 같은 만큼 느려지며,
+// 역 사이 한 구간을 달리는 모습: 출발하면 열차의 가속도로 빨라지고, 도착 전에 같은 만큼 느려지며,
+// 최고 속도·가속도는 노선 종류(지하철·광역급행, routeKinds.js)마다 다르다.
 // 선로가 많이 꺾이는 곳 앞뒤와 가파른 경사(땅 높이가 있는 가상 지도, trackProfile.js)에서는 제한 속도까지 줄인다. 열차 움직임(sim.js)과 소요 시간 계산(demand.js)이 함께 쓴다.
 // 구간을 RUN_STEP_M마다 나눠 각 자리의 속도를 정하고(앞에서 가속, 뒤에서 감속), 자리마다 걸린 시간을 쌓아 둔다.
 // 가속과 감속이 같아서 거꾸로 달리는 모습은 앞으로 달리는 모습을 뒤집은 것과 같다.
 import { distance, bearing } from '@turf/turf';
 import {
   TRAIN_SPEED_KMH,
-  TRAIN_ACCELERATION,
   GENTLE_CURVE_ANGLE,
   SHARP_CURVE_ANGLE,
   SHARP_CURVE_SPEED_KMH,
@@ -16,15 +16,17 @@ import {
   SPEED_RATIO_AT_MAX_GRADE,
 } from '../config.js';
 import { trackProfile } from './trackProfile.js';
+import { trainSpec } from './routeKinds.js';
 
 // 몇 미터마다 속도를 정할지 (작을수록 매끄럽지만 계산이 늘어난다)
 const RUN_STEP_M = 10;
-const CRUISE = TRAIN_SPEED_KMH / 3.6; // m/s
 
-// coords: 출발역에서 도착역까지 [경도, 위도] 점들
+// coords: 출발역에서 도착역까지 [경도, 위도] 점들, spec: 열차 성능 (routeKinds.js의 trainSpec, 없으면 지하철)
 // 결과: { km: 구간 길이, seconds: 달리는 데 걸리는 시간(게임 초),
 //         positionAt(t): 출발 t초 뒤 출발역에서 간 거리(km), timeAt(km): 그 거리까지 걸린 시간(초) }
-export function buildRun(coords) {
+export function buildRun(coords, spec = trainSpec('subway')) {
+  const cruise = spec.speedKmh / 3.6; // m/s
+  const acceleration = spec.acceleration;
   // 점마다 출발역에서의 거리(m)와, 그 점에서 꺾이는 각도에 따른 제한 속도
   const along = [0];
   for (let i = 1; i < coords.length; i++) {
@@ -52,18 +54,18 @@ export function buildRun(coords) {
   // 자리마다 낼 수 있는 가장 빠른 속도: 달리는 속도, 꺾이는 곳 근처면 제한 속도, 가파르면 경사 제한 속도
   const speed = [];
   for (let i = 0; i <= steps; i++) {
-    let v = CRUISE * gradeSpeedRatio(profile.gradeAt((i * step) / 1000));
+    let v = cruise * gradeSpeedRatio(profile.gradeAt((i * step) / 1000));
     for (const limit of limits) if (Math.abs(i * step - limit.at) <= CURVE_ZONE_M) v = Math.min(v, limit.speed);
     speed.push(v);
   }
   // 앞에서부터: 서 있다가 가속, 뒤에서부터: 도착역에 서도록 감속 (v² = v₀² + 2as)
   speed[0] = 0;
   for (let i = 1; i <= steps; i++) {
-    speed[i] = Math.min(speed[i], Math.sqrt(speed[i - 1] ** 2 + 2 * TRAIN_ACCELERATION * step));
+    speed[i] = Math.min(speed[i], Math.sqrt(speed[i - 1] ** 2 + 2 * acceleration * step));
   }
   speed[steps] = 0;
   for (let i = steps - 1; i >= 0; i--) {
-    speed[i] = Math.min(speed[i], Math.sqrt(speed[i + 1] ** 2 + 2 * TRAIN_ACCELERATION * step));
+    speed[i] = Math.min(speed[i], Math.sqrt(speed[i + 1] ** 2 + 2 * acceleration * step));
   }
   // 자리마다 거기까지 걸린 시간 (한 칸은 두 끝 속도의 평균으로 달린다고 본다)
   const time = [0];
@@ -113,10 +115,12 @@ function turnAngle(a, b, c) {
   return difference > 180 ? 360 - difference : difference;
 }
 
-// 꺾이는 각도에 따른 제한 속도 (m/s): GENTLE_CURVE_ANGLE까지는 그대로, SHARP_CURVE_ANGLE 이상이면
-// SHARP_CURVE_SPEED_KMH, 그 사이는 비례로 줄인다
+// 꺾이는 각도에 따른 제한 속도 (m/s): GENTLE_CURVE_ANGLE을 넘으면 지하철 최고 속도(TRAIN_SPEED_KMH)에서 시작해
+// SHARP_CURVE_ANGLE 이상이면 SHARP_CURVE_SPEED_KMH까지 비례로 줄인다.
+// 휘는 곳의 제한은 선로 모양으로 정해지므로 어느 열차든 같다 (광역급행도 휘는 곳에서는 지하철만큼 느려진다)
 function curveSpeed(turn) {
+  const top = TRAIN_SPEED_KMH / 3.6;
   const sharp = SHARP_CURVE_SPEED_KMH / 3.6;
   const ratio = Math.min(1, (turn - GENTLE_CURVE_ANGLE) / (SHARP_CURVE_ANGLE - GENTLE_CURVE_ANGLE));
-  return CRUISE - (CRUISE - sharp) * ratio;
+  return top - (top - sharp) * ratio;
 }

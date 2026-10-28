@@ -14,7 +14,8 @@ import { getEconomy } from '../game/demand.js';
 import { removalPreview, plannedTrackCost, allPlannedCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
-import { routeNumber } from '../game/routes.js';
+import { routeNumber, kindChangeCost } from '../game/routes.js';
+import { kindOf, isExpress } from '../game/routeKinds.js';
 import { routeHeadway } from '../game/sim.js';
 import { formatPopulation } from './format.js';
 import { FINGER } from '../map/hitPad.js';
@@ -44,7 +45,7 @@ export function infoPanelView(selected, shapes) {
       tag: shapes.get(station.id)?.tag ?? '',
       routes: routes
         .filter((route) => route.stations.includes(station.id))
-        .map((route) => ({ number: routeNumber(route), color: route.color })),
+        .map((route) => ({ number: routeNumber(route), color: route.color, express: isExpress(route) })),
       maxLoad: loads.length > 0 ? Math.max(...loads) : null,
       sharedPopulation: shared,
       // 이어진 고속철도역들 [{ name, people }] (game/intercity.js)
@@ -117,7 +118,7 @@ export function profilePanelView(selected) {
 
 // 노선 패널 (새 노선 안내, 고른 노선, 노선 목록)
 // mode: 'draft' | 'detail' | 'list' | null (app.js가 오른쪽에 무엇을 보여줄지 정한다)
-export function routePanelView({ mode, selected, draft, routes, inserting, message }) {
+export function routePanelView({ mode, selected, draft, draftKind, routes, inserting, message }) {
   const route = selected?.type === 'route' ? findRoute(selected.id) : null;
   const { routeRevenue, routeRiders, routeAvgKm, routeLoad, routeLost } = getEconomy();
   return {
@@ -125,11 +126,13 @@ export function routePanelView({ mode, selected, draft, routes, inserting, messa
     inserting,
     message,
     draft: draft && { stationNames: stationNames(draft.stations), message: draft.message },
+    draftKind,
     routes: routes.map((r) => ({
       id: r.id,
       name: r.name,
       color: r.color,
       number: routeNumber(r),
+      express: isExpress(r),
       lengthKm: routeLengthKm(r),
       revenue: routeRevenue.get(r.id) ?? 0,
       riders: routeRiders.get(r.id) ?? 0,
@@ -140,6 +143,9 @@ export function routePanelView({ mode, selected, draft, routes, inserting, messa
       name: route.name,
       color: route.color,
       number: routeNumber(route),
+      kind: kindOf(route),
+      // 다른 종류로 바꾸는 값 (광역급행 → 지하철은 0)
+      kindChangeCost: kindChangeCost(route, isExpress(route) ? 'subway' : 'express'),
       lengthKm: routeLengthKm(route),
       stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,

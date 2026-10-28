@@ -7,7 +7,8 @@ import { distance } from '@turf/turf';
 import { getState, routeCoords, routeTracks, trackLengthKm, settleMonth } from './state.js';
 import { getEconomy } from './demand.js';
 import { buildRun } from './running.js';
-import { STATION_DWELL_SECONDS, TIME_SCALE, SECONDS_PER_MONTH, TRAIN_SPEED_KMH } from '../config.js';
+import { STATION_DWELL_SECONDS, TIME_SCALE, SECONDS_PER_MONTH } from '../config.js';
+import { trainSpec, isExpress } from './routeKinds.js';
 const EPSILON = 1e-6; // 아주 작은 거리(km). "역에 딱 서 있음"을 판단할 때 쓴다
 // 배차 간격을 이 비율만큼만 지나도 출발한다 (열차가 한 대일 때 계산 오차로 괜히 기다리지 않게)
 const HOLD_TOLERANCE = 0.95;
@@ -81,18 +82,19 @@ export function stepSimulation(seconds) {
 }
 
 // 지도에 그릴 열차 모양: 노선을 따라 휘는 짧은 선 (캡슐)
-// lengthKm: 그릴 열차 길이 (멀리서 볼 때는 화면에서 보이게 실제보다 길게 넘겨준다, ui/animation.js)
-export function trainFeatures(lengthKm) {
+// shownLengthKm(lengthM): 실제 열차 길이(m, 노선 종류마다 다르다)를 받아 그릴 길이(km)를 돌려준다
+// (멀리서 볼 때는 화면에서 보이게 실제보다 길게, ui/animation.js)
+export function trainFeatures(shownLengthKm) {
   const features = [];
   for (const train of getState().trains) {
     const path = paths.get(train.routeId);
-    const half = Math.min(lengthKm, path.length) / 2;
+    const half = Math.min(shownLengthKm(path.trainLengthM), path.length) / 2;
     // 열차가 노선 끝을 넘어가 보이지 않게 가운데 위치를 안쪽으로 당긴다
     const center = Math.max(half, Math.min(path.length - half, train.distance));
     features.push({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: slicePath(path, center - half, center + half) },
-      properties: { id: train.id, routeColor: path.color },
+      properties: { id: train.id, routeColor: path.color, express: path.express },
     });
   }
   return features;
@@ -106,9 +108,9 @@ export function routeHeadway(routeId) {
 // 열차마다 지금 자리와 빠르기 (효과음용: 레일 덜컹 소리, ui/railClack.js)
 // 결과: [{ coord: [경도, 위도], speedRatio: 최고 속도 대비 0~1 (서 있으면 0) }]
 export function trainMotion() {
-  const cruise = TRAIN_SPEED_KMH / 3.6; // m/s
   return getState().trains.map((train) => {
     const path = paths.get(train.routeId);
+    const cruise = path.cruise; // m/s
     let speedRatio = 0;
     if (train.leg !== null && train.dwell <= 0) {
       // 앞뒤 0.5초(게임 시간) 동안 간 거리로 빠르기를 잰다
@@ -135,10 +137,14 @@ function buildPath(route) {
   for (const track of routeTracks(route)) {
     stops.push(stops[stops.length - 1] + trackLengthKm(track));
   }
+  const spec = trainSpec(route); // 노선 종류(지하철·광역급행)마다 열차 성능
   const path = { coords, cumulative, length: cumulative[cumulative.length - 1], stops, color: route.color };
+  path.cruise = spec.speedKmh / 3.6; // 최고 속도 (m/s)
+  path.trainLengthM = spec.lengthM;
+  path.express = isExpress(route);
   path.stationIds = [...route.stations]; // stops[i] 자리의 역 id
   // 역 사이 구간마다 달리는 모습
-  path.runs = stops.slice(1).map((end, i) => buildRun(slicePath(path, stops[i], end)));
+  path.runs = stops.slice(1).map((end, i) => buildRun(slicePath(path, stops[i], end), spec));
   // 왕복 한 바퀴 = 달리는 시간 × 2 + 역에 서는 시간 (가운데 역은 오가며 두 번, 끝 역은 한 번)
   const runSeconds = path.runs.reduce((sum, run) => sum + run.seconds, 0);
   const roundTrip = 2 * runSeconds + (2 * stops.length - 2) * STATION_DWELL_SECONDS;

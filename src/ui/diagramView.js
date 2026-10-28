@@ -11,6 +11,7 @@ import { saveDiagramPng } from './diagramExport.js';
 import { svgElement, cssColor } from './svg.js';
 import { getRegion } from '../game/region.js';
 import { routeNumber } from '../game/routes.js';
+import { isExpress } from '../game/routeKinds.js';
 import { routeBadge } from './routeBadge.js';
 import { diagramPositions, edgePoints, offsetPolyline } from './diagramLayout.js';
 
@@ -290,7 +291,7 @@ export function createDiagramView({ onPickStation }) {
       ...routes.map((route) => {
         const item = document.createElement('span');
         item.className = 'diagram-legend-item';
-        item.append(routeBadge(route.color, routeNumber(route)), route.name);
+        item.append(routeBadge(route.color, routeNumber(route), 'span', isExpress(route)), route.name);
         return item;
       }),
     );

@@ -1,6 +1,7 @@
 // 승객 수요와 수입 계산 (중력 모델).
 // 두 역 사이 하루 승객 = RIDERS_FACTOR × (인구 A ÷ 1000) × (인구 B ÷ 1000) ÷ 소요 시간^DEMAND_TIME_POWER
 // 월 수입 = 하루 승객 × 요금(fareWon, 나라마다 방식이 다르다) × 한 달 날수
+//          광역급행(routeKinds.js)을 탄 거리만큼은 요금이 fareRatio배 (더 받은 몫은 그 광역급행 노선이 갖는다)
 // 소요 시간(분) = 처음 타는 열차 기다리는 시간 + 타고 가는 시간 (+ 갈아타기)
 // 타고 가는 시간은 열차가 실제로 달리는 모습(가속·감속·꺾이는 곳 감속, running.js)으로 잰다
 // 열차가 많을수록 기다리는 시간이 줄어서 수요가 늘어난다. 열차가 0대인 노선은 승객을 나르지 않는다.
@@ -16,6 +17,7 @@ import { getState, routeTracks, builtTracks } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
 import { intercityLinks } from './intercity.js';
+import { trainSpec, isExpress } from './routeKinds.js';
 import {
   clearTrackMemory,
   trackKm,
@@ -29,7 +31,6 @@ import {
   DEMAND_TIME_POWER,
   DAYS_PER_MONTH,
   MIN_TRIP_MINUTES,
-  TRAIN_CAPACITY,
   PEAK_HOUR_SHARE,
 } from '../config.js';
 
@@ -133,12 +134,18 @@ export function updateEconomy() {
   const routeKm = zeros(routes); // 노선별 (승객 × 그 노선에서 탄 거리) 합. 평균 거리를 구할 때 쓴다
   const stationRiders = zeros(stations);
   const coordOf = new Map(stations.map((station) => [station.id, station.coord])); // 구역제 요금에 쓴다
+  const express = new Set(routes.filter(isExpress).map((route) => route.id));
+  const expressExtra = trainSpec('express').fareRatio - 1; // 광역급행 거리만큼 더 받는 비율
   for (const { origin, destination, riders: wanted, km, routeKm: kmByRoute, share, routeCount } of journeys) {
     const worstLoad = Math.max(1, ...[...kmByRoute.keys()].map((id) => routeLoad.get(id)));
     const riders = wanted / worstLoad;
     const fare = fareWon(km, coordOf.get(origin), coordOf.get(destination));
     const monthly = (riders * fare * DAYS_PER_MONTH) / WON_PER_EOK;
-    revenue += monthly;
+    // 광역급행을 탄 거리 비율만큼 더 받는 요금 (월, 억)
+    let expressKm = 0;
+    for (const [routeId, routeDistance] of kmByRoute) if (express.has(routeId)) expressKm += routeDistance;
+    const extra = km > 0 ? monthly * expressExtra * Math.min(1, expressKm / km) : 0;
+    revenue += monthly + extra;
     dailyRiders += riders;
     // 두 역 모두 이 승객들이 타고 내린다
     stationRiders.set(origin, stationRiders.get(origin) + riders);
@@ -147,7 +154,9 @@ export function updateEconomy() {
     // (같은 구간을 함께 다니는 노선들은 그 몫(share)을 나눠 가진다)
     for (const [routeId, routeDistance] of kmByRoute) {
       const part = share.get(routeId);
-      routeRevenue.set(routeId, routeRevenue.get(routeId) + (monthly * part) / routeCount);
+      // 더 받은 요금은 광역급행 노선들이 탄 거리 비율로 갖는다
+      const extraPart = express.has(routeId) && expressKm > 0 ? (extra * routeDistance) / expressKm : 0;
+      routeRevenue.set(routeId, routeRevenue.get(routeId) + (monthly * part) / routeCount + extraPart);
       routeRiders.set(routeId, routeRiders.get(routeId) + riders * part);
       routeLost.set(routeId, routeLost.get(routeId) + (wanted - riders) * part);
       routeKm.set(routeId, routeKm.get(routeId) + riders * routeDistance);
@@ -161,8 +170,9 @@ export function updateEconomy() {
 
   // 운영비는 지은 선로만 (계획 선로는 돈이 들지 않는다)
   const builtKm = builtTracks().reduce((sum, track) => sum + trackKm(track), 0);
-  const trainCount = routes.reduce((sum, route) => sum + route.trainCount, 0);
-  const opex = monthlyOpex(stations.length, builtKm, trainCount);
+  // 열차 운영비는 노선 종류(지하철·광역급행)마다 열차 한 대 값이 다르다
+  const trainOpex = routes.reduce((sum, route) => sum + route.trainCount * trainSpec(route).opexPerTrain, 0);
+  const opex = monthlyOpex(stations.length, builtKm, trainOpex);
   economy = {
     revenue,
     opex,
@@ -244,8 +254,8 @@ function spreadOverSharers(trip, sharers, riders, segmentWanted) {
 }
 
 // 노선이 한 시간에 나를 수 있는 양 (사람 × km)
-// = 열차 대수 × 열차 한 대의 한 시간 편도 운행 횟수 × 정원 × 노선 길이
+// = 열차 대수 × 열차 한 대의 한 시간 편도 운행 횟수 × 정원(노선 종류마다 다르다) × 노선 길이
 function hourlyCapacityKm(route) {
   const oneWayRunsPerTrain = (60 / roundTripMinutes(route)) * 2;
-  return route.trainCount * oneWayRunsPerTrain * TRAIN_CAPACITY * routeLengthKm(route);
+  return route.trainCount * oneWayRunsPerTrain * trainSpec(route).capacity * routeLengthKm(route);
 }

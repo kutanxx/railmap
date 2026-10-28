@@ -22,7 +22,7 @@ export function createRouteStrip(element, { onUnfold, onSelect }) {
     shownKey = key;
     list.replaceChildren(
       ...routes.map((route) => {
-        const badge = routeBadge(route.color, route.number, 'button');
+        const badge = routeBadge(route.color, route.number, 'button', route.express);
         badge.classList.add('route-strip-badge');
         badge.title = route.name;
         badge.addEventListener('click', () => onSelect(route.id));

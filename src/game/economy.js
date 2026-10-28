@@ -6,7 +6,6 @@ import {
   STATION_COST,
   STATION_MOVE_COST_RATIO,
   OPEX_PER_TRACK_KM,
-  OPEX_PER_TRAIN,
   OPEX_PER_STATION,
   FARES,
 } from '../config.js';
@@ -33,13 +32,10 @@ export function trackCostForCoords(coords) {
   return { km, bridgeKm, tunnelKm, cost: base * getRegion().trackCostScale };
 }
 
-// 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 × 지도의 선로 공사비 배율 + 열차 대수 × 열차당 운영비
-export function monthlyOpex(stationCount, totalTrackKm, totalTrains) {
-  return (
-    stationCount * OPEX_PER_STATION +
-    totalTrackKm * OPEX_PER_TRACK_KM * getRegion().trackCostScale +
-    totalTrains * OPEX_PER_TRAIN
-  );
+// 매달 운영비 = 역 개수 × 역 유지비 + 선로 km × km당 운영비 × 지도의 선로 공사비 배율 + 열차 운영비
+// trainOpex: 열차 운영비 합 (노선마다 열차 대수 × 그 종류의 열차당 운영비, demand.js가 더해 넘긴다)
+export function monthlyOpex(stationCount, totalTrackKm, trainOpex) {
+  return stationCount * OPEX_PER_STATION + totalTrackKm * OPEX_PER_TRACK_KM * getRegion().trackCostScale + trainOpex;
 }
 
 // 승객 한 명의 요금 (원). 나라마다 매기는 방식이 다르다 (config.js의 FARES)

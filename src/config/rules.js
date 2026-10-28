@@ -47,6 +47,29 @@ export const CROWDED_WARNING = 0.8;
 
 // 열차 길이 (미터). 지도 위 캡슐 길이가 된다
 export const TRAIN_LENGTH_M = 120;
+
+// ── 광역급행 (GTX). 노선을 만들 때 [지하철]·[광역급행]을 고른다 (game/routeKinds.js) ──
+// 지하철보다 빠르고 한 번에 많이 나르지만 열차가 비싸고 운영비도 많이 든다.
+// 같은 선로를 지하철과 함께 쓸 수 있다. 꺾이는 곳·가파른 곳 제한 속도는 똑같이 받는다.
+// 역 사이가 짧으면 최고 속도까지 올라가기 전에 다시 서야 해서 이점이 줄어든다 → 역을 띄엄띄엄 둘수록 좋다
+// 최고 속도 (km/h). 실제 GTX-A는 180km/h, 게임 지하철(60)처럼 실제보다 조금 낮게
+export const EXPRESS_SPEED_KMH = 140;
+// 빨라지고 느려지는 정도 (m/s²). 무거운 긴 열차라 지하철보다 조금 느리게
+export const EXPRESS_ACCELERATION = 0.7;
+// 열차 한 편에 탈 수 있는 사람 수 (지하철 TRAIN_CAPACITY의 1.5배)
+export const EXPRESS_CAPACITY = 1500;
+// 열차 한 대 값 (억 원). 노선을 만들 때 기본 열차 값도 이 값으로 낸다
+export const EXPRESS_TRAIN_COST = 15;
+// 열차 한 대 매달 운영비 (억 원, 지하철은 OPEX_PER_TRAIN)
+export const EXPRESS_OPEX_PER_TRAIN = 3;
+// 요금: 광역급행을 탄 거리만큼은 보통 요금의 이 배수를 받는다 (실제 GTX-A는 지하철의 2~3배쯤이지만,
+// 게임 승객은 요금으로 덜 타지 않아서 크게 잡으면 모든 노선을 급행으로 바꾸는 게 늘 이득이 된다)
+export const EXPRESS_FARE_RATIO = 1.3;
+// 승객이 길을 고를 때 광역급행의 비싼 요금을 시간처럼 느끼는 정도 (탄 1km마다 몇 분 더 걸리는 것으로 친다).
+// 시간을 크게 줄여 주지 않으면 나란한 지하철을 고르고, 역 사이가 짧은 급행은 승객이 조금 줄어든다
+export const EXPRESS_FARE_MINUTES_PER_KM = 0.2;
+// 열차 길이 (미터, 지도 위 캡슐)
+export const EXPRESS_TRAIN_LENGTH_M = 200;
 // 멀리서 볼 때도 열차가 점처럼 작아지지 않게, 화면에서 적어도 이만큼(px) 길게 그린다
 export const TRAIN_MIN_SCREEN_PX = 24;
 // 이 줌부터 열차 위에 번호표("3-1" = 3호선 1번 열차)를 붙인다 (실제 관제실의 열차 번호처럼).

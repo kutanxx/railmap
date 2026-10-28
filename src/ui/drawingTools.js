@@ -19,7 +19,8 @@ const CURVE_KEY = 'railmap-track-curve';
 // select: 고른 것 바꾸기, render: 화면 다시 그리기, notice: 화면 가운데 말풍선, chooseTool: 도구 바꾸기 (app.js)
 // 결과: { trackTool, routeTool, setDraftCurve: 새로 그릴 선로 모양 정하기 (곡선이면 true),
 //         setDraftPlan: 새로 그릴 선로를 계획 선로로 할지 }
-export function createDrawingTools({ map, select, render, notice, chooseTool }) {
+// routeKind(): 새로 만들 노선의 종류 ('subway' | 'express', 노선 패널에서 고른다)
+export function createDrawingTools({ map, select, render, notice, chooseTool, routeKind }) {
   // 선로를 그리는 동안 화면 아래 막대: 길이·공사비와 [마지막 점 빼기][취소] (손가락으로도 쓸 수 있게, drawBar.js)
   const drawBar = createDrawBar({
     onUndoPoint: () => trackTool.undoWaypoint(),
@@ -78,10 +79,10 @@ export function createDrawingTools({ map, select, render, notice, chooseTool }) 
       render();
     },
     onComplete: (stationIds) => {
-      const route = addRoute(stationIds);
+      const route = addRoute(stationIds, routeKind());
       if (!route) {
         // 기본 열차 값을 낼 돈이 모자라면 고르던 역을 그대로 두고 이유를 알려준다
-        notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
+        notice(`${shortfall(newRouteCost(routeKind()))} (열차 값)`, 'bad');
         return false;
       }
       // 다 만들면 [선택] 도구로 돌아가 방금 만든 노선의 정보를 보여준다 (열차 수·승객을 바로 볼 수 있게)

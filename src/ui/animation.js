@@ -9,10 +9,11 @@ import { metersPerPixelZ0 } from '../map/stationLayers.js';
 import { playArrivals, playSound } from './sounds.js';
 import { updateRailClack } from './railClack.js';
 
-// 지금 줌에서 그릴 열차 길이 (km): 실제 길이, 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게
-function shownTrainLengthKm(map) {
-  const metersPerPixel = metersPerPixelZ0() / 2 ** map.getZoom();
-  return Math.max(TRAIN_LENGTH_M, TRAIN_MIN_SCREEN_PX * metersPerPixel) / 1000;
+// 지금 줌에서 그릴 열차 길이 (km)를 정하는 함수: 실제 길이(m, 지하철·광역급행마다 다르다),
+// 단 화면에서 TRAIN_MIN_SCREEN_PX보다 짧아지지 않게 (광역급행은 그 비율만큼 더 길게)
+function shownTrainLength(map) {
+  const minM = (TRAIN_MIN_SCREEN_PX * metersPerPixelZ0()) / 2 ** map.getZoom();
+  return (lengthM) => Math.max(lengthM, (minM * lengthM) / TRAIN_LENGTH_M) / 1000;
 }
 
 // 결과: { markTrainsChanged } — 노선·열차가 바뀌었을 때 불러서, 멈춤 중에도 다음 프레임에 다시 그리게 한다
@@ -48,7 +49,7 @@ export function startAnimation(map) {
     // 아주 가까이 보면 열차 한 대의 레일 덜컹 소리
     updateRailClack(map, realSeconds, speed);
     if ((speed > 0 && trains.length > 0) || trainsChanged) {
-      updateTrains(map, trainFeatures(shownTrainLengthKm(map)));
+      updateTrains(map, trainFeatures(shownTrainLength(map)));
       trainsChanged = false;
     }
     requestAnimationFrame(frame);

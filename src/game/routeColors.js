@@ -2,7 +2,7 @@
 // 모자라면 이름은 "n호선", 색은 추천 색(config.js의 ROUTE_COLORS)으로 이어 간다. 추천 색 가운데 도시 색과 거의 같은 색은 건너뛴다.
 // 노선 패널의 색 고르기 견본도 같은 목록을 쓴다.
 import { ROUTE_COLORS, SAME_ROUTE_COLOR_DISTANCE } from '../config.js';
-import { LINE_COLORS } from '../lineColors.js';
+import { LINE_COLORS, EXPRESS_LINE_COLORS } from '../lineColors.js';
 import { getRegion } from './region.js';
 
 // 고를 수 있는 노선 색 목록: [{ name: '1호선' 또는 '남색' 같은 이름, color: '#RRGGBB' }]
@@ -25,6 +25,16 @@ export function routeNameFor(number) {
 export function routeColorFor(number) {
   const choices = colorChoices();
   return choices[(number - 1) % choices.length].color;
+}
+
+// 광역급행 노선의 처음 이름·색: 그 도시의 광역급행 목록(서울 GTX-A …, src/lineColors.js)에서 아직 안 쓴 첫 이름,
+// 없으면 "급행 n호선"(아직 안 쓴 가장 작은 n)과 number번째 추천 색. usedNames: 이미 있는 노선 이름들
+export function expressNameAndColor(number, usedNames) {
+  const line = (EXPRESS_LINE_COLORS[getRegion().id] ?? []).find(({ name }) => !usedNames.has(name));
+  if (line) return { name: line.name, color: line.color };
+  let n = 1;
+  while (usedNames.has(`급행 ${n}호선`)) n += 1;
+  return { name: `급행 ${n}호선`, color: routeColorFor(number) };
 }
 
 // 두 색이 사람 눈에 얼마나 다른지 (CIELAB 거리 ΔE, 2.3쯤이면 겨우 구별, 15면 확실히 다름)

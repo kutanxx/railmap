@@ -60,6 +60,7 @@ export function startApp(map, loadMessage) {
     controlRoom: false, // 관제실 모드: 어두운 지도 (viewToggles.js가 브라우저에 기억한 값으로 정한다)
     panelFolded: false, // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지 (sidePanels.js가 브라우저에 기억한 값으로 정한다)
     trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
+    newRouteKind: 'subway', // 새로 만들 노선의 종류: 'subway' 지하철 | 'express' 광역급행 (노선 패널에서 고른다)
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
@@ -165,6 +166,7 @@ export function startApp(map, loadMessage) {
     render,
     notice,
     chooseTool: (id) => chooseTool(id),
+    routeKind: () => ui.newRouteKind,
   });
   // 새로 그릴 선로를 직선 ↔ 곡선 (도구 막대의 [곡선], V 키)
   const toggleDraftCurve = () => {
