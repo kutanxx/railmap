@@ -222,6 +222,10 @@ export const POPULATION_RADIUS_M = 500;
 // 이 줌 이상으로 확대해야 역을 놓거나 옮길 수 있다. 더 멀리 보면 지도 건물 자료가 블록으로 뭉쳐 있어서
 // 같은 자리라도 인구가 10%쯤 다르게 재진다 (줌 14부터는 늘 같은 자료라 같은 숫자가 나온다)
 export const STATION_MIN_ZOOM = 14;
+// 새 역 이름: 이 거리(미터) 안의 지도 지명을 따서 붙인다 (map/placeNames.js). 없으면 "역 n"
+export const STATION_NAME_SEARCH_M = 1500;
+// 역 이름으로 쓸 지명 종류 (OpenMapTiles place 층의 class, 가상 지도의 kind). 작은 동네부터 도시까지
+export const STATION_NAME_KINDS = ['neighbourhood', 'quarter', 'suburb', 'hamlet', 'village', 'town', 'city'];
 // 이웃 역과 인구를 나눌 때 쓰는 칸 크기(미터). 칸마다 가장 가까운 역에만 인구를 준다
 // 작을수록 정확하지만 저장 파일이 커진다
 export const CATCHMENT_CELL_M = 50;

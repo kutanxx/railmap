@@ -3,6 +3,7 @@
 import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
 import { estimatePopulation, zoomedInEnough } from '../map/population.js';
+import { nearbyPlaceName } from '../map/placeNames.js';
 import { getState, findStation, undo, redo } from '../game/state.js';
 import { addStation } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
@@ -111,7 +112,9 @@ export function bindMapInput(ctx) {
         showCallout(map, coord, TOO_FAR, 'bad');
         return;
       }
-      const station = addStation(coord, estimatePopulation(map, coord));
+      // 이름은 가까운 지명에서 (다른 역이 쓰는 이름은 피한다)
+      const usedNames = new Set(getState().stations.map((station) => station.name));
+      const station = addStation(coord, estimatePopulation(map, coord), nearbyPlaceName(map, coord, usedNames));
       if (station) {
         select({ type: 'station', id: station.id });
         playSound('station');

@@ -18,9 +18,9 @@ const state = getState();
 
 // ── 역 ──────────────────────────────
 
-// coord 자리에 새 역을 짓고, 지은 역을 돌려준다
+// coord 자리에 새 역을 짓고, 지은 역을 돌려준다. name: 역 이름 (가까운 지명, map/placeNames.js. 없으면 "역 n")
 // 빚 한도 안에서도 공사비를 낼 수 없으면 짓지 않고 null을 돌려준다
-export function addStation(coord, { population, builtArea, cells }) {
+export function addStation(coord, { population, builtArea, cells }, name = null) {
   return change(null, () => {
     const cost = stationCost();
     if (!canAfford(cost)) return null;
@@ -29,7 +29,7 @@ export function addStation(coord, { population, builtArea, cells }) {
     state.nextStationNumber += 1;
     const station = {
       id: `s${number}`,
-      name: `역 ${number}`,
+      name: name ?? `역 ${number}`,
       coord,
       angle: 0,
       population,
