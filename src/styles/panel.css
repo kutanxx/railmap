@@ -181,6 +181,12 @@
   line-height: 1.5;
 }
 
+/* 역 카드: 이어진 고속철도역 (승객이 늘어나는 이유라 보조 글보다 또렷하게) */
+.panel-station-intercity {
+  color: var(--navy);
+  font-weight: 700;
+}
+
 /* 삭제 버튼 아래: 지우면 함께 사라지는 것 */
 .panel-removal {
   margin: 6px 0 0;

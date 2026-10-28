@@ -136,6 +136,14 @@ export const DEFAULT_STATION_POPULATION = 10000;
 // 아무리 한적한 곳도 이 정도 인구는 있다고 친다
 export const MIN_STATION_POPULATION = 1000;
 
+// ── 고속철도역 (처음부터 지도에 있는 고정 역, src/intercityStations.js) ──
+// 고속철도역에서 이 거리(미터) 안에 지하철역을 지으면 이어진 것으로 친다 (가장 가까운 지하철역 하나만).
+// 갈아타려고 걸어갈 만한 거리
+export const INTERCITY_LINK_M = 300;
+// 고속철도역을 드나들며 지하철로 갈아타려는 사람 (명). 이어진 지하철역의 인구에 더한다.
+// 실제 이용객 통계가 아니라 게임 숫자다. 서울 지하철역 주변 인구가 보통 2만~3만 명이니, 큰 역은 역 하나만큼 더 붙는 셈
+export const INTERCITY_PEOPLE = { large: 30000, medium: 15000 };
+
 // ── 게임 목표 (game/goals.js) ─────────────
 // 위에서부터 차례로 보여주고, 이루면 말풍선과 함께 보상(억)을 준다. 샌드박스에는 목표가 없다
 // kind: 'routes' 노선 수, 'stations' 역 수, 'transfers' 환승역 수, 'riders' 하루 승객 (지도의 riderGoalScale을 곱한다),

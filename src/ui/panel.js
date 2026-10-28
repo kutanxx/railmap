@@ -45,6 +45,7 @@ export function createPanel(
         <div class="panel-stat"><small>주변 인구</small><b class="panel-population"></b></div>
         <div class="panel-stat"><small>가장 붐빔</small><b class="panel-load"></b></div>
       </div>
+      <p class="panel-hint panel-station-intercity"></p>
       <p class="panel-hint panel-station-note"></p>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
       <p class="panel-removal panel-station-removal"></p>
@@ -102,6 +103,7 @@ export function createPanel(
   const tagText = element.querySelector('.panel-station-tag');
   const badges = element.querySelector('.panel-badges');
   const noteText = element.querySelector('.panel-station-note');
+  const intercityText = element.querySelector('.panel-station-intercity');
   const sourceText = element.querySelector('.panel-population-source');
   for (const button of element.querySelectorAll('.panel-back, .panel-close')) {
     button.addEventListener('click', onClose);
@@ -161,9 +163,15 @@ export function createPanel(
   // view = { station, sharedPopulation: 이웃 역과 나눈 뒤 인구, riders: 하루 이용객, averageRiders: 역 평균,
   //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지, removal: 지우면 사라지는 것,
   //          tag: '환승' | '종착' | '', routes: 지나는 노선 [{ number, color }],
-  //          maxLoad: 둘레 구간의 가장 높은 혼잡도 (열차가 안 다니면 null) }
+  //          maxLoad: 둘레 구간의 가장 높은 혼잡도 (열차가 안 다니면 null),
+  //          intercity: 이어진 고속철도역들 [{ name, people }] }
   function showStation(view) {
     const { station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack } = view;
+    // 이어진 고속철도역: 그 역을 드나드는 사람이 이 역 승객 수요에 더해진다 (game/intercity.js)
+    intercityText.hidden = view.intercity.length === 0;
+    intercityText.textContent = view.intercity
+      .map((hub) => `고속철도 ${hub.name}과(와) 이어져 있어요 · 드나드는 사람 +${formatPeopleShort(hub.people)}명`)
+      .join(' / ');
     tagText.textContent = view.tag ? `${view.tag}역` : '';
     badges.replaceChildren(
       ...view.routes.map((route) => routeBadge(route.color, route.number)),

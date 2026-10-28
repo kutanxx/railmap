@@ -8,6 +8,7 @@ import { mapDataLoaded } from '../map/mapFeatures.js';
 import { getState, findStation, undo, redo } from '../game/state.js';
 import { addStation } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
+import { intercityLinks } from '../game/intercity.js';
 import { insertStationIntoRoute } from '../game/routes.js';
 import { stationCost, trackCostForCoords } from '../game/economy.js';
 import { showCallout } from './callouts.js';
@@ -21,6 +22,8 @@ import { formatMoney, formatPopulation } from './format.js';
 
 // 너무 멀리서 역을 놓으려 할 때 안내
 const TOO_FAR = '더 확대해야 역을 놓을 수 있어요';
+// 아직 짓지 않은 새 역을 다른 역들과 함께 계산할 때 쓰는 이름표
+const NEW_STATION = '__new';
 // 고른 자리가 아래 판의 윗변에서 이만큼(px) 안쪽까지 내려와 있으면 가린 것으로 친다
 const SHEET_MARGIN_PX = 24;
 
@@ -60,16 +63,18 @@ export function bindMapInput(ctx) {
   // 인구 재기는 0.1초쯤 걸려서, 마우스를 움직이는 동안에는 재지 않고 멈춘 뒤에 한 번 잰다
   const ESTIMATE_DELAY_MS = 250;
   let estimateTimer = null;
-  let estimate = null; // { key: 잰 자리, population: 이웃 역과 나눈 뒤 인구 }
+  let estimate = null; // { key: 잰 자리, population: 이웃 역과 나눈 뒤 인구, hubs: 이어질 고속철도역들 }
   const placeKey = (coord) => coord.map((value) => value.toFixed(5)).join(',');
 
   function showStationTip(point, coord) {
     const cost = `역 공사비 ${formatMoney(stationCost())}`;
-    const people =
-      estimate?.key === placeKey(coord)
-        ? `주변 인구 약 ${formatPopulation(estimate.population)}`
-        : '주변 인구 재는 중…';
-    tip(point, `${cost} · ${people}`, stationCost());
+    const measured = estimate?.key === placeKey(coord);
+    const people = measured ? `주변 인구 약 ${formatPopulation(estimate.population)}` : '주변 인구 재는 중…';
+    // 고속철도역 가까이면 이어진다고 알려준다 (그 역을 드나드는 사람이 승객 수요에 더해진다)
+    const hubs = measured
+      ? estimate.hubs.map((hub) => ` · 고속철도 ${hub.name}과(와) 이어져요 +${formatPopulation(hub.people)}`).join('')
+      : '';
+    tip(point, `${cost} · ${people}${hubs}`, stationCost());
   }
 
   function previewStation(point, coord) {
@@ -82,7 +87,11 @@ export function bindMapInput(ctx) {
       // 이미 있는 역들과 나눈 뒤의 인구를 보여준다 (실제로 지으면 받을 인구)
       const preview = { id: '__preview', coord, population, cells };
       const shared = sharedPopulations([...getState().stations, preview]).get(preview.id);
-      estimate = { key: placeKey(coord), population: shared };
+      // 이 자리에 지으면 이어질 고속철도역 (이미 더 가까운 역이 이어져 있으면 그 역이 그대로 갖는다)
+      const hubs = intercityLinks([...getState().stations, preview])
+        .filter(({ stationId }) => stationId === preview.id)
+        .map(({ hub }) => hub);
+      estimate = { key: placeKey(coord), population: shared, hubs };
       if (ui.tool === 'station' && ui.hover === coord) showStationTip(point, coord);
     }, ESTIMATE_DELAY_MS);
   }
@@ -141,9 +150,13 @@ export function bindMapInput(ctx) {
         showCallout(map, coord, '지도를 불러오는 중이에요. 잠시 뒤에 놓아 주세요', 'bad');
         return;
       }
-      // 이름은 가까운 지명에서 (다른 역이 쓰는 이름은 피한다)
+      // 이름은 가까운 지명에서 (다른 역이 쓰는 이름은 피한다). 고속철도역과 이어지는 자리면 그 역 이름 (서울역 옆은 "서울역")
       const usedNames = new Set(getState().stations.map((station) => station.name));
-      const station = addStation(coord, estimatePopulation(map, coord), nearbyPlaceName(map, coord, usedNames));
+      const hub = intercityLinks([...getState().stations, { id: NEW_STATION, coord }]).find(
+        ({ stationId }) => stationId === NEW_STATION,
+      )?.hub;
+      const name = hub && !usedNames.has(hub.name) ? hub.name : nearbyPlaceName(map, coord, usedNames);
+      const station = addStation(coord, estimatePopulation(map, coord), name);
       if (station) {
         select({ type: 'station', id: station.id });
         playSound('station');

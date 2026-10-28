@@ -29,7 +29,7 @@ export function infoPanelView(selected, shapes) {
     const station = findStation(selected.id);
     if (!station) return null;
     // 패널에는 이웃 역과 나눈 뒤의 인구와 하루 이용객을 보여준다
-    const { stationPopulation, stationRiders, trackLoad } = getEconomy();
+    const { stationPopulation, stationRiders, stationIntercity, trackLoad } = getEconomy();
     const shared = stationPopulation.get(station.id) ?? station.population;
     const { routes, tracks } = getState();
     // 이 역에 닿은 선로들 중 가장 붐비는 구간 (열차가 다니는 선로가 없으면 null)
@@ -47,6 +47,8 @@ export function infoPanelView(selected, shapes) {
         .map((route) => ({ number: routeNumber(route), color: route.color })),
       maxLoad: loads.length > 0 ? Math.max(...loads) : null,
       sharedPopulation: shared,
+      // 이어진 고속철도역들 [{ name, people }] (game/intercity.js)
+      intercity: stationIntercity.get(station.id) ?? [],
       riders: stationRiders.get(station.id) ?? 0,
       averageRiders: averageStationRiders(),
       angle: shapes.get(station.id)?.angle ?? station.angle,
@@ -191,7 +193,10 @@ export function stationHoverText(stationId) {
   const station = findStation(stationId);
   if (!station) return null;
   const routes = getState().routes.filter((route) => route.stations.includes(stationId));
-  if (routes.length === 0) return `${station.name} · 아직 노선 없음`;
+  // 고속철도역과 이어졌으면 이름 뒤에 그 역을 붙인다
+  const hubs = getEconomy().stationIntercity.get(stationId) ?? [];
+  const name = hubs.length > 0 ? `${station.name} (고속철도 ${hubs.map((hub) => hub.name).join('·')})` : station.name;
+  if (routes.length === 0) return `${name} · 아직 노선 없음`;
   const riders = getEconomy().stationRiders.get(stationId) ?? 0;
-  return `${station.name} · 하루 ${formatPopulation(riders)} · ${routes.map((route) => route.name).join(', ')}`;
+  return `${name} · 하루 ${formatPopulation(riders)} · ${routes.map((route) => route.name).join(', ')}`;
 }

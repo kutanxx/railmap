@@ -1,10 +1,12 @@
 // 지도 위 역 쪽 그림: 역(멀리서 동그라미·환승 캡슐, 가까이서 승강장 띠·대합실), 500m 역세권 원, 고른 역 괄호,
-// 역 이름 말풍선, 출구. app.js의 render가 부른다 (선로는 trackView.js, 열차는 animation.js).
+// 역 이름 말풍선, 출구, 고속철도역과 이어진 통로. app.js의 render가 부른다 (선로는 trackView.js, 열차는 animation.js).
 // 끌어서 옮기는 중인 역은 끄는 자리에 있는 것처럼 보여준다.
 import { getState, findStation } from '../game/state.js';
 import { updateStations, updateCatchment } from '../map/stationLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
 import { updateSelectionBracket } from '../map/selectionBracket.js';
+import { updateIntercity } from '../map/intercityLayers.js';
+import { intercityStations, intercityLinks } from '../game/intercity.js';
 import { onMapDataSettled, mapDataLoaded } from '../map/mapFeatures.js';
 import { stationShapes } from './stationShapes.js';
 import { stationBands } from './stationBands.js';
@@ -66,6 +68,10 @@ export function createMapView({ map, ui }) {
       : null;
     updateSelectionBracket(map, bracketPoints);
     updateStationLabels(map, stations, stationRoutes, stationRiders, shapes, selectedStation?.id ?? null);
+    // 고속철도역과 이어진 지하철역 사이 통로 (끌어 옮기는 중이면 옮기는 자리로)
+    const coordOf = new Map(stations.map((station) => [station.id, station.coord]));
+    const links = intercityLinks(stations).map(({ hub, stationId }) => ({ hub, coord: coordOf.get(stationId) }));
+    updateIntercity(map, intercityStations(), links);
     return shapes;
   }
 

@@ -25,6 +25,12 @@ const LAYER_COLORS = [
   ['exit-building-labels', 'text-color', '#1F3A55', '#D3DCE5'],
   ['exit-dots', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],
   ['exit-dots-nameless', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],
+  // 고속철도역 (플레이어가 지은 것이 아니라 바탕처럼 차분하게)
+  ['intercity-links', 'line-color', '#1F3A55', '#D3DCE5'],
+  ['intercity-circles', 'circle-color', '#FBF7EE', '#2E3946'],
+  ['intercity-circles', 'circle-stroke-color', '#A69C8B', '#73828F'],
+  ['intercity-labels', 'text-color', '#6F6656', '#9AA7B4'],
+  ['intercity-labels', 'text-halo-color', '#EFE7D6', '#1E2630'],
 ];
 // 노선이 지나지 않는 선로의 가운데 줄 (노선이 지나면 노선 색)
 const CENTER = { day: '#D8C9AA', control: '#1E2630' };

@@ -7,12 +7,14 @@
 // 정원: 가장 붐비는 한 시간(출퇴근)에 노선이 나를 수 있는 양(열차 × 운행 횟수 × 정원 × 노선 길이)보다
 //       그 시간에 타려는 양(승객 × 그 노선에서 탄 거리 × PEAK_HOUR_SHARE)이 많으면
 //       혼잡도가 100%를 넘고, 넘친 만큼 승객을 놓친다.
+// 고속철도역(intercity.js)과 이어진 역은 그 역을 드나드는 사람도 인구에 더해 수요를 센다
 // 같은 두 역 사이를 여러 노선이 함께 다니면 (같은 선로를 쓰는 노선들) 그 구간 승객·수입·혼잡을 열차 수에 비례해 나눠 가진다
 // (길찾기는 그중 한 노선만 고르므로, 그대로 두면 나중에 만든 노선은 승객이 0명이 된다)
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
 import { getState, routeTracks, trackLengthKm, trackCoords, builtTracks } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
+import { intercityLinks } from './intercity.js';
 import { buildRun } from './running.js';
 import {
   STATION_DWELL_SECONDS,
@@ -34,7 +36,8 @@ const WON_PER_EOK = 100000000; // 1억 원
 //   routeRevenue / routeRiders / routeAvgKm: Map(노선 id → 월 수입 / 하루 승객 / 평균 탄 거리 km),
 //   routeLoad: Map(노선 id → 혼잡도, 1 = 100%), routeLost: Map(노선 id → 자리가 없어 놓친 하루 승객),
 //   stationRiders: Map(역 id → 하루 이용객 = 그 역에서 타고 내린 사람),
-//   stationPopulation: Map(역 id → 이웃 역과 나눈 뒤의 인구),
+//   stationPopulation: Map(역 id → 이웃 역과 나눈 뒤의 인구, 고속철도역에서 오는 사람은 빼고),
+//   stationIntercity: Map(역 id → 이어진 고속철도역들 [{ name, coord, size, people }]),
 //   trackLoad: Map(선로 id → 그 구간의 혼잡도, 1 = 100%. 여러 노선이 지나면 가장 붐비는 노선) }
 let economy = {
   revenue: 0,
@@ -48,6 +51,7 @@ let economy = {
   routeLost: new Map(),
   stationRiders: new Map(),
   stationPopulation: new Map(),
+  stationIntercity: new Map(),
   trackLoad: new Map(),
 };
 
@@ -64,6 +68,15 @@ export function updateEconomy() {
   const graph = buildGraph(running);
   // 가까이 붙은 역끼리는 겹치는 건물을 나눠 가진다
   const population = sharedPopulations(stations);
+  // 고속철도역과 이어진 역은 그 역을 드나드는 사람도 더한다 (수요에만 쓰고, 역 카드의 "주변 인구"는 따로 보여준다)
+  const stationIntercity = new Map();
+  for (const { hub, stationId } of intercityLinks(stations)) {
+    stationIntercity.set(stationId, [...(stationIntercity.get(stationId) ?? []), hub]);
+  }
+  const demandPopulation = new Map(population);
+  for (const [id, hubs] of stationIntercity) {
+    demandPopulation.set(id, demandPopulation.get(id) + hubs.reduce((sum, hub) => sum + hub.people, 0));
+  }
 
   const zeros = (items) => new Map(items.map((item) => [item.id, 0]));
   const servedStations = [...new Set(running.flatMap((route) => route.stations))];
@@ -79,7 +92,7 @@ export function updateEconomy() {
     for (const [destination, trip] of shortestTrips(graph, origin)) {
       const minutes = Math.max(trip.minutes, MIN_TRIP_MINUTES);
       const riders =
-        (RIDERS_FACTOR * (population.get(origin) / 1000) * (population.get(destination) / 1000)) /
+        (RIDERS_FACTOR * (demandPopulation.get(origin) / 1000) * (demandPopulation.get(destination) / 1000)) /
         minutes ** DEMAND_TIME_POWER;
       // 길찾기는 같은 구간을 다니는 노선 중 하나만 고르므로, 그 구간을 함께 다니는 노선들에게 나눠 준다
       const { routeKm, share } = spreadOverSharers(trip, sharers, riders, segmentWanted);
@@ -158,6 +171,7 @@ export function updateEconomy() {
     routeLost,
     stationRiders,
     stationPopulation: population,
+    stationIntercity,
     trackLoad,
   };
 }
