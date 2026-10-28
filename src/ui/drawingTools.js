@@ -15,10 +15,10 @@ import { playSound } from './sounds.js';
 // 새 선로를 곡선으로 그릴지 브라우저에 기억해 둔다 (다음에 켜도 같은 모양으로)
 const CURVE_KEY = 'railmap-track-curve';
 
-// select: 고른 것 바꾸기, render: 화면 다시 그리기, notice: 화면 가운데 말풍선 (app.js)
+// select: 고른 것 바꾸기, render: 화면 다시 그리기, notice: 화면 가운데 말풍선, chooseTool: 도구 바꾸기 (app.js)
 // 결과: { trackTool, routeTool, setDraftCurve: 새로 그릴 선로 모양 정하기 (곡선이면 true),
 //         setDraftPlan: 새로 그릴 선로를 계획 선로로 할지 }
-export function createDrawingTools({ map, select, render, notice }) {
+export function createDrawingTools({ map, select, render, notice, chooseTool }) {
   const trackTool = createTrackTool({
     curve: localStorage.getItem(CURVE_KEY) === '1',
     onChange: (draft) => updateDraft(map, draft),
@@ -74,6 +74,8 @@ export function createDrawingTools({ map, select, render, notice }) {
         notice(`${shortfall(newRouteCost())} (열차 값)`, 'bad');
         return false;
       }
+      // 다 만들면 [선택] 도구로 돌아가 방금 만든 노선의 정보를 보여준다 (열차 수·승객을 바로 볼 수 있게)
+      chooseTool('select');
       select({ type: 'route', id: route.id });
       render();
       // 노선 가운데쯤 역 위에 개통 말풍선을 띄운다

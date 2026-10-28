@@ -165,7 +165,13 @@ export function startApp(map, loadMessage) {
   const cursorTip = createCursorTip(document.getElementById('cursor-tip'));
 
   // [선로]·[노선] 그리기 도구 (drawingTools.js)
-  const { trackTool, routeTool, setDraftCurve, setDraftPlan } = createDrawingTools({ map, select, render, notice });
+  const { trackTool, routeTool, setDraftCurve, setDraftPlan } = createDrawingTools({
+    map,
+    select,
+    render,
+    notice,
+    chooseTool: (id) => chooseTool(id),
+  });
   // 새로 그릴 선로를 직선 ↔ 곡선 (도구 막대의 [곡선], V 키)
   const toggleDraftCurve = () => {
     if (ui.tool === 'track') setDraftCurve(!trackTool.isCurve());
@@ -296,7 +302,9 @@ export function startApp(map, loadMessage) {
   };
   // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
   const search = createSearch({ map, select, render });
-  const { bankruptDialog } = bindSaveControls({ notice, loadMessage, clearWork, render, onSearch: search.open });
+  // 새 게임 안내는 튜토리얼이 떠 있으면 내지 않는다 (튜토리얼이 같은 것을 안내한다)
+  const startMessage = loadMessage?.newGame && !document.getElementById('tutorial').hidden ? null : loadMessage;
+  const { bankruptDialog } = bindSaveControls({ notice, loadMessage: startMessage, clearWork, render, onSearch: search.open });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {

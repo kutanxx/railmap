@@ -19,9 +19,13 @@ export function renderRouteList(list, routes, onSelect) {
       item.type = 'button';
       item.className = 'route-item';
       const dot = routeBadge(route.color, route.number);
+      // 이름 칸: 이름 + 넘치면 빨간 "혼잡" (이름이 길면 숫자가 다음 줄로 내려간다)
       const name = document.createElement('span');
       name.className = 'route-item-name';
-      name.textContent = route.name;
+      const label = document.createElement('span');
+      label.className = 'route-item-label';
+      label.textContent = route.name;
+      name.append(label);
       const length = document.createElement('span');
       length.className = 'route-item-length';
       length.textContent = `${formatPeopleShort(route.riders)}명 · ${formatSignedMoney(route.revenue)}`;

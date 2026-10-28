@@ -81,10 +81,12 @@
   color: var(--muted);
 }
 
+/* 한 줄에 번호·이름·숫자. 이름이 길어 자리가 모자라면 숫자만 다음 줄 오른쪽으로 내려간다 (이름은 자르지 않는다) */
 .route-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 2px 8px;
   padding: 6px 8px;
   border: 2px solid transparent;
   border-radius: 5px;
@@ -118,13 +120,25 @@
   font-weight: 700;
 }
 
+/* 이름 칸: 이름은 다 보이게, "혼잡"은 한 덩어리로 (한 글자씩 꺾이지 않게) */
 .route-item-name {
-  flex: 1;
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
 }
 
+.route-item-label {
+  white-space: nowrap;
+}
+
+/* 하루 승객 · 월 수입: 작은 글자로 한 줄에, 늘 오른쪽 끝에 */
 .route-item-length {
-  font-weight: 400;
+  flex: none;
+  margin-left: auto;
   color: var(--muted);
+  font-size: var(--text-small);
+  font-weight: 400;
+  white-space: nowrap;
 }
 
 .route-detail .panel-facts {
@@ -269,7 +283,9 @@
 
 /* 노선 목록의 "혼잡" 표시 */
 .route-item-crowded {
+  flex: none;
   margin-left: 6px;
+  white-space: nowrap;
   padding: 0 5px;
   border-radius: 4px;
   background: var(--danger);

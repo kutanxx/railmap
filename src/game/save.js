@@ -103,7 +103,8 @@ export function resetGame() {
   });
   state.trains = [];
   state.money = getRegion().startMoney;
-  state.speed = 1;
+  // 새 게임은 멈춘 채 시작한다 (튜토리얼·화면을 읽는 동안 몇 달이 흘러가지 않게. 튜토리얼 4단계가 [1배]를 안내한다)
+  state.speed = 0;
   state.elapsedSeconds = 0;
   state.year = START_YEAR;
   state.month = START_MONTH;

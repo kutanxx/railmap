@@ -80,7 +80,7 @@ export function createTutorial(element) {
       stepText.textContent = '완료';
       title.textContent = '첫 열차가 출발했어요!';
       text.textContent =
-        '승객이 타면 매달 수입이 들어와요. 역과 노선을 늘려 철도망을 키워 보세요. 조작법은 위쪽 [?]에서 다시 볼 수 있어요.';
+        '승객이 타면 매달 수입이 들어와요. 역과 노선을 늘려 철도망을 키워 보세요. 조작법은 왼쪽 아래 [?]에서 다시 볼 수 있어요.';
       skip.textContent = '끝내기';
       return;
     }

@@ -36,7 +36,11 @@ if (region.id === 'sollae') {
 let loadMessage = null;
 try {
   if (loadFromBrowser()) loadMessage = { text: '저장된 게임을 이어서 해요', tone: 'info' };
-  else resetGame();
+  else {
+    resetGame();
+    // 새 게임은 멈춘 채 시작한다고 알려준다 (튜토리얼이 뜨는 처음 온 사람에게는 튜토리얼이 대신 안내한다, app.js)
+    loadMessage = { text: '시간이 멈춘 채 시작해요. 준비되면 Space나 위쪽 [1배]를 누르세요', tone: 'info', newGame: true };
+  }
 } catch (error) {
   resetGame();
   loadMessage = { text: `저장된 게임을 읽지 못해 새로 시작해요: ${error.message}`, tone: 'bad' };

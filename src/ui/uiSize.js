@@ -14,9 +14,12 @@ function apply(size) {
   document.body.classList.toggle('ui-size-large', size === 'large');
 }
 
-// 게임 화면을 시작할 때 기억한 크기를 입힌다. 결과: 지금 크기 id
+// 아직 크기를 고른 적이 없을 때, 창이 이만큼 넓으면 처음부터 [크게] (px. 큰 모니터에서 버튼·글자가 너무 작아 보이지 않게)
+const LARGE_SCREEN_PX = 1800;
+
+// 게임 화면을 시작할 때 기억한 크기를 입힌다 (고른 적이 없으면 창 너비로 정한다). 결과: 지금 크기 id
 export function initUiSize() {
-  const size = localStorage.getItem(UI_SIZE_KEY) ?? 'normal';
+  const size = localStorage.getItem(UI_SIZE_KEY) ?? (window.innerWidth >= LARGE_SCREEN_PX ? 'large' : 'normal');
   apply(size);
   return size;
 }

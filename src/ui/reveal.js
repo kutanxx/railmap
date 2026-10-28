@@ -5,7 +5,8 @@
 // - 첫 노선: 월 수지·하루 승객, [통계], [혼잡도], [노선도], [관제실]
 // - 첫 알림 (또는 첫 노선): [알림]
 // 한 번 나타난 것은 다시 숨지 않는다 (노선을 다 지워도). 샌드박스와 이미 노선이 있는 저장은 처음부터 다 보인다.
-// 새로 나타나면 화면 가운데 말풍선으로 한 번 알려준다 (불러온 첫 화면에서는 알리지 않는다).
+// 새로 나타나면 화면 가운데 말풍선으로 한 번 알려준다 (불러온 첫 화면에서는 알리지 않는다. 개통 말풍선이 사라진 뒤에).
+import { REVEAL_NOTICE_DELAY_SECONDS } from '../config.js';
 import { getState } from '../game/state.js';
 import { isSandbox } from '../game/region.js';
 import { hasTerrain } from '../game/terrain.js';
@@ -47,7 +48,8 @@ export function createReveal({ notice }) {
       if (shownSteps.has(step.id)) continue;
       if (!isSandbox() && !step.when(state)) continue;
       shownSteps.add(step.id);
-      if (!firstUpdate && step.text) notice(step.text);
+      // 안내는 조금 뒤에: 같은 순간 뜨는 "1호선 개통" 말풍선과 겹치지 않게
+      if (!firstUpdate && step.text) setTimeout(() => notice(step.text), REVEAL_NOTICE_DELAY_SECONDS * 1000);
     }
     firstUpdate = false;
     congestion.hidden = !shownSteps.has('flow');

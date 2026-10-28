@@ -120,7 +120,10 @@
   color: var(--navy);
   font-size: var(--text-body);
   font-weight: 700;
-  white-space: nowrap;
+  /* 짧은 글은 한 줄로, 긴 안내는 이 폭에서 여러 줄로 (한 줄로 화면을 가로질러 역·선로를 덮지 않게) */
+  width: max-content;
+  max-width: 320px;
+  line-height: 1.4;
 }
 
 /* 말풍선 아래 꼬리 */

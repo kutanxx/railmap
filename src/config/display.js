@@ -117,5 +117,7 @@ export const DIAGRAM_ITERATIONS = 300;
 // 위험(빚 한도를 넘음, 파산까지 남은 달): 누를 때까지 남는다
 export const CALLOUT_SECONDS = 4;
 export const CALLOUT_WARN_SECONDS = 8;
+// 새 버튼이 나타났다는 안내(ui/reveal.js)를 이만큼 늦게 띄운다 (초). 첫 노선 "개통" 말풍선이 사라진 뒤에 나와서 겹치지 않게
+export const REVEAL_NOTICE_DELAY_SECONDS = CALLOUT_SECONDS + 0.5;
 // 지난 알림을 몇 개까지 기억할지 (위쪽 [알림] 목록)
 export const NOTICE_LOG_SIZE = 20;
