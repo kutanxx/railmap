@@ -54,11 +54,14 @@ export function createViewToggles({ map, ui, render }) {
     applyMapTheme(map, ui.controlRoom);
     document.body.classList.toggle('control-room', ui.controlRoom);
     controlRoomButton.classList.toggle('active', ui.controlRoom);
+    controlRoomButton.setAttribute('aria-pressed', String(Boolean(ui.controlRoom)));
   };
   const toggleControlRoom = () => {
     ui.controlRoom = !ui.controlRoom;
     localStorage.setItem(CONTROL_ROOM_KEY, ui.controlRoom ? '1' : '0');
     applyControlRoom();
+    // 환승역 캡슐 그림을 새 테두리 색으로 다시 고른다
+    render();
   };
   ui.controlRoom = localStorage.getItem(CONTROL_ROOM_KEY) === '1';
   controlRoomButton.addEventListener('click', toggleControlRoom);

@@ -25,7 +25,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f2c230;
+  background: var(--accent);
 }
 
 /* 역에서 말풍선으로 가는 지시선. 기본은 오른쪽 위이고,
@@ -36,7 +36,7 @@
   top: -1px;
   width: 26px;
   height: 2px;
-  background: #1f3a55;
+  background: var(--navy);
   transform-origin: 0 50%;
   transform: rotate(-40deg);
 }
@@ -46,10 +46,10 @@
   left: 18px;
   bottom: 14px;
   padding: 3px 9px;
-  border: 2px solid #1f3a55;
+  border: 2px solid var(--navy);
   border-radius: 6px;
   background: #ffffff;
-  color: #1f3a55;
+  color: var(--navy);
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -87,10 +87,10 @@
   left: 0;
   z-index: 2;
   padding: 4px 8px;
-  border: 2px solid #1f3a55;
+  border: 2px solid var(--navy);
   border-radius: 5px;
   background: #ffffff;
-  color: #1f3a55;
+  color: var(--navy);
   font-size: var(--text-body);
   font-weight: 700;
   white-space: nowrap;
@@ -102,8 +102,8 @@
 }
 
 .cursor-tip-bad {
-  border-color: #b0402f;
-  color: #b0402f;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* ── 지도 위 말풍선 알림 ── */
@@ -114,10 +114,10 @@
 .callout-bubble {
   position: relative;
   padding: 6px 12px;
-  border: 2px solid #1f3a55;
+  border: 2px solid var(--navy);
   border-radius: 8px;
   background: #ffffff;
-  color: #1f3a55;
+  color: var(--navy);
   font-size: var(--text-body);
   font-weight: 700;
   white-space: nowrap;
@@ -131,8 +131,8 @@
   bottom: -7px;
   width: 10px;
   height: 10px;
-  border-right: 2px solid #1f3a55;
-  border-bottom: 2px solid #1f3a55;
+  border-right: 2px solid var(--navy);
+  border-bottom: 2px solid var(--navy);
   background: #ffffff;
   transform: translateX(-50%) rotate(45deg);
 }
@@ -144,7 +144,7 @@
   height: 8px;
   margin-right: 6px;
   border-radius: 50%;
-  background: #f2c230;
+  background: var(--accent);
   vertical-align: middle;
 }
 
@@ -159,8 +159,8 @@
 
 .callout-warn .callout-bubble,
 .callout-warn .callout-bubble::after {
-  border-color: #c9772f;
-  color: #8a4f17;
+  border-color: var(--orange);
+  color: var(--warn-text);
 }
 
 .callout-danger .callout-bubble {
@@ -189,7 +189,7 @@
 
 .callout-warn .callout-bubble::before {
   content: '!';
-  background: #c9772f;
+  background: var(--orange);
 }
 
 .callout-danger .callout-bubble::before {
@@ -227,14 +227,14 @@
 
 /* 빚을 내서 지을 때 (주황) */
 .cursor-tip-warn {
-  border-color: #c9772f;
-  color: #c9772f;
+  border-color: var(--orange);
+  color: var(--orange);
 }
 
 /* 역 말풍선의 "환승"·"종착" (시안처럼 이름 옆 작은 글자) */
 .station-label-tag:not(:empty) {
   margin-left: 5px;
-  color: #6f6656;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 400;
 }

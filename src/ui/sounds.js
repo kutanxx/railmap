@@ -129,6 +129,7 @@ export function createSoundToggle(button, slider, onShow = () => {}) {
   const show = () => {
     button.textContent = muted ? '소리 끔' : '소리 켬';
     button.classList.toggle('active', !muted);
+    button.setAttribute('aria-pressed', String(Boolean(!muted)));
     slider.value = Math.round(volume * 100);
     slider.disabled = muted;
     onShow(muted);

@@ -53,7 +53,7 @@
 }
 
 .notice-warn {
-  border-left-color: #c9772f;
+  border-left-color: var(--orange);
 }
 
 .notice-danger {
@@ -82,7 +82,7 @@
 }
 
 .status-flash.positive {
-  color: #3f7d3f;
+  color: var(--positive);
 }
 
 .status-flash.negative {
@@ -132,7 +132,7 @@
 .goal-mark {
   flex: none;
   width: 16px;
-  color: #3f7d3f;
+  color: var(--positive);
   font-weight: 700;
 }
 
@@ -177,7 +177,7 @@
   box-sizing: border-box;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #cfc0a3;
+  border: 1px solid var(--info-border);
   border-radius: var(--radius-button);
   color: var(--navy);
   font: inherit;

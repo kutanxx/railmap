@@ -4,13 +4,17 @@
 // 그림은 줌 15 바로 아래 크기로 만들고, 더 멀리서는 줄여서 보여준다 (stationLayers.js의 icon-size).
 import { STATION_CAPSULE } from '../config.js';
 
-const NAVY = '#1F3A55';
 const SELECTED = '#F2C230';
+// 캡슐 테두리 색: 보통 남색, 관제실 모드면 밝은 회색 (map/theme.js가 바꾼다)
+let outlineColor = '#1F3A55';
+export function setCapsuleOutline(color) {
+  outlineColor = color;
+}
 const SCALE = 2; // 선명하게 2배로 그린다
 
 // 노선 색 목록으로 등록할 그림 이름. selected면 노란 바깥 테두리가 있는 그림
 export function capsuleImageName(colors, selected) {
-  return `station-capsule${selected ? '-selected' : ''}:${colors.join(',')}`;
+  return `station-capsule${selected ? '-selected' : ''}:${outlineColor}:${colors.join(',')}`;
 }
 
 // 아직 없는 조합이면 그림을 만들어 지도에 등록한다
@@ -36,7 +40,7 @@ function drawCapsule(colors, selected) {
   // 고른 역: 노란 바깥 테두리
   if (selected) pill(ctx, 0, 0, width + halo * 2, height + halo * 2, SELECTED);
   // 남색 테두리 → 흰 띠 → 노선 색 원들
-  pill(ctx, halo, halo, width, height, NAVY);
+  pill(ctx, halo, halo, width, height, outlineColor);
   pill(ctx, halo + outline, halo + outline, width - outline * 2, height - outline * 2, '#FFFFFF');
   colors.forEach((color, i) => {
     ctx.beginPath();

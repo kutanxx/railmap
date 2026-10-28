@@ -6,8 +6,8 @@
 }
 
 .panel-track-shape button.active {
-  border-color: #1f3a55;
-  background: #1f3a55;
+  border-color: var(--navy);
+  background: var(--navy);
   color: #ffffff;
 }
 

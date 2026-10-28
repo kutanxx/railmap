@@ -7,6 +7,7 @@ export function createTerrainToggle(element, onToggle) {
   return {
     setActive(on) {
       button.classList.toggle('active', on);
+      button.setAttribute('aria-pressed', String(Boolean(on)));
     },
   };
 }

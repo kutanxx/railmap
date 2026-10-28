@@ -2,7 +2,7 @@
 // 줄마다 번호 배지(노선 색) + 이름 + 하루 승객 · 월 수입. 누르면 그 노선을 고른다
 import { CROWDED_WARNING } from '../config.js';
 import { formatPeopleShort, formatSignedMoney } from './format.js';
-import { inkOn } from '../map/ink.js';
+import { routeBadge } from './routeBadge.js';
 
 // list: 목록을 넣을 칸, routes: [{ id, name, color, number, lengthKm, revenue, riders, load }]
 export function renderRouteList(list, routes, onSelect) {
@@ -18,11 +18,7 @@ export function renderRouteList(list, routes, onSelect) {
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'route-item';
-      const dot = document.createElement('span');
-      dot.className = 'route-item-dot';
-      dot.style.background = route.color;
-      dot.style.color = inkOn(route.color);
-      dot.textContent = route.number;
+      const dot = routeBadge(route.color, route.number);
       const name = document.createElement('span');
       name.className = 'route-item-name';
       name.textContent = route.name;

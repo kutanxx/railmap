@@ -8,12 +8,12 @@
 // - D 키, Esc, [닫기]로 닫는다. 상태는 읽기만 한다
 import { getState, findStation } from '../game/state.js';
 import { saveDiagramPng } from './diagramExport.js';
+import { svgElement, cssColor } from './svg.js';
 import { getRegion } from '../game/region.js';
 import { routeNumber } from '../game/routes.js';
-import { inkOn } from '../map/ink.js';
+import { routeBadge } from './routeBadge.js';
 import { diagramPositions, edgePoints, offsetPolyline } from './diagramLayout.js';
 
-const SVG = 'http://www.w3.org/2000/svg';
 // 그림 크기 (px, 확대 1배일 때)
 const LINE_WIDTH = 6; // 노선 선 굵기
 const LINE_GAP = 8; // 나란한 노선 사이 간격 (선 굵기 + 땅색 틈 2px)
@@ -21,16 +21,8 @@ const STATION_RADIUS = 5; // 일반역 원
 const MAX_UNIT = 110; // 역 간격 1이 화면에서 가장 클 때 (역이 몇 개 없을 때 너무 커지지 않게)
 const MARGIN = 90; // 화면 가장자리 여백 (역 이름이 잘리지 않게)
 const LABEL_GAP = 6; // 역 원과 이름 사이
-const NAVY = '#1f3a55';
-const LAND = '#efe7d6';
 // 역 이름을 붙일 수 있는 8방향 (앞쪽이 먼저 고려된다: 오른쪽, 왼쪽, 위, 아래, 대각선)
 const LABEL_SIDES = [0, 180, -90, 90, -45, -135, 45, 135].map((deg) => (deg * Math.PI) / 180);
-
-function svgElement(name, attributes = {}) {
-  const element = document.createElementNS(SVG, name);
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
-  return element;
-}
 
 const angleGap = (a, b) => {
   const d = Math.abs(a - b) % (2 * Math.PI);
@@ -207,11 +199,11 @@ export function createDiagramView({ onPickStation }) {
           cy: y,
           r: radius,
           fill: '#ffffff',
-          stroke: transfer ? NAVY : color,
+          stroke: transfer ? cssColor('navy') : color,
           'stroke-width': transfer ? 3 : 2.5,
         }),
       );
-      const label = svgElement('text', { class: 'diagram-label', stroke: LAND });
+      const label = svgElement('text', { class: 'diagram-label', stroke: cssColor('land') });
       label.textContent = station.name;
       group.append(label);
       stationLayer.append(group);
@@ -266,12 +258,7 @@ export function createDiagramView({ onPickStation }) {
       ...routes.map((route) => {
         const item = document.createElement('span');
         item.className = 'diagram-legend-item';
-        const badge = document.createElement('span');
-        badge.className = 'route-item-dot';
-        badge.style.background = route.color;
-        badge.style.color = inkOn(route.color);
-        badge.textContent = routeNumber(route);
-        item.append(badge, route.name);
+        item.append(routeBadge(route.color, routeNumber(route)), route.name);
         return item;
       }),
     );

@@ -1,6 +1,6 @@
 // 접은 오른쪽 패널: 노선 번호 배지만 세로로 늘어선 좁은 띠 (오른쪽 끝 역들이 다시 보이게).
 // [◂]를 누르면 노선 목록을 다시 펼치고, 번호를 누르면 그 노선 정보를 연다 (닫으면 다시 띠로 돌아온다).
-import { inkOn } from '../map/ink.js';
+import { routeBadge } from './routeBadge.js';
 
 // onUnfold(): 다시 펼치기, onSelect(노선 id): 노선 고르기
 export function createRouteStrip(element, { onUnfold, onSelect }) {
@@ -22,12 +22,8 @@ export function createRouteStrip(element, { onUnfold, onSelect }) {
     shownKey = key;
     list.replaceChildren(
       ...routes.map((route) => {
-        const badge = document.createElement('button');
-        badge.type = 'button';
-        badge.className = 'route-item-dot route-strip-badge';
-        badge.style.background = route.color;
-        badge.style.color = inkOn(route.color);
-        badge.textContent = route.number;
+        const badge = routeBadge(route.color, route.number, 'button');
+        badge.classList.add('route-strip-badge');
         badge.title = route.name;
         badge.addEventListener('click', () => onSelect(route.id));
         return badge;

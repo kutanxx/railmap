@@ -31,6 +31,7 @@ export function createSpeedControl(element, onSelect) {
     if (speed > 0) resumeSpeed = speed;
     for (const [value, button] of buttons) {
       button.classList.toggle('active', value === speed);
+      button.setAttribute('aria-pressed', String(Boolean(value === speed)));
     }
   }
 

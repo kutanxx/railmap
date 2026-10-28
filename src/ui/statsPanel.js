@@ -5,23 +5,19 @@
 // - 그래프 위에 마우스를 올리면 그 달에 세로선이 생기고, 제목 줄 숫자가 그 달 값으로 바뀐다
 // - 샌드박스는 돈이 무제한이라 자금 그래프를 뺀다
 import { STATS_SHOWN_MONTHS } from '../config.js';
+import { svgElement, cssColor } from './svg.js';
 import { getState } from '../game/state.js';
 import { isSandbox } from '../game/region.js';
 import { createPopover } from './popovers.js';
 import { formatMoney, formatSignedMoney, formatPopulation } from './format.js';
 
-const SVG = 'http://www.w3.org/2000/svg';
 // 그래프 크기 (px). 펼침 판 너비에 맞춘다
 const WIDTH = 300;
 const HEIGHT = 96;
 // 위쪽 최댓값 글자와 아래쪽 달 글자가 들어갈 자리
 const PAD_TOP = 20;
 const PAD_BOTTOM = 20;
-// 색 (아트 규칙: 남색 선, 흑자 초록·적자 빨강은 위쪽 자금 줄과 같은 색, 눈금은 칸막이 색)
-const LINE_COLOR = '#1f3a55';
-const GAIN_COLOR = '#3f7d3f';
-const LOSS_COLOR = '#b0402f';
-const GRID_COLOR = '#d6c9af';
+// 색은 화면의 색 변수에서 읽는다 (svg.js의 cssColor): 남색 선, 흑자 초록·적자 빨강은 위쪽 자금 줄과 같은 색, 눈금은 칸막이 색
 
 // 그래프 종류: 제목, 값 꺼내기, 값을 글로, 모양(선·막대)
 const CHARTS = [
@@ -31,12 +27,6 @@ const CHARTS = [
 ];
 
 const monthText = (record) => `${record.year}년 ${record.month}월`;
-
-function svgElement(name, attributes) {
-  const element = document.createElementNS(SVG, name);
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
-  return element;
-}
 
 // 막대 하나: 바닥(0 줄)에 붙은 쪽은 각지고, 값 쪽 끝만 둥글다
 function barPath(x, width, zeroY, valueY) {
@@ -86,8 +76,8 @@ function createChart(chart, records) {
   });
   // 0 줄과 맨 위 줄 (흐린 칸막이 색), 맨 위 값 글자
   svg.append(
-    svgElement('line', { x1: 0, x2: WIDTH, y1: y(top), y2: y(top), stroke: GRID_COLOR, 'stroke-width': 1 }),
-    svgElement('line', { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), stroke: GRID_COLOR, 'stroke-width': 1 }),
+    svgElement('line', { x1: 0, x2: WIDTH, y1: y(top), y2: y(top), stroke: cssColor('divider'), 'stroke-width': 1 }),
+    svgElement('line', { x1: 0, x2: WIDTH, y1: y(0), y2: y(0), stroke: cssColor('divider'), 'stroke-width': 1 }),
   );
   const topLabel = svgElement('text', { x: 0, y: 13, class: 'stats-axis' });
   topLabel.textContent = chart.text(top);
@@ -113,7 +103,7 @@ function createChart(chart, records) {
       svg.append(
         svgElement('path', {
           d: barPath(x(i) - width / 2, width, y(0), y(value)),
-          fill: value >= 0 ? GAIN_COLOR : LOSS_COLOR,
+          fill: value >= 0 ? cssColor('positive') : cssColor('danger'),
         }),
       );
     });
@@ -123,7 +113,7 @@ function createChart(chart, records) {
       svgElement('polyline', {
         points,
         fill: 'none',
-        stroke: LINE_COLOR,
+        stroke: cssColor('navy'),
         'stroke-width': 2,
         'stroke-linejoin': 'round',
         'stroke-linecap': 'round',
@@ -132,8 +122,8 @@ function createChart(chart, records) {
   }
 
   // 마우스를 올린 달: 세로선과 점, 제목 줄 숫자
-  const cross = svgElement('line', { y1: PAD_TOP - 4, y2: HEIGHT - PAD_BOTTOM + 4, stroke: LINE_COLOR, 'stroke-width': 1, visibility: 'hidden' });
-  const dot = svgElement('circle', { r: 4, fill: LINE_COLOR, stroke: '#ffffff', 'stroke-width': 2, visibility: 'hidden' });
+  const cross = svgElement('line', { y1: PAD_TOP - 4, y2: HEIGHT - PAD_BOTTOM + 4, stroke: cssColor('navy'), 'stroke-width': 1, visibility: 'hidden' });
+  const dot = svgElement('circle', { r: 4, fill: cssColor('navy'), stroke: '#ffffff', 'stroke-width': 2, visibility: 'hidden' });
   svg.append(cross, dot);
   // hovering: 마우스를 올린 중인지 (아니면 마지막 달 숫자만 보여주고 세로선은 숨긴다)
   const showMonth = (i, hovering) => {

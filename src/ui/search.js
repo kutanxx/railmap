@@ -4,7 +4,7 @@
 import { bbox } from '@turf/turf';
 import { getState, routeCoords } from '../game/state.js';
 import { routeNumber } from '../game/routes.js';
-import { inkOn } from '../map/ink.js';
+import { routeBadge } from './routeBadge.js';
 
 // 한 번에 보여줄 결과 수
 const MAX_RESULTS = 8;
@@ -54,12 +54,7 @@ export function createSearch({ map, select, render }) {
         row.className = `search-item${index === active ? ' active' : ''}`;
         row.setAttribute('role', 'option');
         if (item.type === 'route') {
-          const badge = document.createElement('span');
-          badge.className = 'route-item-dot';
-          badge.style.background = item.color;
-          badge.style.color = inkOn(item.color);
-          badge.textContent = item.number;
-          row.append(badge);
+          row.append(routeBadge(item.color, item.number));
         } else {
           const dot = document.createElement('span');
           dot.className = 'search-station-dot';

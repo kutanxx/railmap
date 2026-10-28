@@ -4,7 +4,7 @@
    - 화면 판(누르는 것이 든 묶음·패널·펼침)은 흰 바탕 + 남색 2px + 둥근 모서리 10px + 바깥 땅색 띠 2px
      (땅색 띠는 흐림 없는 단색 선이다. 선로·도로 위에 겹쳐도 판과 붙어 보이지 않게 틈을 만든다)
    - 그 안의 버튼은 평소 흰 바탕, 마우스를 올리면 땅색, 고르거나 켜진 것만 남색으로 꽉 채운다
-   - 누를 수 없는 정보(자금 줄, 혼잡도 설명)는 얇은 #CFC0A3 선으로 조용하게
+   - 누를 수 없는 정보(자금 줄, 혼잡도 설명)는 얇은 var(--info-border) 선으로 조용하게
    - 노란 점·꼬리·지시선은 지도 위 것(역 이름표, 알림)에만 쓴다. 화면 것에는 달지 않는다 */
 
 /* 화면 판 */
@@ -75,7 +75,7 @@
 .toolbar-divider {
   width: 1px;
   margin: 4px 4px;
-  background: #cfc0a3;
+  background: var(--info-border);
 }
 
 .toolbar-divider[hidden],
@@ -146,7 +146,7 @@
 
 /* 월 수지: +는 초록, −는 빨강 */
 .status .positive {
-  color: #3f7d3f;
+  color: var(--positive);
 }
 
 .status .negative {

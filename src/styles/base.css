@@ -14,6 +14,9 @@
   --divider: #d6c9af; /* 판 안의 칸막이 줄 */
   --info-border: #cfc0a3; /* 누를 수 없는 정보 띠의 얇은 테두리 */
   --danger: #b0402f; /* 위험한 버튼(지우기, 새로 시작), 넘침, 적자 */
+  --positive: #3f7d3f; /* 흑자 초록: 월 수지 +, 정산 숫자 ▲, 여유 있는 혼잡도 글자 */
+  --orange: #c9772f; /* 공사 중·주의 주황: 그리는 중인 선로, 계획 선로, 주의 말풍선 */
+  --warn-text: #8a4f17; /* 주의(주황) 말풍선의 글자: 주황보다 진해서 흰 바탕에서 읽힌다 */
   --radius-panel: 10px; /* 화면 판 모서리 (지도 위 말풍선은 6px라서 구별된다) */
   --radius-button: 6px; /* 판 안 버튼 모서리 */
   /* 화면 판 바깥 땅색 띠: 흐림 없는 단색 선이라 그림자가 아니다. 선로 위에 겹쳐도 판과 붙어 보이지 않게 */
@@ -24,7 +27,7 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: #efe7d6;
+  background: var(--land);
   font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   /* 숫자 폭을 똑같이 맞춰서, 자금이 바뀌어도 옆 글자가 좌우로 밀리지 않게 */
   font-variant-numeric: tabular-nums;
@@ -32,7 +35,7 @@ body {
 
 /* 키보드(Tab)로 버튼·입력 칸을 옮겨 다닐 때 지금 어디 있는지 남색 테두리로 보여준다 */
 :focus-visible {
-  outline: 3px solid #1f3a55;
+  outline: 3px solid var(--navy);
   outline-offset: 2px;
 }
 
@@ -105,4 +108,14 @@ body.side-panel-open .top-left {
 
 .badge-paused:empty {
   display: none;
+}
+
+/* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글 (말풍선 알림을 읽어 줄 때, ui/callouts.js) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

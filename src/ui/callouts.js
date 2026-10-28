@@ -10,7 +10,20 @@ import { Marker } from 'maplibre-gl';
 import { CALLOUT_SECONDS, CALLOUT_WARN_SECONDS } from '../config.js';
 import { logNotice } from './noticeLog.js';
 
+// 화면 읽기 프로그램(시각장애인용)이 말풍선 글을 읽어 주도록, 보이지 않는 알림 칸 하나에 같은 글을 넣는다
+let liveRegion = null;
+function announce(text) {
+  if (!liveRegion) {
+    liveRegion = document.createElement('div');
+    liveRegion.className = 'sr-only';
+    liveRegion.setAttribute('aria-live', 'polite');
+    document.body.append(liveRegion);
+  }
+  liveRegion.textContent = text;
+}
+
 function createBubble(text, tone) {
+  announce(text);
   const element = document.createElement('div');
   element.className = `callout callout-${tone}`;
   const bubble = document.createElement('div');

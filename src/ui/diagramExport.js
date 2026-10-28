@@ -3,11 +3,8 @@
 // 끌어서 옮기거나 확대한 것과 상관없이 노선도 전체가 들어간다. 글자는 화면 CSS를 못 쓰므로 모양을 직접 적는다.
 import { routeNumber } from '../game/routes.js';
 import { inkOn } from '../map/ink.js';
+import { SVG, svgElement, cssColor } from './svg.js';
 
-const SVG = 'http://www.w3.org/2000/svg';
-const NAVY = '#1f3a55';
-const LAND = '#efe7d6';
-const MUTED = '#6f6656';
 const FONT = "'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
 // 그림 여백과 줄 높이 (px, 저장할 때 2배로 키운다)
 const PAD = 40;
@@ -15,13 +12,6 @@ const TITLE_HEIGHT = 44;
 const LEGEND_ROW = 30;
 const FOOTER = 36;
 const SCALE = 2; // 선명하게 2배 크기로 저장
-
-function svgElement(name, attributes = {}, text = null) {
-  const element = document.createElementNS(SVG, name);
-  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
-  if (text !== null) element.textContent = text;
-  return element;
-}
 
 // 노선 목록을 줄 바꿈해 가며 놓는다. 결과: [{ route, x, row }], 줄 수
 function layoutLegend(routes, width) {
@@ -52,9 +42,9 @@ export async function saveDiagramPng({ world, title, routes, fileName }) {
   const height = Math.ceil(top + box.height + PAD + FOOTER);
 
   const svg = svgElement('svg', { xmlns: SVG, width, height, viewBox: `0 0 ${width} ${height}` });
-  svg.append(svgElement('rect', { width, height, fill: LAND }));
+  svg.append(svgElement('rect', { width, height, fill: cssColor('land') }));
   svg.append(
-    svgElement('text', { x: PAD, y: PAD + 26, fill: NAVY, 'font-family': FONT, 'font-size': 26, 'font-weight': 700 }, title),
+    svgElement('text', { x: PAD, y: PAD + 26, fill: cssColor('navy'), 'font-family': FONT, 'font-size': 26, 'font-weight': 700 }, title),
   );
   // 노선 목록: 번호 배지 + 이름
   for (const { route, x, row } of items) {
@@ -74,7 +64,7 @@ export async function saveDiagramPng({ world, title, routes, fileName }) {
         },
         String(routeNumber(route)),
       ),
-      svgElement('text', { x: PAD + x + 28, y: cy + 5, fill: NAVY, 'font-family': FONT, 'font-size': 15 }, route.name),
+      svgElement('text', { x: PAD + x + 28, y: cy + 5, fill: cssColor('navy'), 'font-family': FONT, 'font-size': 15 }, route.name),
     );
   }
   // 노선도 복사본: 왼쪽 위가 여백 안쪽에 오게 옮긴다
@@ -82,7 +72,7 @@ export async function saveDiagramPng({ world, title, routes, fileName }) {
   copy.setAttribute('transform', `translate(${PAD - box.x} ${top - box.y})`);
   // 역 이름은 화면 CSS(.diagram-label) 대신 직접 모양을 적는다
   for (const label of copy.querySelectorAll('.diagram-label')) {
-    label.setAttribute('fill', NAVY);
+    label.setAttribute('fill', cssColor('navy'));
     label.setAttribute('font-family', FONT);
     label.setAttribute('font-size', 13);
     label.setAttribute('font-weight', 700);
@@ -95,7 +85,7 @@ export async function saveDiagramPng({ world, title, routes, fileName }) {
   svg.append(
     svgElement(
       'text',
-      { x: width - 16, y: height - 14, fill: MUTED, 'font-family': FONT, 'font-size': 13, 'text-anchor': 'end' },
+      { x: width - 16, y: height - 14, fill: cssColor('muted'), 'font-family': FONT, 'font-size': 13, 'text-anchor': 'end' },
       '레일맵 · 지도 자료 © OpenStreetMap 기여자',
     ),
   );

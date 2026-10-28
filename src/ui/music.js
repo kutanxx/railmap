@@ -102,6 +102,7 @@ export function createMusicToggle(button) {
   const show = () => {
     button.textContent = enabled ? '음악 켬' : '음악 끔';
     button.classList.toggle('active', enabled);
+    button.setAttribute('aria-pressed', String(Boolean(enabled)));
   };
   button.addEventListener('click', () => {
     enabled = !enabled;

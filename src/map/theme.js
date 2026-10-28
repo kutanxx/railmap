@@ -4,6 +4,7 @@
 // - 바탕 지도: 레이어마다 적어 둔 팔레트 이름(metadata 'railmap:palette')으로 PALETTE ↔ CONTROL_ROOM_PALETTE를 바꾼다
 // - 선로·역·출구·등고선: 아래 표의 레이어 색을 바꾼다
 import { PALETTE, CONTROL_ROOM_PALETTE } from './style.js';
+import { setCapsuleOutline } from './stationIcons.js';
 
 // 플레이어 레이어 색: [레이어 id, 칠할 곳, 낮(베이지) 색, 관제실 색]
 // 선로는 밝은 회색 몸통 + 어두운 테두리로 뒤집어서, 짙은 바탕에서도 또렷하게 보이게 한다
@@ -22,6 +23,8 @@ const LAYER_COLORS = [
   ['contour-label', 'text-halo-color', '#EFE7D6', '#1E2630'],
   ['exit-building-labels', 'text-halo-color', '#FFFFFF', '#1E2630'],
   ['exit-building-labels', 'text-color', '#1F3A55', '#D3DCE5'],
+  ['exit-dots', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],
+  ['exit-dots-nameless', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],
 ];
 // 노선이 지나지 않는 선로의 가운데 줄 (노선이 지나면 노선 색)
 const CENTER = { day: '#D8C9AA', control: '#1E2630' };
@@ -29,6 +32,8 @@ const CENTER = { day: '#D8C9AA', control: '#1E2630' };
 // on: 관제실 모드를 켤지
 export function applyMapTheme(map, on) {
   const palette = on ? CONTROL_ROOM_PALETTE : PALETTE;
+  // 환승역 캡슐은 그림이라 테두리 색을 그릴 때 정한다 (바꾼 뒤 역을 다시 그리면 새 색 그림을 쓴다)
+  setCapsuleOutline(on ? '#D3DCE5' : '#1F3A55');
   for (const layer of map.getStyle().layers) {
     const roles = layer.metadata?.['railmap:palette'];
     if (!roles) continue;

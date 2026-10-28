@@ -215,13 +215,12 @@
   font-size: var(--text-strong);
 }
 
-/* 하던 게임이 있는 지도: 이름 앞 노란 점 */
+/* 하던 게임이 있는 지도: 이름 앞 남색 점 (노란 점은 지도 위 것에만 쓴다는 아트 규칙) */
 .start-dot {
   width: 8px;
   height: 8px;
-  border: 1.5px solid var(--navy);
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--navy);
 }
 
 .start-kind {
@@ -253,7 +252,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px 10px;
-  border-top: 1px solid #cfc0a3;
+  border-top: 1px solid var(--info-border);
 }
 
 .start-status {
@@ -262,7 +261,7 @@
 }
 
 .start-status.has-save {
-  color: #c9772f;
+  color: var(--orange);
   font-weight: 700;
 }
 

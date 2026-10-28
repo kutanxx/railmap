@@ -52,16 +52,19 @@ export function createToolbar(element, onSelect, onToggleCurve, onTogglePlan) {
   function setActive(toolId, curve, plan) {
     for (const [id, button] of buttons) {
       button.classList.toggle('active', id === toolId);
+      button.setAttribute('aria-pressed', String(Boolean(id === toolId)));
     }
     const drawingTrack = toolId === 'track';
     divider.hidden = !drawingTrack;
     curveButton.hidden = !drawingTrack;
     planButton.hidden = !drawingTrack;
     planButton.classList.toggle('active', plan);
+    planButton.setAttribute('aria-pressed', String(Boolean(plan)));
     planButton.title = plan
       ? '계획 선로로 그리는 중: 돈이 들지 않고, 나중에 선로 카드에서 지어요. 누르면 바로 짓기로 (P 키)'
       : '바로 짓는 중: 누르면 돈을 내지 않는 계획 선로로 그려요 (P 키)';
     curveButton.classList.toggle('active', curve);
+    curveButton.setAttribute('aria-pressed', String(Boolean(curve)));
     curveButton.title = curve
       ? '곡선으로 그리는 중: 누르면 직선으로 (V 키)'
       : '직선으로 그리는 중: 누르면 경유점을 지나는 곡선으로 (V 키)';

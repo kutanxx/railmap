@@ -1,7 +1,7 @@
 import { bindNameInput } from './nameInput.js';
 import { formatPopulation, formatPeopleShort, formatMoney } from './format.js';
 import { loadTone } from './routeList.js';
-import { inkOn } from '../map/ink.js';
+import { routeBadge } from './routeBadge.js';
 
 // 오른쪽 정보 패널: 고른 역 또는 선로의 카드. 노선 목록 자리에 잠시 갈아 끼운다 (app.js가 둘 중 하나만 보여준다).
 // 맨 위 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose, Esc와 같다).
@@ -166,14 +166,7 @@ export function createPanel(
     const { station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack } = view;
     tagText.textContent = view.tag ? `${view.tag}역` : '';
     badges.replaceChildren(
-      ...view.routes.map((route) => {
-        const badge = document.createElement('span');
-        badge.className = 'route-item-dot';
-        badge.style.background = route.color;
-        badge.style.color = inkOn(route.color);
-        badge.textContent = route.number;
-        return badge;
-      }),
+      ...view.routes.map((route) => routeBadge(route.color, route.number)),
     );
     station = { id: nextStation.id };
     stationRemoval.textContent = view.removal;

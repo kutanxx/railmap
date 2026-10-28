@@ -21,6 +21,7 @@ export function createCongestionToggle(element, onToggle) {
   // 켜져 있는지에 맞춰 버튼과 설명을 바꾼다. over: 넘친 구간 수
   function setActive(on, over) {
     button.classList.toggle('active', on);
+    button.setAttribute('aria-pressed', String(Boolean(on)));
     legend.hidden = !on;
     const text = over > 0 ? `넘침 ${over}곳` : '넘침 없음';
     if (overCount.textContent !== text) overCount.textContent = text;
