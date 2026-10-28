@@ -29,7 +29,7 @@
 
 처음 열면 튜토리얼이 역 → 선로 → 노선 → 열차 출발을 안내해요. 게임 안의 [?] 버튼에서 전체 조작법을 다시 볼 수 있어요.
 
-> 지금은 컴퓨터(마우스·키보드)에 맞춰져 있어요. 휴대폰 화면은 아직 지원하지 않아요.
+> 컴퓨터(마우스·키보드)에서 가장 편하고, 휴대폰·태블릿에서도 손가락으로 할 수 있어요 (두 손가락으로 지도 움직이기·키우기, 한 손가락으로 고른 역 옮기기, 왼쪽 아래 ↶ ↷).
 > 저장은 각자의 브라우저에 돼요. 다른 컴퓨터로 옮기려면 [메뉴] → [내보내기]로 파일을 받아 [불러오기] 하세요.
 
 ## 내 컴퓨터에서 실행하기
@@ -53,4 +53,5 @@ npm run dev
 ## 지도 자료 출처
 
 - 지도: © [OpenStreetMap](https://www.openstreetmap.org/copyright) 기여자, [OpenMapTiles](https://openmaptiles.org/), 지도 타일은 [OpenFreeMap](https://openfreemap.org/)
+- 화면 글꼴: [Pretendard](https://github.com/orioncactus/pretendard) (SIL Open Font License 1.1)
 - 역 이름은 지도에 적힌 동네 이름에서 따와요. 실제 노선 이름과 색의 출처는 [src/lineColors.js](src/lineColors.js) 맨 위에 적혀 있어요

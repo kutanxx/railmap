@@ -68,6 +68,8 @@ export function createTutorial(element) {
   }
 
   function update() {
+    // 위쪽 버튼 묶음 바로 아래에 둔다 (좁은 화면에서는 버튼 줄이 여러 줄로 꺾여 높이가 달라진다)
+    element.style.top = `${document.querySelector('.top-left').getBoundingClientRect().bottom + 8}px`;
     const state = getState();
     while (step < STEPS.length && STEPS[step].done(state, since)) {
       step += 1;

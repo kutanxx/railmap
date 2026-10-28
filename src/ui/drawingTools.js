@@ -8,6 +8,7 @@ import { trackCostForCoords } from '../game/economy.js';
 import { updateDraft } from '../map/trackLayers.js';
 import { createTrackTool } from './trackTool.js';
 import { createRouteTool } from './routeTool.js';
+import { createDrawBar } from './drawBar.js';
 import { showCallout } from './callouts.js';
 import { shortfall } from './costText.js';
 import { playSound } from './sounds.js';
@@ -19,9 +20,18 @@ const CURVE_KEY = 'railmap-track-curve';
 // 결과: { trackTool, routeTool, setDraftCurve: 새로 그릴 선로 모양 정하기 (곡선이면 true),
 //         setDraftPlan: 새로 그릴 선로를 계획 선로로 할지 }
 export function createDrawingTools({ map, select, render, notice, chooseTool }) {
+  // 선로를 그리는 동안 화면 아래 막대: 길이·공사비와 [마지막 점 빼기][취소] (손가락으로도 쓸 수 있게, drawBar.js)
+  const drawBar = createDrawBar({
+    onUndoPoint: () => trackTool.undoWaypoint(),
+    onCancel: () => trackTool.cancel(),
+  });
   const trackTool = createTrackTool({
     curve: localStorage.getItem(CURVE_KEY) === '1',
-    onChange: (draft) => updateDraft(map, draft),
+    onChange: (draft) => {
+      updateDraft(map, draft);
+      if (draft) drawBar.show(draft.coords, trackTool.isPlan());
+      else drawBar.hide();
+    },
     onComplete: (from, to, waypoints, curve, plan) => {
       // 이미 이어진 두 역이면 새로 짓지 않고 그 선로를 골라 준다 (모양은 경유점을 끌어 고친다)
       const existing = findTrackBetween(from, to, { planned: true });

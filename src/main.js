@@ -1,4 +1,6 @@
 // 시작점: 시작 화면에서 지도 고르기 → 그 지도의 저장된 게임 불러오기 → 지도 만들기 → 게임 화면 시작
+// 화면 글꼴 Pretendard (SIL 오픈 폰트 라이선스): 화면에 나온 글자가 든 조각만 그때그때 받는다 ("나눠 받기")
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './style.css';
 import { START_YEAR, START_MONTH } from './config.js';
 import { setRegion, getRegion, setSandbox, isSandbox } from './game/region.js';

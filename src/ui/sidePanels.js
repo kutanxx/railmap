@@ -21,12 +21,16 @@ import { shortfall } from './costText.js';
 
 // 오른쪽 패널을 접었는지 기억하는 브라우저 저장 이름
 const PANEL_FOLDED_KEY = 'railmap-panel-folded';
+// 이보다 좁은 창은 휴대폰 배치 (styles/mobile.css와 같은 값)
+const NARROW_SCREEN_PX = 700;
 
 // app.js가 넘겨주는 것: ui(화면 상태), select·render·notice, routeTool([노선] 도구),
 // deleteSelected(고른 것 지우기), previewDelete(지울 것 미리 보기)
 // 결과: { show({ routes, shapes }) } — 다시 그릴 때마다 부른다
 export function createSidePanels({ ui, select, render, notice, routeTool, deleteSelected, previewDelete }) {
-  ui.panelFolded = localStorage.getItem(PANEL_FOLDED_KEY) === '1';
+  // 고른 적이 없으면 좁은 화면(휴대폰)에서는 접은 채로 시작한다 (아래에서 올라오는 판이 지도를 반쯤 가리므로)
+  const storedFold = localStorage.getItem(PANEL_FOLDED_KEY);
+  ui.panelFolded = storedFold === null ? window.innerWidth < NARROW_SCREEN_PX : storedFold === '1';
 
   const closeCard = () => {
     select(null);

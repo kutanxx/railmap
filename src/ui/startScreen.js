@@ -63,7 +63,7 @@ export function chooseRegion(element) {
         </div>
         ${ROUTE_ART}
       </header>
-      <p class="start-device" hidden>휴대폰·태블릿에서는 아직 조작이 불편해요. 컴퓨터(마우스·키보드)에서 가장 잘 돌아가요.</p>
+      <p class="start-device" hidden>손가락으로도 할 수 있어요: 두 손가락으로 지도를 움직이고 키우세요. 화면이 넓은 컴퓨터에서 가장 편해요.</p>
       <section class="start-continue" hidden>
         <div class="start-continue-latest"></div>
         <h2 class="start-section start-continue-more" hidden>다른 저장 이어하기</h2>

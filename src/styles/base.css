@@ -28,7 +28,8 @@ body {
   margin: 0;
   height: 100%;
   background: var(--land);
-  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  /* 화면 글꼴: Pretendard (main.js가 불러온다). 못 받으면 컴퓨터에 있는 한글 글꼴로 */
+  font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   /* 숫자 폭을 똑같이 맞춰서, 자금이 바뀌어도 옆 글자가 좌우로 밀리지 않게 */
   font-variant-numeric: tabular-nums;
 }

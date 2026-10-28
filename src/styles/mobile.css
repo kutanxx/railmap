@@ -1,0 +1,96 @@
+/* 좁은 화면 (휴대폰, 700px 아래)과 손가락 조작. 다른 파일 뒤에 불러와서 같은 규칙을 덮는다
+   - 오른쪽 패널은 화면 아래에서 올라오는 판으로 (지도를 위쪽에 넓게 남긴다)
+   - 위·아래 버튼 묶음은 가장자리에 더 붙이고, 판이 열리면 아래 버튼 줄은 잠깐 숨긴다
+   - 그리기 막대·말풍선·튜토리얼은 화면 폭에 맞춘다 */
+
+/* ── 선로 그리기 막대 (모든 화면, ui/drawBar.js): 왼쪽 아래 버튼 줄 바로 위 가운데 (버튼을 가리지 않게).
+   bottom 값은 처음 자리이고, 보일 때마다 drawBar.js가 버튼 줄 높이에 맞춰 다시 정한다 ── */
+.draw-bar {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 6px 6px 6px 14px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+  color: var(--navy);
+  font-size: var(--text-body);
+  font-weight: 700;
+  transform: translateX(-50%);
+}
+
+.draw-bar[hidden] {
+  display: none;
+}
+
+.draw-bar-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.draw-bar button {
+  flex: none;
+  min-height: 36px;
+}
+
+@media (max-width: 699px) {
+  .top-left {
+    top: 8px;
+    left: 8px;
+    gap: 6px;
+    max-width: calc(100vw - 16px - 52px);
+  }
+
+  /* 판이 아래에 있으니 위쪽 묶음은 오른쪽 끝까지 쓴다 */
+  body.side-panel-open .top-left {
+    max-width: calc(100vw - 16px);
+  }
+
+  /* 지도 출처 표기 위로 올려서 가리지 않게 (좁은 화면에서는 출처가 두 줄, 약 44px로 꺾인다) */
+  .bottom-left {
+    bottom: 54px;
+    left: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: calc(100vw - 16px);
+  }
+
+  /* 오른쪽 패널 → 아래에서 올라오는 판 */
+  .side {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 48vh;
+  }
+
+  /* 판이 열려 있는 동안은 아래 버튼 줄을 숨긴다 (판을 닫으면 다시 보인다) */
+  body.side-panel-open .bottom-left {
+    display: none;
+  }
+
+  .route-strip {
+    top: 8px;
+    right: 8px;
+  }
+
+  /* 그리기 막대는 아래 버튼 줄 바로 위 (자리는 drawBar.js가 버튼 줄 높이를 보고 정한다) */
+  .draw-bar {
+    flex-wrap: wrap;
+  }
+
+  .callout-bubble {
+    max-width: min(320px, 80vw);
+  }
+
+  .tutorial {
+    max-width: calc(100vw - 16px);
+  }
+}

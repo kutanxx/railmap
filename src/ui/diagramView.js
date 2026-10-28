@@ -3,7 +3,7 @@
 // - 같은 두 역 사이를 여러 노선이 지나면 나란히 그린다 (노선 번호 순서)
 // - 일반역은 흰 원 + 노선 색 테두리, 환승역은 흰 원 + 굵은 남색 테두리 (지도의 아주 먼 줌 모양과 같다)
 // - 역 이름은 선이 덜 지나는 쪽에 붙인다
-// - 끌어서 옮기고, 휠로 확대한다. 역을 누르면 노선도를 닫고 지도에서 그 역으로 간다
+// - 끌어서 옮기고, 휠이나 두 손가락으로 확대한다. 역을 누르면 노선도를 닫고 지도에서 그 역으로 간다
 // - [그림 저장]으로 PNG 파일을 받는다 (diagramExport.js)
 // - D 키, Esc, [닫기]로 닫는다. 상태는 읽기만 한다
 import { getState, findStation } from '../game/state.js';
@@ -67,7 +67,7 @@ export function createDiagramView({ onPickStation }) {
       <button class="hud-button diagram-save" type="button" title="노선도를 PNG 그림 파일로 받기">그림 저장</button>
       <button class="hud-button diagram-close" type="button" title="노선도 닫기 (D 키 · Esc)">닫기 ✕</button>
     </div>
-    <p class="diagram-hint">끌어서 옮기기 · 휠로 확대 · 역을 누르면 지도에서 보기</p>
+    <p class="diagram-hint">끌어서 옮기기 · 휠·두 손가락으로 확대 · 역을 누르면 지도에서 보기</p>
     <p class="diagram-empty" hidden>노선을 만들면 노선도가 생겨요</p>
     <p class="diagram-credit">지도 자료 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
   `;
@@ -296,40 +296,66 @@ export function createDiagramView({ onPickStation }) {
     );
   }
 
-  // ── 끌어서 옮기기·휠로 확대 ──
+  // ── 끌어서 옮기기·휠로 확대·두 손가락으로 확대 ──
+  // (sx, sy) 화면 자리가 그대로 있게 확대 정도를 scale로 바꾼다
+  function zoomAt(sx, sy, scale) {
+    const next = Math.min(4, Math.max(0.4, scale));
+    const rect = svg.getBoundingClientRect();
+    const mx = sx - rect.left;
+    const my = sy - rect.top;
+    view.x = mx - ((mx - view.x) * next) / view.scale;
+    view.y = my - ((my - view.y) * next) / view.scale;
+    view.scale = next;
+    applyView();
+  }
+  // 누르고 있는 손가락·마우스: pointerId → [x, y]. 하나면 끌기, 둘이면 벌리고 오므려 확대
+  const pointers = new Map();
   let drag = null;
+  let pinch = null; // { distance: 처음 두 손가락 거리, scale: 그때 확대 정도 }
+  const fingerGap = () => {
+    const [[x1, y1], [x2, y2]] = [...pointers.values()];
+    return { distance: Math.hypot(x2 - x1, y2 - y1), x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+  };
   svg.addEventListener('pointerdown', (event) => {
     if (event.target.closest('.diagram-station')) return;
-    drag = { x: event.clientX - view.x, y: event.clientY - view.y };
+    pointers.set(event.pointerId, [event.clientX, event.clientY]);
     svg.setPointerCapture(event.pointerId);
-    svg.classList.add('dragging');
+    if (pointers.size === 1) {
+      drag = { x: event.clientX - view.x, y: event.clientY - view.y };
+      svg.classList.add('dragging');
+    } else if (pointers.size === 2) {
+      drag = null;
+      pinch = { distance: fingerGap().distance, scale: view.scale };
+    }
   });
   svg.addEventListener('pointermove', (event) => {
-    if (!drag) return;
-    view.x = event.clientX - drag.x;
-    view.y = event.clientY - drag.y;
-    applyView();
+    if (!pointers.has(event.pointerId)) return;
+    pointers.set(event.pointerId, [event.clientX, event.clientY]);
+    if (pinch && pointers.size === 2) {
+      const { distance, x, y } = fingerGap();
+      if (pinch.distance > 0) zoomAt(x, y, (pinch.scale * distance) / pinch.distance);
+    } else if (drag) {
+      view.x = event.clientX - drag.x;
+      view.y = event.clientY - drag.y;
+      applyView();
+    }
   });
-  const endDrag = () => {
-    drag = null;
-    svg.classList.remove('dragging');
+  const release = (event) => {
+    pointers.delete(event.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pointers.size === 0) {
+      drag = null;
+      svg.classList.remove('dragging');
+    }
   };
-  svg.addEventListener('pointerup', endDrag);
-  svg.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('pointerup', release);
+  svg.addEventListener('pointercancel', release);
   svg.addEventListener(
     'wheel',
     (event) => {
       event.preventDefault();
-      const factor = Math.exp(-event.deltaY * 0.0015);
-      const scale = Math.min(4, Math.max(0.4, view.scale * factor));
       // 마우스 자리가 그대로 있게 확대한다
-      const rect = svg.getBoundingClientRect();
-      const mx = event.clientX - rect.left;
-      const my = event.clientY - rect.top;
-      view.x = mx - ((mx - view.x) * scale) / view.scale;
-      view.y = my - ((my - view.y) * scale) / view.scale;
-      view.scale = scale;
-      applyView();
+      zoomAt(event.clientX, event.clientY, view.scale * Math.exp(-event.deltaY * 0.0015));
     },
     { passive: false },
   );

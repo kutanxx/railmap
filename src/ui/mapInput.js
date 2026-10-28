@@ -222,6 +222,19 @@ export function bindMapInput(ctx) {
   // V: 새로 그릴 선로를 직선 ↔ 곡선, P: 새로 그릴 선로를 계획 선로로 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기, D: 노선도 보기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
+  // 되돌리기·다시 하기 (Ctrl+Z·Ctrl+Y, 왼쪽 아래 [↶][↷] 버튼)
+  function undoOrRedo(redoing) {
+    // 그리던 선로·노선은 먼저 취소한다 (되돌린 뒤 없어진 역을 붙잡고 있지 않게)
+    trackTool.cancel();
+    routeTool.cancel();
+    const result = redoing ? redo() : undo();
+    if (result === false) notice(redoing ? '다시 할 것이 없어요' : '되돌릴 것이 없어요', 'bad');
+    else if (result === null) notice('다시 하기에 필요한 돈이 모자라요', 'bad');
+    else if (result.noRefund) notice('지난 정산보다 앞선 공사라 공사비는 돌려받지 못했어요', 'warn');
+  }
+  document.getElementById('undo-button').addEventListener('click', () => undoOrRedo(false));
+  document.getElementById('redo-button').addEventListener('click', () => undoOrRedo(true));
+
   // 글자를 치는 칸 (이름 칸, 찾기 칸). 막대(range) 같은 다른 입력에 초점이 있을 때는 단축키를 그대로 받는다
   const typingIn = (target) =>
     target instanceof HTMLTextAreaElement ||
@@ -244,14 +257,7 @@ export function bindMapInput(ctx) {
     }
     if (command && (letter === 'z' || letter === 'y')) {
       event.preventDefault();
-      // 그리던 선로·노선은 먼저 취소한다 (되돌린 뒤 없어진 역을 붙잡고 있지 않게)
-      trackTool.cancel();
-      routeTool.cancel();
-      const redoing = letter === 'y' || event.shiftKey;
-      const result = redoing ? redo() : undo();
-      if (result === false) notice(redoing ? '다시 할 것이 없어요' : '되돌릴 것이 없어요', 'bad');
-      else if (result === null) notice('다시 하기에 필요한 돈이 모자라요', 'bad');
-      else if (result.noRefund) notice('지난 정산보다 앞선 공사라 공사비는 돌려받지 못했어요', 'warn');
+      undoOrRedo(letter === 'y' || event.shiftKey);
       return;
     }
 
