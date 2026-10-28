@@ -3,7 +3,9 @@
 // - 내보내기: 저장 내용을 JSON 파일로 받는다
 // - 불러오기: JSON 파일을 읽어 그 상태로 바꾼다
 // 지도(지역)마다 저장 칸이 따로 있고, 저장 파일에도 어느 지도인지 적어 둔다
+// 역 주변 건물 칸은 격자 번호로 작게 적는다 (cellPacking.js. 예전 파일의 경도·위도 칸도 그대로 읽는다)
 import { START_YEAR, START_MONTH } from '../config.js';
+import { packCells, unpackCells } from './cellPacking.js';
 import { REGIONS } from '../regions.js';
 import { getRegion, isSandbox } from './region.js';
 import {
@@ -19,12 +21,21 @@ const state = getState();
 
 const SAVE_VERSION = 1;
 
+// 역 목록을 저장용으로: 건물 칸(cells)을 격자 번호(cellGrid)로 바꿔 적는다 (못 바꾸는 역은 그대로)
+function packStations(network) {
+  const stations = network.stations.map(({ cells, ...station }) => {
+    const grid = cells ? packCells(station.coord, cells) : null;
+    return grid ? { ...station, cellGrid: grid } : { ...station, cells };
+  });
+  return { ...network, stations };
+}
+
 // 저장할 내용 (열차 위치는 저장하지 않고, 불러올 때 노선에 맞춰 새로 놓는다)
 export function saveData() {
   return {
     version: SAVE_VERSION,
     region: getRegion().id,
-    network: snapshotNetwork(),
+    network: packStations(snapshotNetwork()),
     speed: state.speed,
     elapsedSeconds: state.elapsedSeconds,
     year: state.year,
@@ -53,7 +64,11 @@ export function loadData(data) {
     const name = REGIONS[region]?.name ?? region;
     throw new Error(`${name} 지도의 저장 파일이에요. 시작 화면에서 ${name} 지도를 골라 불러오세요.`);
   }
-  restoreNetwork(network);
+  // 격자 번호로 적은 건물 칸은 경도·위도로 되돌린다 (예전 파일은 cells 그대로)
+  const stations = network.stations.map(({ cellGrid, ...station }) =>
+    cellGrid ? { ...station, cells: unpackCells(station.coord, cellGrid) } : station,
+  );
+  restoreNetwork({ ...network, stations });
   state.money = network.money;
   state.trains = [];
   state.speed = data.speed;
