@@ -8,7 +8,7 @@ import { getRegion, isSandbox } from '../game/region.js';
 import { updateStations, updateCatchment } from '../map/stationLayers.js';
 import { addGameLayers } from '../map/gameLayers.js';
 import { updateStationLabels, arrangeStationLabels } from '../map/stationLabels.js';
-import { getState, subscribe, setSpeed, findStation, monthlyInterest } from '../game/state.js';
+import { getState, subscribe, setSpeed, findStation, findTrack, findRoute, monthlyInterest } from '../game/state.js';
 import { removeStation, removeTrack } from '../game/build.js';
 import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
@@ -115,6 +115,7 @@ export function startApp(map, loadMessage) {
 
   // 고른 역·선로·노선 지우기 (패널의 삭제 버튼, Delete 키)
   function deleteSelected() {
+    dropMissing();
     const selected = ui.selected;
     if (!selected) return;
     select(null);
@@ -198,8 +199,19 @@ export function startApp(map, loadMessage) {
     }
   }
 
+  // 되돌리기·불러오기로 사라진 것을 붙잡고 있지 않게: 고른 것·역 끼워넣는 노선이 없어졌으면 놓는다
+  function dropMissing() {
+    const exists = { station: findStation, track: findTrack, route: findRoute };
+    if (ui.selected && !exists[ui.selected.type](ui.selected.id)) select(null);
+    if (ui.insertingInto && !findRoute(ui.insertingInto)) {
+      ui.insertingInto = null;
+      ui.routeMessage = '';
+    }
+  }
+
   // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
   function render() {
+    dropMissing();
     const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
     const stations = shownStations();
     const { stationRoutes } = routeColors(routes);

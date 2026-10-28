@@ -20,6 +20,9 @@ export function useVirtualMap(data) {
 
 export const isVirtualMap = () => virtual !== null;
 
+// 지금 화면의 지도 자료(건물·도로)를 다 불러왔는지. 덜 불러온 채로 역을 놓으면 주변 인구가 적게 잡힌다
+export const mapDataLoaded = (map) => virtual !== null || map.isSourceLoaded(BASE_SOURCE);
+
 // layer: 'building' | 'transportation' | 'water'. 결과: GeoJSON 지물 목록 (geometry, properties)
 export function readMapFeatures(map, layer) {
   if (virtual) return virtual.get(layer) ?? [];

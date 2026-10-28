@@ -11,6 +11,7 @@ import {
   findStation,
   findTrack,
   findRoute,
+  findTrackBetween,
   trackCoords,
   routeTracks,
 } from './state.js';
@@ -109,6 +110,8 @@ export function removeStation(id) {
 // 빚 한도 안에서도 공사비를 낼 수 없으면 깔지 않고 null을 돌려준다
 export function addTrack(from, to, waypoints, curve = false, planned = false) {
   return change(null, () => {
+    // 같은 두 역 사이에는 선로(계획 선로 포함)를 하나만 둔다 (화면 쪽에서 먼저 막고 알려준다, drawingTools.js)
+    if (findTrackBetween(from, to, { planned: true })) return null;
     const coords = shapeCoords([findStation(from).coord, ...waypoints, findStation(to).coord], curve);
     const cost = planned ? 0 : trackCostForCoords(coords).cost;
     if (!canAfford(cost)) return null;

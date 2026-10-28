@@ -23,6 +23,14 @@ export function createDrawingTools({ map, select, render, notice }) {
     curve: localStorage.getItem(CURVE_KEY) === '1',
     onChange: (draft) => updateDraft(map, draft),
     onComplete: (from, to, waypoints, curve, plan) => {
+      // 이미 이어진 두 역이면 새로 짓지 않고 그 선로를 골라 준다 (모양은 경유점을 끌어 고친다)
+      const existing = findTrackBetween(from, to, { planned: true });
+      if (existing) {
+        select({ type: 'track', id: existing.id });
+        render();
+        showCallout(map, findStation(to).coord, '이미 선로가 있어요. 흰 점을 끌어 모양을 고쳐 보세요', 'bad');
+        return true;
+      }
       const track = addTrack(from, to, waypoints, curve, plan);
       if (!track) {
         const coords = shapeCoords([findStation(from).coord, ...waypoints, findStation(to).coord], curve);

@@ -31,6 +31,10 @@ function progressText({ goal, current }) {
 export function createGoalsPanel(button, panel) {
   createPopover(button, panel);
   const group = button.closest('.pop-anchor');
+  // 목록 아래 안내: 언제 확인하는지 (지금 값이 넘어도 정산 전에는 보상이 없어서 헷갈리지 않게)
+  const hint = document.createElement('p');
+  hint.className = 'goals-hint';
+  hint.textContent = '목표는 매달 정산할 때 위에서부터 차례로 확인해요.';
 
   function update() {
     // 새로 이룬 목표: 말풍선 + 보상 (한꺼번에 여럿이면 말풍선 하나로 묶는다)
@@ -64,6 +68,7 @@ export function createGoalsPanel(button, panel) {
         row.append(mark, text);
         return row;
       }),
+      hint,
     );
   }
 

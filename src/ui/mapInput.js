@@ -4,6 +4,7 @@ import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
 import { estimatePopulation, zoomedInEnough } from '../map/population.js';
 import { nearbyPlaceName } from '../map/placeNames.js';
+import { mapDataLoaded } from '../map/mapFeatures.js';
 import { getState, findStation, undo, redo } from '../game/state.js';
 import { addStation } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
@@ -117,6 +118,10 @@ export function bindMapInput(ctx) {
         showCallout(map, coord, TOO_FAR, 'bad');
         return;
       }
+      if (!mapDataLoaded(map)) {
+        showCallout(map, coord, '지도를 불러오는 중이에요. 잠시 뒤에 놓아 주세요', 'bad');
+        return;
+      }
       // 이름은 가까운 지명에서 (다른 역이 쓰는 이름은 피한다)
       const usedNames = new Set(getState().stations.map((station) => station.name));
       const station = addStation(coord, estimatePopulation(map, coord), nearbyPlaceName(map, coord, usedNames));
@@ -217,29 +222,40 @@ export function bindMapInput(ctx) {
   // V: 새로 그릴 선로를 직선 ↔ 곡선, P: 새로 그릴 선로를 계획 선로로 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기, D: 노선도 보기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
+  // 글자를 치는 칸 (이름 칸, 찾기 칸). 막대(range) 같은 다른 입력에 초점이 있을 때는 단축키를 그대로 받는다
+  const typingIn = (target) =>
+    target instanceof HTMLTextAreaElement ||
+    target?.isContentEditable ||
+    (target instanceof HTMLInputElement && ['text', 'search'].includes(target.type));
+  // 화면을 가리는 창(조작 안내, 파산)이 떠 있으면 뒤의 게임은 키를 받지 않는다
+  const dialogOpen = () => !document.getElementById('help').hidden || !document.getElementById('bankrupt').hidden;
+
   document.addEventListener('keydown', (event) => {
-    // 패널의 이름 칸에 글자를 치는 중이면 건드리지 않는다 (이름 칸은 자기 되돌리기를 쓴다)
-    if (event.target instanceof HTMLInputElement) return;
+    // 이름 칸에 글자를 치는 중이면 건드리지 않는다 (이름 칸은 자기 되돌리기를 쓴다)
+    if (typingIn(event.target) || dialogOpen()) return;
 
     const command = event.ctrlKey || event.metaKey;
-    const key = event.key.toLowerCase();
-    if (command && (key === 'z' || key === 'y')) {
+    // 글자 단축키는 자판 자리(event.code)로 읽는다: 한글 입력 상태에서도 C·T·H…가 그대로 먹게
+    const letter = event.code.startsWith('Key') ? event.code.slice(3).toLowerCase() : event.key.toLowerCase();
+    // 노선도를 보는 동안에는 D·Esc(닫기)만 받는다 (보이지 않는 지도에서 무언가 바뀌지 않게. 되돌리기도 막는다)
+    if (diagram.isOpen()) {
+      if (!command && (event.key === 'Escape' || letter === 'd')) diagram.close();
+      return;
+    }
+    if (command && (letter === 'z' || letter === 'y')) {
       event.preventDefault();
       // 그리던 선로·노선은 먼저 취소한다 (되돌린 뒤 없어진 역을 붙잡고 있지 않게)
       trackTool.cancel();
       routeTool.cancel();
-      const redoing = key === 'y' || event.shiftKey;
-      const changed = redoing ? redo() : undo();
-      if (!changed) notice(redoing ? '다시 할 것이 없어요' : '되돌릴 것이 없어요', 'bad');
+      const redoing = letter === 'y' || event.shiftKey;
+      const result = redoing ? redo() : undo();
+      if (result === false) notice(redoing ? '다시 할 것이 없어요' : '되돌릴 것이 없어요', 'bad');
+      else if (result === null) notice('다시 하기에 필요한 돈이 모자라요', 'bad');
+      else if (result.noRefund) notice('지난 정산보다 앞선 공사라 공사비는 돌려받지 못했어요', 'warn');
       return;
     }
 
     if (command || event.altKey) return;
-    // 노선도를 보는 동안에는 D·Esc(닫기)만 받는다 (보이지 않는 지도에서 무언가 바뀌지 않게)
-    if (diagram.isOpen()) {
-      if (event.key === 'Escape' || event.key.toLowerCase() === 'd') diagram.close();
-      return;
-    }
     const tool = TOOLS.find((t) => t.key === event.key);
     if (tool) {
       chooseTool(tool.id);
@@ -249,24 +265,27 @@ export function bindMapInput(ctx) {
       togglePause();
     } else if (event.key === 'Delete') {
       deleteSelected();
-    } else if (event.key.toLowerCase() === 'c') {
+    } else if (letter === 'c') {
       toggleCongestion();
-    } else if (event.key.toLowerCase() === 't') {
+    } else if (letter === 't') {
       toggleTerrain();
-    } else if (event.key.toLowerCase() === 'm') {
+    } else if (letter === 'm') {
       toggleSound();
-    } else if (event.key.toLowerCase() === 'n') {
+    } else if (letter === 'n') {
       toggleControlRoom();
-    } else if (event.key.toLowerCase() === 'v') {
+    } else if (letter === 'v') {
       toggleDraftCurve();
-    } else if (event.key.toLowerCase() === 'p') {
+    } else if (letter === 'p') {
       toggleDraftPlan();
-    } else if (event.key.toLowerCase() === 'h') {
-      if (toggleHideUi()) notice('버튼을 숨겼어요. H나 Esc로 다시 보여요');
-    } else if (event.key.toLowerCase() === 'd') {
+    } else if (letter === 'h') {
+      // 알림 목록에는 남기지 않는다 (누를 때마다 [알림]이 쌓이지 않게)
+      if (toggleHideUi()) showCallout(map, map.getCenter().toArray(), '버튼을 숨겼어요. H나 Esc로 다시 보여요', 'info', { log: false });
+    } else if (letter === 'd') {
       diagram.open();
-    } else if (event.key === '/') {
+    } else if (event.key === '/' || event.code === 'Slash') {
       event.preventDefault();
+      // 버튼을 숨긴 중이면 찾기 칸도 안 보이므로 먼저 다시 보이게 한다
+      toggleHideUi(false);
       openSearch();
     } else if (event.key === 'Escape') {
       // 버튼을 숨긴 중이면 먼저 다시 보이게 한다

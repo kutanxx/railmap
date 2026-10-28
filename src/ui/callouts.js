@@ -31,12 +31,12 @@ function scheduleRemoval(element, tone, remove) {
   setTimeout(remove, (tone === 'warn' ? CALLOUT_WARN_SECONDS : CALLOUT_SECONDS) * 1000);
 }
 
-// 지도 위 coord([경도, 위도]) 자리에 띄운다
-export function showCallout(map, coord, text, tone = 'info') {
+// 지도 위 coord([경도, 위도]) 자리에 띄운다. log: 지난 알림 목록([알림])에 남길지 (조작 안내 같은 것은 남기지 않는다)
+export function showCallout(map, coord, text, tone = 'info', { log = true } = {}) {
   const element = createBubble(text, tone);
   const marker = new Marker({ element, anchor: 'bottom', offset: [0, -14] }).setLngLat(coord).addTo(map);
   scheduleRemoval(element, tone, () => marker.remove());
-  if (tone !== 'bad') logNotice({ text, tone, coord });
+  if (tone !== 'bad' && log) logNotice({ text, tone, coord });
 }
 
 // 위쪽 자금 숫자를 꼬리로 가리키는 말풍선 (빚·정산처럼 지도에 자리가 없는 알림). 새 것이 오면 앞의 것은 닫는다

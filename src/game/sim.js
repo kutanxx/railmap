@@ -21,11 +21,15 @@ const paths = new Map();
 // 노선이 바뀌었을 때 (만들기, 지우기, 열차 수 바꾸기) 불러서 열차를 노선에 맞춘다
 export function syncTrains() {
   const state = getState();
+  const previous = new Map(paths);
   paths.clear();
   const trains = [];
 
   for (const route of state.routes) {
     const path = buildPath(route);
+    // 종점에서 마지막으로 떠난 시각은 이어 간다 (매달 정산·배속 바꾸기마다 간격 맞추기가 풀려 열차가 몰리지 않게)
+    const before = previous.get(route.id);
+    if (before) path.departures = before.departures;
     paths.set(route.id, path);
 
     const existing = state.trains.filter((train) => train.routeId === route.id);

@@ -65,7 +65,8 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
     cursorTip.show(event.point.x, event.point.y, note ? `${text} · ${note.text}` : text, note?.tone ?? 'info');
   });
 
-  map.on('mouseup', (event) => {
+  // 놓기. coord: 놓은 자리 (지도 밖에서 놓았으면 null: 바꾸지 않고 끝낸다)
+  function finish(coord) {
     if (!drag) return;
     const { trackId, original, waypoints } = drag;
     drag = null;
@@ -73,11 +74,16 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
     cursorTip.hide();
     // 손잡이를 누르기만 하고 움직이지 않았으면 아무것도 바꾸지 않는다
     const moved = JSON.stringify(original) !== JSON.stringify(waypoints);
-    if (moved && !setTrackWaypoints(trackId, waypoints)) {
+    if (coord && moved && !setTrackWaypoints(trackId, waypoints)) {
       const { cost } = rerouteCost(findTrack(trackId), waypoints);
-      showCallout(map, event.lngLat.toArray(), shortfall(cost), 'bad');
+      showCallout(map, coord, shortfall(cost), 'bad');
     }
     render();
+  }
+  map.on('mouseup', (event) => finish(event.lngLat.toArray()));
+  // 지도 밖(패널 위 등)에서 놓은 경우 (지도는 그 mouseup을 받지 못한다)
+  document.addEventListener('mouseup', (event) => {
+    if (drag && !event.target.closest?.('#map')) finish(null);
   });
 
   // 경유점 손잡이를 두 번 클릭하면 지운다

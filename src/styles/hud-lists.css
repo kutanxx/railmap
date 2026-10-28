@@ -119,6 +119,12 @@
   font-size: var(--text-small);
 }
 
+.goals-hint {
+  margin: 8px 4px 2px;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
 .goal-item + .goal-item {
   border-top: 1px solid var(--divider);
 }

@@ -66,12 +66,16 @@ export function createDiagramView({ onPickStation }) {
   // [그림 저장]: 파일 이름에 지도와 게임 날짜를 넣는다 (내보내기 파일과 같은 모양)
   const saveButton = root.querySelector('.diagram-save');
   saveButton.addEventListener('click', () => {
+    saveButton.textContent = '그림 저장';
     const { routes, year, month } = getState();
     saveDiagramPng({
       world,
       title: title.textContent,
       routes: routes.filter((route) => route.stations.length >= 2),
       fileName: `railmap-diagram-${getRegion().id}-${year}-${String(month).padStart(2, '0')}.png`,
+    }).catch((error) => {
+      saveButton.textContent = '저장 실패';
+      saveButton.title = `그림을 만들지 못했어요: ${error.message}`;
     });
   });
 
@@ -248,7 +252,10 @@ export function createDiagramView({ onPickStation }) {
       };
       group.addEventListener('click', pick);
       group.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') pick();
+        if (event.key !== 'Enter') return;
+        // 뒤의 게임(노선 완성 Enter)까지 가지 않게
+        event.stopPropagation();
+        pick();
       });
     }
   }

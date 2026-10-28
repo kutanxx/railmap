@@ -72,6 +72,7 @@ export function duplicateRoute(id) {
 // 바뀐 순서에서도 이웃한 역끼리 선로로 바로 이어져 있어야 한다. 결과: 바꿨으면 null, 못 바꾸면 이유(글)
 export function moveRouteStop(routeId, from, to) {
   const route = findRoute(routeId);
+  if (!route) return '이 노선은 이제 없어요.';
   const stations = [...route.stations];
   const [moved] = stations.splice(from, 1);
   stations.splice(to, 0, moved);
@@ -115,6 +116,7 @@ export function removeRoute(id) {
 // 결과: 넣었으면 null, 못 넣으면 이유(글)
 export function insertStationIntoRoute(routeId, stationId) {
   const route = findRoute(routeId);
+  if (!route) return '이 노선은 이제 없어요.';
   if (route.stations.includes(stationId)) return '이미 이 노선에 들어 있는 역이에요.';
 
   const stops = route.stations;
@@ -140,7 +142,9 @@ export function insertStationIntoRoute(routeId, stationId) {
 // 결과: 뺐으면 null, 못 빼면 이유(글)
 export function removeStationFromRoute(routeId, stationId) {
   const route = findRoute(routeId);
+  if (!route) return '이 노선은 이제 없어요.';
   const index = route.stations.indexOf(stationId);
+  if (index < 0) return '이 노선에 들어 있지 않은 역이에요.';
   if (route.stations.length <= 2) return '노선에는 역이 2개 이상 있어야 해요. 노선 자체를 지우려면 [노선 삭제]를 누르세요.';
   // 가운데 역을 빼려면 앞뒤 역이 선로로 바로 이어져 있어야 한다
   const isMiddle = index > 0 && index < route.stations.length - 1;

@@ -27,15 +27,35 @@ function close(entry) {
   entry.button.setAttribute('aria-expanded', 'false');
 }
 
-// 펼침 밖(지도, 다른 버튼)을 누르면 닫는다
+// 펼침 밖(지도, 다른 버튼)을 누르면 닫는다. 지도를 눌러 닫았으면 그 클릭은 지도에 넘기지 않는다
+// (판을 닫으려고 누른 것이 역 놓기·선로 그리기가 되지 않게)
+let swallowMapClick = false;
 document.addEventListener('pointerdown', (event) => {
+  swallowMapClick = false;
   for (const entry of popovers) {
     if (entry.panel.hidden) continue;
     if (entry.panel.contains(event.target) || entry.button.contains(event.target)) continue;
     close(entry);
+    if (event.target.closest('#map')) swallowMapClick = true;
   }
 });
+document.addEventListener(
+  'click',
+  (event) => {
+    if (!swallowMapClick) return;
+    swallowMapClick = false;
+    event.stopPropagation();
+  },
+  true,
+);
 
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closePopovers();
-});
+// Esc는 열린 펼침만 닫고, 그리던 선로·노선 취소 같은 다른 Esc 일은 하지 않는다
+document.addEventListener(
+  'keydown',
+  (event) => {
+    if (event.key !== 'Escape' || popovers.every((entry) => entry.panel.hidden)) return;
+    closePopovers();
+    event.stopImmediatePropagation();
+  },
+  true,
+);

@@ -42,7 +42,27 @@ try {
   loadMessage = { text: `저장된 게임을 읽지 못해 새로 시작해요: ${error.message}`, tone: 'bad' };
 }
 
-const map = await createMap('map', region, virtualData);
+// 지도를 못 불러오면 (인터넷이 끊김, 지도 서버 문제) 빈 화면 대신 이유와 [다시 시도]를 보여준다
+function showMapError(error) {
+  const box = document.getElementById('bankrupt');
+  box.innerHTML = `
+    <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="map-error-title">
+      <div class="dialog-title" id="map-error-title">지도를 불러오지 못했어요</div>
+      <p class="dialog-text">인터넷 연결을 확인하고 다시 시도해 주세요. 저장한 게임은 그대로 있어요.</p>
+      <p class="dialog-text"><small></small></p>
+      <div class="dialog-buttons">
+        <button type="button" class="dialog-primary">다시 시도</button>
+      </div>
+    </div>`;
+  box.querySelector('small').textContent = `(${error.message})`;
+  box.querySelector('button').addEventListener('click', () => location.reload());
+  box.hidden = false;
+}
 
-// 지도가 다 준비된 뒤에 도구와 패널을 연결한다 (그 전에 누르면 그릴 곳이 없다)
-map.on('load', () => startApp(map, loadMessage));
+try {
+  const map = await createMap('map', region, virtualData);
+  // 지도가 다 준비된 뒤에 도구와 패널을 연결한다 (그 전에 누르면 그릴 곳이 없다)
+  map.on('load', () => startApp(map, loadMessage));
+} catch (error) {
+  showMapError(error);
+}

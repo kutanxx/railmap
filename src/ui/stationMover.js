@@ -43,19 +43,24 @@ export function createStationMover({ map, ui, render, cursorTip, shortfall, cost
     cursorTip.show(event.point.x, event.point.y, note ? `${text} · ${note.text}` : text, note?.tone ?? 'info');
   });
 
-  map.on('mouseup', (event) => {
+  // 놓기. 지도 밖(패널 위 등)에서 놓으면 옮기지 않고 끝낸다 (계속 따라다니지 않게)
+  function finish(coord) {
     if (!drag) return;
     const { id, moved } = drag;
     drag = null;
     ui.stationPreview = null;
     cursorTip.hide();
-    if (moved) {
-      const coord = event.lngLat.toArray();
+    if (moved && coord) {
       // 새 자리의 주변 인구를 다시 잰다 (지도 데이터는 지금 화면에 불러온 것)
       if (!moveStation(id, coord, estimatePopulation(map, coord))) {
         showCallout(map, coord, shortfall(moveStationCost(id, coord).cost), 'bad');
       }
     }
     render();
+  }
+  map.on('mouseup', (event) => finish(event.lngLat.toArray()));
+  // 지도 밖에서 놓은 경우 (지도는 그 mouseup을 받지 못한다)
+  document.addEventListener('mouseup', (event) => {
+    if (drag && !event.target.closest?.('#map')) finish(null);
   });
 }

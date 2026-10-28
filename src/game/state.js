@@ -55,6 +55,8 @@ const state = {
   bankrupt: false,
   // 이룬 게임 목표 번호들 (config.js GOALS의 순서, game/goals.js)
   achievedGoals: [],
+  // 이번 판에서 정산한 달 수 (저장하지 않는다). 목표는 이 값이 바뀔 때만 확인한다 (game/goals.js)
+  settledMonths: 0,
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,
@@ -135,26 +137,35 @@ export function change(key, action) {
   return result;
 }
 
-// 되돌리기: 그때 쓴 공사비는 돌려받고, 그 뒤로 번 돈은 그대로 둔다
+// 기록 하나의 돈 차이 (짓기면 음수: 그만큼 냈다). 정산된 기록은 0 (돈을 주고받지 않는다)
+const moneyChange = (entry) => (entry.settled ? 0 : entry.after.money - entry.before.money);
+
+// 되돌리기: 이번 달에 쓴 공사비는 돌려받고, 그 뒤로 번 돈은 그대로 둔다.
+// 지난 정산보다 앞선 공사는 철도망만 되돌리고 돈은 돌려주지 않는다
+// (짓고 몇 달 벌고 되돌려 공사비를 다시 받는 일을 막는다).
+// 결과: 없으면 false, 되돌렸으면 { noRefund: 공사비가 들었는데 정산이 지나 돌려주지 못했는지 }
 export function undo() {
   if (state.bankrupt) return false;
   const entry = history.undo();
   if (!entry) return false;
-  const spent = entry.after.money - entry.before.money;
+  const noRefund = entry.settled && entry.after.money < entry.before.money;
   restoreNetwork(entry.before);
-  state.money -= spent;
+  state.money -= moneyChange(entry);
   notify();
-  return true;
+  return { noRefund };
 }
 
-// 다시 하기: 되돌릴 때 돌려받은 공사비를 다시 낸다
+// 다시 하기: 되돌릴 때 돌려받은 공사비를 다시 낸다 (정산된 기록은 돈 없이).
+// 결과: 없으면 false, 빚 한도 안에서도 낼 돈이 모자라면 null (다시 하지 않는다), 했으면 true
 export function redo() {
   if (state.bankrupt) return false;
-  const entry = history.redo();
+  const entry = history.peekRedo();
   if (!entry) return false;
-  const spent = entry.after.money - entry.before.money;
+  const spent = -moneyChange(entry);
+  if (spent > 0 && !canAfford(spent)) return null;
+  history.redo();
   restoreNetwork(entry.after);
-  state.money += spent;
+  state.money -= spent;
   notify();
   return true;
 }
@@ -188,6 +199,9 @@ export function settleMonth(revenue, opex, riders) {
   state.lastSettlement = { revenue, opex, interest, net };
   state.monthlyRecords.push({ year: state.year, month: state.month, revenue, opex, interest, net, riders, money: state.money });
   if (state.monthlyRecords.length > STATS_KEEP_MONTHS) state.monthlyRecords.shift();
+  // 정산이 지난 공사는 되돌려도 돈을 돌려주지 않는다
+  history.settle();
+  state.settledMonths += 1;
   // 샌드박스는 빚 한도도 파산도 없다
   state.monthsOverDebtLimit = state.money < DEBT_LIMIT && !isSandbox() ? state.monthsOverDebtLimit + 1 : 0;
   if (state.monthsOverDebtLimit >= BANKRUPT_GRACE_MONTHS) {
