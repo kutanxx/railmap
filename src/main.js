@@ -7,7 +7,7 @@ import { useVirtualMap } from './map/mapFeatures.js';
 import { setTerrain } from './game/terrain.js';
 import { loadFromBrowser, resetGame } from './game/save.js';
 import { renderBadge } from './ui/badge.js';
-import { chooseRegion } from './ui/startScreen.js';
+import { chooseRegion, showMapLoading } from './ui/startScreen.js';
 import { startApp } from './ui/app.js';
 
 const choice = await chooseRegion(document.getElementById('start'));
@@ -59,10 +59,16 @@ function showMapError(error) {
   box.hidden = false;
 }
 
+// 지도가 뜰 때까지 "불러오는 중" 표시
+const loading = showMapLoading(region.name);
 try {
   const map = await createMap('map', region, virtualData);
   // 지도가 다 준비된 뒤에 도구와 패널을 연결한다 (그 전에 누르면 그릴 곳이 없다)
-  map.on('load', () => startApp(map, loadMessage));
+  map.on('load', () => {
+    loading.hide();
+    startApp(map, loadMessage);
+  });
 } catch (error) {
+  loading.hide();
   showMapError(error);
 }

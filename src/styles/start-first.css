@@ -1,0 +1,172 @@
+/* 시작 화면 (이어서): 처음 온 사람에게 권하는 큰 칸, 휴대폰 안내 한 줄, 지도를 고른 뒤 "불러오는 중" 판
+   (ui/startScreen.js의 firstCard·showMapLoading. 공통 모양은 start.css) */
+
+/* 휴대폰·좁은 창 안내 한 줄 (누를 수 없는 정보: 얇은 테두리) */
+.start-device {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font-size: var(--text-body);
+}
+
+.start-device[hidden],
+.start-first[hidden] {
+  display: none;
+}
+
+/* 처음 온 사람: 추천 지도 큰 칸 (칸 전체가 버튼, 마우스를 올리면 남색으로) */
+.start-first {
+  margin-top: 16px;
+}
+
+.start-first-card {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.start-first-thumb {
+  width: 42%;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  border-right: 2px solid var(--navy);
+  background: var(--land);
+  object-fit: cover;
+}
+
+.start-first-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 20px;
+}
+
+.start-first-label {
+  color: var(--muted);
+  font-size: var(--text-small);
+  font-weight: 700;
+}
+
+.start-first-name {
+  font-size: var(--text-title);
+}
+
+.start-first-description {
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.start-first-go {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 10px 18px;
+  border-radius: var(--radius-button);
+  background: var(--navy);
+  color: #ffffff;
+  font-size: var(--text-strong);
+  font-weight: 700;
+}
+
+.start-first-card:hover {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.start-first-card:hover .start-first-label,
+.start-first-card:hover .start-first-description {
+  color: #d3dce5;
+}
+
+.start-first-card:hover .start-first-go {
+  background: #ffffff;
+  color: var(--navy);
+}
+
+/* ── 지도를 고른 뒤 지도가 뜰 때까지: 화면 가운데 "불러오는 중" 판 (main.js) ── */
+.map-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 240px;
+  padding: 16px 24px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+  color: var(--navy);
+  font-size: var(--text-body);
+  transform: translate(-50%, -50%);
+}
+
+.map-loading small {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+/* 멈추지 않았다는 표시: 땅색 길 위를 오가는 남색 막대 (움직임 줄이기 설정이면 멈춘 막대) */
+.map-loading-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--land);
+}
+
+.map-loading-bar::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  border-radius: 3px;
+  background: var(--navy);
+  content: '';
+  animation: map-loading-slide 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes map-loading-slide {
+  to {
+    transform: translateX(233%);
+  }
+}
+
+/* 불러오는 동안은 아직 비어 있는 게임 화면 버튼 판들을 숨긴다 (지도 출처 표기는 지도와 함께 그대로) */
+body.map-loading-now .top-left,
+body.map-loading-now .bottom-left,
+body.map-loading-now .side,
+body.map-loading-now .route-strip {
+  visibility: hidden;
+}
+
+/* 좁은 창: 추천 칸은 그림을 위에 */
+@media (max-width: 599px) {
+  .start-first-card {
+    flex-direction: column;
+  }
+
+  .start-first-thumb {
+    width: 100%;
+    border-right: none;
+    border-bottom: 2px solid var(--navy);
+  }
+}

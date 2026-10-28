@@ -20,6 +20,10 @@
 //   trackCostScale: 선로·교량·터널 공사비와 선로 운영비에 곱하는 배율 (지방은 땅값이 싸서 1보다 작다)
 //   soundStyle: 효과음 음색 (ui/sounds.js). 'gugak' 대금 같은 국악 관악기풍, 'marimba' 마림바풍,
 //               'bell' 벨·마림바 섞음 (지도별 음색을 넣기 전 소리)
+// 저장이 하나도 없는 사람(처음 온 사람)에게 시작 화면 맨 위에서 "바로 시작"으로 권할 지도
+// (밸런스 기준 지도라 가장 무난하고, 한국어 사용자에게 가장 익숙하다. reports/레일맵 시작 화면 개선 조사.md)
+export const RECOMMENDED_REGION = 'seoul';
+
 export const REGIONS = {
   seoul: {
     name: '서울',

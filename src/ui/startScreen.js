@@ -1,9 +1,12 @@
 // 시작 화면: 어느 지도에서 할지 고른다 (regions.js의 REGIONS).
-// 위에서부터: 제목과 작은 노선 그림 → [이어서 하기] (저장이 있는 게임만) → 묶음 탭 (한국 도시 / 세계 도시 / 가상 지도)
-// → 고른 묶음의 지도 카드 (지도 그림, 이름, 한 줄 설명, 저장 상태, [샌드박스]).
+// 위에서부터: 제목과 작은 노선 그림 → (휴대폰·좁은 창이면) "컴퓨터에서 가장 잘 돌아가요" 한 줄
+// → [이어서 하기] (저장이 있는 게임만) 또는, 저장이 하나도 없으면 "처음이라면 · 서울에서 바로 시작" 큰 칸
+// → 묶음 탭 (한국 도시 / 세계 도시 / 가상 지도) → 고른 묶음의 지도 카드 (지도 그림, 이름, 한 줄 설명, 저장 상태, [샌드박스]).
+// 처음 온 사람이 열한 개 중에 고르는 숙제 없이 한 번 눌러 시작하게 한다 (reports/레일맵 시작 화면 개선 조사.md).
+// 지도를 고르면 지도가 뜰 때까지 "불러오는 중" 표시를 띄운다 (showMapLoading, main.js).
 // 카드를 누르면 그 지도로 시작(저장이 있으면 이어하기), [샌드박스]는 돈 무제한 게임 (저장 칸이 따로다).
 // 지도 그림은 public/thumbnails/<지도 id>.svg (node tools/make-thumbnails.mjs로 만든다).
-import { REGIONS } from '../regions.js';
+import { REGIONS, RECOMMENDED_REGION } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
 
 // 마지막으로 고른 묶음 탭을 기억하는 브라우저 저장 이름
@@ -34,6 +37,9 @@ function groupRegions() {
   ].filter((group) => group.regions.length > 0);
 }
 
+// 이만큼보다 좁은 창이면 휴대폰 안내를 보여준다 (px)
+const NARROW_SCREEN_PX = 700;
+
 // 저장 상태를 글로: "2032년 5월 · 노선 8개"
 const saveSummary = (info) => `${info.year}년 ${info.month}월 · 노선 ${info.routeCount}개`;
 
@@ -56,17 +62,23 @@ export function chooseRegion(element) {
         </div>
         ${ROUTE_ART}
       </header>
+      <p class="start-device" hidden>휴대폰·태블릿에서는 아직 조작이 불편해요. 컴퓨터(마우스·키보드)에서 가장 잘 돌아가요.</p>
       <section class="start-continue" hidden>
         <h2 class="start-section">이어서 하기</h2>
         <div class="start-continue-list"></div>
       </section>
-      <h2 class="start-section">새로 시작할 지도</h2>
+      <section class="start-first" hidden></section>
+      <h2 class="start-section start-new-title">새로 시작할 지도</h2>
       <div class="start-tabs" role="tablist"></div>
       <div class="start-choices"></div>
       <p class="start-credit">지도 그림 © OpenStreetMap 기여자 · OpenFreeMap</p>
     </div>
   `;
   element.hidden = false;
+  // 손가락으로 쓰는 기기이거나 창이 좁으면 안내 한 줄 (막지는 않는다)
+  element.querySelector('.start-device').hidden = !(
+    window.matchMedia('(pointer: coarse)').matches || window.innerWidth < NARROW_SCREEN_PX
+  );
   const continueSection = element.querySelector('.start-continue');
   const continueList = element.querySelector('.start-continue-list');
   const tabs = element.querySelector('.start-tabs');
@@ -94,6 +106,14 @@ export function chooseRegion(element) {
       }
     }
     continueSection.hidden = continueList.childElementCount === 0;
+
+    // 저장이 하나도 없으면 (처음 온 사람) 추천 지도 하나를 맨 위에 크게: 한 번 누르면 바로 시작
+    if (continueSection.hidden) {
+      const first = element.querySelector('.start-first');
+      first.append(firstCard(RECOMMENDED_REGION, REGIONS[RECOMMENDED_REGION], choose));
+      first.hidden = false;
+      element.querySelector('.start-new-title').textContent = '다른 지도 고르기';
+    }
 
     // 묶음 탭: 고르면 그 묶음의 카드만 보인다 (고른 탭은 기억한다)
     const tabButtons = new Map();
@@ -135,10 +155,11 @@ function regionCard(id, region, choose) {
   main.type = 'button';
   const picture = make('img', 'start-thumb');
   picture.src = `thumbnails/${id}.svg`;
-  picture.alt = `${region.name} 지도`;
+  // 바로 아래 이름이 있으므로 그림 설명은 비운다 (화면 읽기 프로그램이 이름을 두 번 읽지 않게)
+  picture.alt = '';
   picture.loading = 'lazy';
   const name = make('b', 'start-name', region.name);
-  // 하던 게임이 있으면 이름 앞에 노란 점
+  // 하던 게임이 있으면 이름 앞에 남색 점
   if (info && !info.broken) name.prepend(make('span', 'start-dot'));
   const kind = make('span', 'start-kind', region.virtual ? '가상 지도' : `실제 지도 · ${COUNTRY_NAMES[region.country]}`);
   const description = make('span', 'start-description', region.description);
@@ -150,7 +171,12 @@ function regionCard(id, region, choose) {
   if (info?.broken) status = '저장이 망가져서 새 게임으로 시작해요';
   else if (info) status = `이어하기 · ${info.year}년 ${info.month}월`;
   footer.append(make('span', `start-status${info && !info.broken ? ' has-save' : ''}`, status));
-  const sandbox = make('button', 'start-sandbox', sandboxInfo && !sandboxInfo.broken ? '샌드박스 이어하기' : '샌드박스');
+  // [샌드박스]: 무엇인지 글로도 보이게 (마우스를 올려야 보이는 설명은 터치·키보드로 못 본다)
+  const sandbox = make('button', 'start-sandbox');
+  sandbox.append(
+    make('b', '', sandboxInfo && !sandboxInfo.broken ? '샌드박스 이어하기' : '샌드박스'),
+    make('small', '', '돈 무제한'),
+  );
   sandbox.type = 'button';
   sandbox.title = '돈 무제한 (빚·파산·목표 없음). 저장 칸이 따로예요';
   sandbox.addEventListener('click', () => choose(id, true));
@@ -158,4 +184,44 @@ function regionCard(id, region, choose) {
 
   card.append(main, footer);
   return card;
+}
+
+// 처음 온 사람에게 권하는 큰 칸: 왼쪽 지도 그림, 오른쪽 "처음이라면" · 지도 이름 · 설명 · [바로 시작 ▶]. 칸 전체가 버튼
+function firstCard(id, region, choose) {
+  const button = make('button', 'start-first-card');
+  button.type = 'button';
+  const picture = make('img', 'start-first-thumb');
+  picture.src = `thumbnails/${id}.svg`;
+  picture.alt = '';
+  const text = make('span', 'start-first-text');
+  text.append(
+    make('small', 'start-first-label', '처음이라면'),
+    make('b', 'start-first-name', `${region.name}에서 바로 시작`),
+    make('span', 'start-first-description', `${region.description}. 처음 몇 걸음은 튜토리얼이 알려줘요.`),
+    make('span', 'start-first-go', '바로 시작 ▶'),
+  );
+  button.append(picture, text);
+  button.addEventListener('click', () => choose(id, false));
+  return button;
+}
+
+// 지도를 고른 뒤 지도가 뜰 때까지 화면 가운데에 띄우는 "불러오는 중" 판 (빈 화면을 멈춘 줄 알고 떠나지 않게).
+// 결과: { hide } — 지도가 뜨거나 못 불러왔을 때 부른다 (main.js)
+export function showMapLoading(regionName) {
+  // 게임 화면의 버튼 판들은 아직 비어 있으므로 다 뜰 때까지 숨긴다 (빈 테두리만 보이면 고장 난 것처럼 보인다)
+  document.body.classList.add('map-loading-now');
+  const box = make('div', 'map-loading');
+  box.setAttribute('role', 'status');
+  box.append(
+    make('b', '', `${regionName} 지도를 불러오는 중…`),
+    make('small', '', '처음에는 몇 초 걸릴 수 있어요'),
+    make('span', 'map-loading-bar'),
+  );
+  document.body.append(box);
+  return {
+    hide: () => {
+      box.remove();
+      document.body.classList.remove('map-loading-now');
+    },
+  };
 }

@@ -229,10 +229,11 @@
   font-weight: 700;
 }
 
+/* 설명은 문장이라 본문 크기로 (13px는 짧은 꼬리표용. 한글 문장은 15px·줄 간격 1.5 이상이 읽기 좋다) */
 .start-description {
   color: var(--muted);
-  font-size: var(--text-small);
-  line-height: 1.4;
+  font-size: var(--text-body);
+  line-height: 1.5;
 }
 
 /* 카드에 마우스를 올리면 남색으로 채운다 (그림은 그대로) */
@@ -260,27 +261,46 @@
   font-size: var(--text-small);
 }
 
+/* 하던 게임: 남색 굵게 (주황은 흰 바탕에서 대비 3.4:1이라 작은 글자 기준 4.5:1에 못 미쳤다) */
 .start-status.has-save {
-  color: var(--orange);
+  color: var(--navy);
   font-weight: 700;
 }
 
+/* [샌드박스 / 돈 무제한]: 두 줄, 손가락으로도 누르기 쉬운 높이 */
 .start-sandbox {
+  display: flex;
   flex-shrink: 0;
-  padding: 4px 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px 12px;
   border: 1px solid var(--muted);
   border-radius: var(--radius-button);
   background: #ffffff;
   color: var(--navy);
   font: inherit;
   font-size: var(--text-small);
-  font-weight: 700;
   cursor: pointer;
+}
+
+.start-sandbox b {
+  font-weight: 700;
+}
+
+.start-sandbox small {
+  color: var(--muted);
+  font-size: var(--text-small);
 }
 
 .start-sandbox:hover {
   background: var(--navy);
   color: #ffffff;
+}
+
+.start-sandbox:hover small {
+  color: #d3dce5;
 }
 
 /* 지도 그림 출처 (OpenStreetMap 자료) */
