@@ -48,7 +48,20 @@ const KOREAN_NAME = ['coalesce', ['get', 'name:ko'], ['get', 'name']];
 const BIG_LABEL_IDS = ['label_city', 'label_city_capital', 'label_state', 'label_country'];
 
 // 기본 스타일 JSON을 받아와 베이지 톤으로 바꾼 스타일을 돌려준다
-export async function loadBeigeStyle(url) {
+// 한 번 받은 스타일은 기억해서 다시 쓴다 (시작 화면에서 미리 받아 둔 것을 지도를 만들 때 그대로, map/prefetch.js)
+const loadedStyles = new Map();
+
+export function loadBeigeStyle(url) {
+  if (!loadedStyles.has(url)) {
+    const loading = fetchBeigeStyle(url);
+    // 실패하면 기억을 지워서 다음에 다시 받게 한다 (오류는 부른 쪽에 그대로 전한다)
+    loading.catch(() => loadedStyles.delete(url));
+    loadedStyles.set(url, loading);
+  }
+  return loadedStyles.get(url);
+}
+
+async function fetchBeigeStyle(url) {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`지도 스타일을 불러오지 못했어요 (${response.status}): ${url}`);

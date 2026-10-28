@@ -47,6 +47,8 @@ export function saveData() {
     monthsOverDebtLimit: state.monthsOverDebtLimit,
     bankrupt: state.bankrupt,
     achievedGoals: state.achievedGoals,
+    // 저장한 때 (실제 시각, 밀리초). 시작 화면에서 가장 최근 게임을 크게 보여줄 때 쓴다
+    savedAt: Date.now(),
   };
 }
 
@@ -121,14 +123,15 @@ const AUTOSAVE_DELAY_MS = 1000; // 바뀐 뒤 이만큼 조용하면 저장한�
 const storageKey = (regionId, sandbox = isSandbox()) =>
   `${regionId === 'seoul' ? 'railmap-save' : `railmap-save-${regionId}`}${sandbox ? '-sandbox' : ''}`;
 
-// 시작 화면에 보여줄 그 지도의 저장 상태: 저장이 없으면 null, 있으면 { year, month, routeCount }, 읽을 수 없으면 { broken: true }
+// 시작 화면에 보여줄 그 지도의 저장 상태: 저장이 없으면 null, 있으면 { year, month, routeCount, savedAt }, 읽을 수 없으면 { broken: true }
 // sandbox: 샌드박스 저장 칸을 볼지
 export function savedGameInfo(regionId, sandbox = false) {
   const text = localStorage.getItem(storageKey(regionId, sandbox));
   if (text === null) return null;
   try {
-    const { year, month, network } = JSON.parse(text);
-    return { year, month, routeCount: network?.routes?.length ?? 0 };
+    const { year, month, network, savedAt } = JSON.parse(text);
+    // 저장한 때가 없는 예전 저장은 0 (가장 오래된 것으로 친다)
+    return { year, month, routeCount: network?.routes?.length ?? 0, savedAt: savedAt ?? 0 };
   } catch {
     // 망가진 저장은 이 지도를 고르면 새 게임으로 시작하면서 이유를 알려준다 (main.js)
     return { broken: true };

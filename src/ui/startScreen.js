@@ -8,6 +8,7 @@
 // 지도 그림은 public/thumbnails/<지도 id>.svg (node tools/make-thumbnails.mjs로 만든다).
 import { REGIONS, RECOMMENDED_REGION } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
+import { prefetchMap } from '../map/prefetch.js';
 
 // 마지막으로 고른 묶음 탭을 기억하는 브라우저 저장 이름
 const TAB_KEY = 'railmap-start-tab';
@@ -64,13 +65,14 @@ export function chooseRegion(element) {
       </header>
       <p class="start-device" hidden>휴대폰·태블릿에서는 아직 조작이 불편해요. 컴퓨터(마우스·키보드)에서 가장 잘 돌아가요.</p>
       <section class="start-continue" hidden>
-        <h2 class="start-section">이어서 하기</h2>
+        <div class="start-continue-latest"></div>
+        <h2 class="start-section start-continue-more" hidden>다른 저장 이어하기</h2>
         <div class="start-continue-list"></div>
       </section>
       <section class="start-first" hidden></section>
       <h2 class="start-section start-new-title">새로 시작할 지도</h2>
-      <div class="start-tabs" role="tablist"></div>
-      <div class="start-choices"></div>
+      <div class="start-tabs" role="tablist" aria-label="지도 묶음"></div>
+      <div class="start-choices" id="start-choices" role="tabpanel"></div>
       <p class="start-credit">지도 그림 © OpenStreetMap 기여자 · OpenFreeMap</p>
     </div>
   `;
@@ -91,26 +93,58 @@ export function chooseRegion(element) {
       resolve({ id, sandbox });
     };
 
-    // 이어서 하기: 저장이 있는 게임 (일반 게임 먼저, 그다음 샌드박스)
+    // 이어서 하기: 저장이 있는 게임들. 가장 최근에 한 게임은 맨 위에 큰 칸으로, 나머지는 그 아래 작은 줄로
+    // (저장한 때가 같으면, 예를 들어 예전 저장끼리면, 일반 게임 먼저 그다음 샌드박스 순서)
+    const saves = [];
     for (const sandbox of [false, true]) {
       for (const [id, region] of Object.entries(REGIONS)) {
         const info = savedGameInfo(id, sandbox);
-        if (!info || info.broken) continue;
-        const item = make('button', 'start-continue-item');
-        item.type = 'button';
-        const text = make('span', 'start-continue-text');
-        text.append(make('b', '', sandbox ? `${region.name} 샌드박스` : region.name), make('small', '', saveSummary(info)));
-        item.append(text, make('span', 'start-continue-go', '이어하기'));
-        item.addEventListener('click', () => choose(id, sandbox));
-        continueList.append(item);
+        if (info && !info.broken) saves.push({ id, region, sandbox, info });
       }
     }
-    continueSection.hidden = continueList.childElementCount === 0;
+    const latest = saves.reduce((best, save) => (!best || save.info.savedAt > best.info.savedAt ? save : best), null);
+    // 다음에 열 것 같은 지도(가장 최근 게임, 없으면 추천 지도)를 미리 준비한다 (map/prefetch.js)
+    const likely = latest?.id ?? RECOMMENDED_REGION;
+    prefetchMap(likely, REGIONS[likely]);
+    if (latest) {
+      element.querySelector('.start-continue-latest').append(
+        bigCard({
+          id: latest.id,
+          label: '이어서 하기',
+          title: latest.sandbox ? `${latest.region.name} 샌드박스` : latest.region.name,
+          description: saveSummary(latest.info),
+          go: '이어하기 ▶',
+          onClick: () => choose(latest.id, latest.sandbox),
+        }),
+      );
+    }
+    for (const save of saves) {
+      if (save === latest) continue;
+      const item = make('button', 'start-continue-item');
+      item.type = 'button';
+      const text = make('span', 'start-continue-text');
+      text.append(make('b', '', save.sandbox ? `${save.region.name} 샌드박스` : save.region.name), make('small', '', saveSummary(save.info)));
+      item.append(text, make('span', 'start-continue-go', '이어하기'));
+      item.addEventListener('click', () => choose(save.id, save.sandbox));
+      continueList.append(item);
+    }
+    element.querySelector('.start-continue-more').hidden = continueList.childElementCount === 0;
+    continueSection.hidden = saves.length === 0;
 
     // 저장이 하나도 없으면 (처음 온 사람) 추천 지도 하나를 맨 위에 크게: 한 번 누르면 바로 시작
     if (continueSection.hidden) {
       const first = element.querySelector('.start-first');
-      first.append(firstCard(RECOMMENDED_REGION, REGIONS[RECOMMENDED_REGION], choose));
+      const region = REGIONS[RECOMMENDED_REGION];
+      first.append(
+        bigCard({
+          id: RECOMMENDED_REGION,
+          label: '처음이라면',
+          title: `${region.name}에서 바로 시작`,
+          description: `${region.description}. 처음 몇 걸음은 튜토리얼이 알려줘요.`,
+          go: '바로 시작 ▶',
+          onClick: () => choose(RECOMMENDED_REGION, false),
+        }),
+      );
       first.hidden = false;
       element.querySelector('.start-new-title').textContent = '다른 지도 고르기';
     }
@@ -119,25 +153,46 @@ export function chooseRegion(element) {
     const tabButtons = new Map();
     let shownGroup = localStorage.getItem(TAB_KEY);
     if (!groups.some((group) => group.id === shownGroup)) shownGroup = groups[0].id;
+    const pickGroup = (id) => {
+      shownGroup = id;
+      localStorage.setItem(TAB_KEY, id);
+      showGroup();
+    };
     for (const group of groups) {
       const tab = make('button', 'start-tab', group.title);
       tab.type = 'button';
+      tab.id = `start-tab-${group.id}`;
       tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', 'start-choices');
       tab.append(make('span', 'start-tab-count', String(group.regions.length)));
-      tab.addEventListener('click', () => {
-        shownGroup = group.id;
-        localStorage.setItem(TAB_KEY, group.id);
-        showGroup();
-      });
+      tab.addEventListener('click', () => pickGroup(group.id));
       tabs.append(tab);
       tabButtons.set(group.id, tab);
     }
+    // 키보드: ←→로 옆 탭, Home·End로 처음·끝 탭 (고르면 바로 그 묶음을 보여준다. 화면 읽기 프로그램의 탭 표준 동작)
+    tabs.addEventListener('keydown', (event) => {
+      const ids = groups.map((group) => group.id);
+      const at = ids.indexOf(shownGroup);
+      const next = {
+        ArrowRight: (at + 1) % ids.length,
+        ArrowLeft: (at - 1 + ids.length) % ids.length,
+        Home: 0,
+        End: ids.length - 1,
+      }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      pickGroup(ids[next]);
+      tabButtons.get(ids[next]).focus();
+    });
 
     function showGroup() {
       for (const [id, tab] of tabButtons) {
         tab.classList.toggle('active', id === shownGroup);
         tab.setAttribute('aria-selected', String(id === shownGroup));
+        // Tab 키는 고른 탭에만 멈추고, 다른 탭은 화살표로 간다
+        tab.tabIndex = id === shownGroup ? 0 : -1;
       }
+      choices.setAttribute('aria-labelledby', `start-tab-${shownGroup}`);
       const group = groups.find((g) => g.id === shownGroup);
       choices.replaceChildren(...group.regions.map(([id, region]) => regionCard(id, region, choose)));
     }
@@ -165,6 +220,8 @@ function regionCard(id, region, choose) {
   const description = make('span', 'start-description', region.description);
   main.append(picture, name, kind, description);
   main.addEventListener('click', () => choose(id, false));
+  // 카드에 마우스를 올리면 그 지도도 미리 준비한다 (고를 것 같으니까)
+  card.addEventListener('pointerenter', () => prefetchMap(id, region));
 
   const footer = make('div', 'start-region-foot');
   let status = '새 게임';
@@ -186,8 +243,9 @@ function regionCard(id, region, choose) {
   return card;
 }
 
-// 처음 온 사람에게 권하는 큰 칸: 왼쪽 지도 그림, 오른쪽 "처음이라면" · 지도 이름 · 설명 · [바로 시작 ▶]. 칸 전체가 버튼
-function firstCard(id, region, choose) {
+// 맨 위 큰 칸: 왼쪽 지도 그림, 오른쪽 작은 꼬리표 · 제목 · 설명 · [가기 ▶]. 칸 전체가 버튼
+// 처음 온 사람의 "처음이라면 · 서울에서 바로 시작", 돌아온 사람의 "이어서 하기 · 가장 최근 게임"에 쓴다
+function bigCard({ id, label, title, description, go, onClick }) {
   const button = make('button', 'start-first-card');
   button.type = 'button';
   const picture = make('img', 'start-first-thumb');
@@ -195,13 +253,13 @@ function firstCard(id, region, choose) {
   picture.alt = '';
   const text = make('span', 'start-first-text');
   text.append(
-    make('small', 'start-first-label', '처음이라면'),
-    make('b', 'start-first-name', `${region.name}에서 바로 시작`),
-    make('span', 'start-first-description', `${region.description}. 처음 몇 걸음은 튜토리얼이 알려줘요.`),
-    make('span', 'start-first-go', '바로 시작 ▶'),
+    make('small', 'start-first-label', label),
+    make('b', 'start-first-name', title),
+    make('span', 'start-first-description', description),
+    make('span', 'start-first-go', go),
   );
   button.append(picture, text);
-  button.addEventListener('click', () => choose(id, false));
+  button.addEventListener('click', onClick);
   return button;
 }
 
