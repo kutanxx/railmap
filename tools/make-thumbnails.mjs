@@ -250,13 +250,17 @@ function virtualMapLayers(data) {
     if (lines && properties.layer === 'transportation' && layers.roads[properties.class]) {
       layers.roads[properties.class].push(...lines.map(toView));
     }
+    if (lines && properties.layer === 'transportation' && properties.class === 'rail') layers.rail.push(...lines.map(toView));
   }
   return layers;
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
 const template = await tileUrlTemplate();
+// 지도 id를 적으면 그 지도만 다시 만든다 (예: node tools/make-thumbnails.mjs sollae). 안 적으면 모두
+const only = process.argv.slice(2);
 for (const [id, region] of Object.entries(REGIONS)) {
+  if (only.length > 0 && !only.includes(id)) continue;
   const layers = region.virtual
     ? virtualMapLayers(JSON.parse(readFileSync(`src/data/${id}.json`, 'utf8')))
     : await realMapLayers(region, template);

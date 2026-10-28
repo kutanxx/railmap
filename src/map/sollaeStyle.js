@@ -67,6 +67,8 @@ export function sollaeStyle(data) {
       road('road-minor', 'minor', PALETTE.road, widths(12, 0.5, 14, 2.5, 18, 11)),
       road('road-primary-casing', 'primary', PALETTE.roadCasing, widths(10, 2.5, 14, 7, 18, 24)),
       road('road-primary', 'primary', PALETTE.road, widths(10, 1.5, 14, 5.5, 18, 20)),
+      // 기존 철도 (지어낸 고속철도, 솔내역을 지난다): 실제 지도처럼 회색 실선
+      road('rail', 'rail', PALETTE.rail, widths(10, 1.2, 14, 2.5, 18, 5)),
       fill('building', isLayer('building'), PALETTE.building, PALETTE.buildingOutline),
       label('label-water', 'water', 13, PALETTE.labelSmall, 'Noto Sans Italic'),
       label('label-peak', 'peak', 13, PALETTE.labelSmall, 'Noto Sans Regular'),

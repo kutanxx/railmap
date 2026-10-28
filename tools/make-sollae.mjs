@@ -4,6 +4,7 @@
 // 프로토타입은 1단위 = 10m인 평면 좌표(오른쪽 x, 아래쪽 y)를 쓰므로, 끝에 [경도, 위도]로 바꾼다.
 // 무작위도 정해진 씨앗으로 만들어서 언제 돌려도 같은 지도가 나온다. 게임은 만들어 둔 sollae.json만 읽는다.
 import { writeFileSync } from 'node:fs';
+import { INTERCITY_STATIONS } from '../src/intercityStations.js';
 
 // ── 세계 크기와 놓을 자리 ──
 const W = 1800; // 가로 1800단위 = 18km
@@ -17,6 +18,11 @@ const round = (v) => Math.round(v * 1e6) / 1e6;
 const toLngLat = ([x, y]) => [
   round(ANCHOR[0] + ((x - W / 2) * UNIT_M) / M_PER_LNG),
   round(ANCHOR[1] - ((y - H / 2) * UNIT_M) / M_PER_LAT),
+];
+// [경도, 위도] → 세계 좌표 (toLngLat의 반대)
+const fromLngLat = ([lng, lat]) => [
+  W / 2 + ((lng - ANCHOR[0]) * M_PER_LNG) / UNIT_M,
+  H / 2 - ((lat - ANCHOR[1]) * M_PER_LAT) / UNIT_M,
 ];
 
 // ── 프로토타입에서 옮긴 것: 마을, 강, 지형 ──
@@ -261,6 +267,26 @@ for (const road of ROADS) {
   const curve = splineDense(road.map(([x, y]) => ({ x, y })));
   line(curve.map((p) => [p.x, p.y]), { layer: 'transportation', class: 'primary' });
 }
+
+// 지어낸 기존 철도 (고속철도): 서쪽 끝 → 솔내역 → 금빛강을 건너 가람 남쪽 → 동쪽 끝.
+// 플레이어가 지은 것이 아닌 배경이라 실제 지도의 기존 철도처럼 회색으로 그린다 (지도 스타일 map/sollaeStyle.js).
+// 솔내역 자리는 고속철도역 목록(src/intercityStations.js)에서 읽어서, 역을 옮겨도 선로가 역을 지나게 한다.
+// class 'rail'은 실제 지도와 같은 이름이라 출구 찾기(map/exitFinder.js)는 도로로 치지 않는다
+const [stationX, stationY] = fromLngLat(INTERCITY_STATIONS.sollae[0].coord);
+const RAILWAY = [
+  [-20, stationY - 40],
+  [stationX, stationY],
+  [470, 760],
+  [640, 930],
+  [800, 1035],
+  [1050, 1070],
+  [1400, 1075],
+  [1830, 1060],
+];
+line(
+  splineDense(RAILWAY.map(([x, y]) => ({ x, y }))).map((p) => [p.x, p.y]),
+  { layer: 'transportation', class: 'rail' },
+);
 
 // 지명
 for (const t of TOWNS) point([t.x, t.y], { layer: 'place', kind: 'town', name: t.name });

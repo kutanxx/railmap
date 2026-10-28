@@ -160,12 +160,12 @@ src/
     saveControls.js   자동 저장 켜기, 파일 버튼, 파산 창 연결
     bankruptDialog.js 파산 창
   data/
-    sollae.json       가상 지도 솔내 지방 (마을 4개, 강, 산, 공원, 도로). tools/make-sollae.mjs로 만든다
+    sollae.json       가상 지도 솔내 지방 (마을 4개, 강, 산, 공원, 도로, 솔내역을 지나는 지어낸 기존 철도). tools/make-sollae.mjs로 만든다
     sollae-height.json 솔내 지방 땅 높이 격자 (60m 간격). 같은 프로그램으로 만든다
 tools/
-  make-sollae.mjs     솔내 지방 GeoJSON 만들기 (node tools/make-sollae.mjs, 프로토타입 배치를 옮김)
+  make-sollae.mjs     솔내 지방 GeoJSON 만들기 (node tools/make-sollae.mjs, 프로토타입 배치를 옮김). 기존 철도는 솔내역 자리를 intercityStations.js에서 읽어 그 역을 지나게 한다
   make-thumbnails.mjs 시작 화면 카드의 지도 그림 만들기 (node tools/make-thumbnails.mjs → public/thumbnails/*.svg).
-                      지도를 더하거나 범위를 바꾸면 다시 돌린다
+                      지도를 더하거나 범위를 바꾸면 다시 돌린다. 지도 id를 적으면 그 지도만 (node tools/make-thumbnails.mjs sollae)
 public/og-image.png   링크 미리보기 그림 (1200×630, 서울 노선망 + 제목 판). 데모 주소가 바뀌면 index.html의 그림 주소도 바꾼다
 public/thumbnails/    지도마다 작은 지도 그림 (OpenFreeMap 지도 조각을 게임 색으로 그린 SVG, 출처는 시작 화면에 적는다)
 docs/                 정리한 문서 (조사 보고서들, deploy.md: 웹 데모 올리는 법)
