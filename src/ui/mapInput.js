@@ -15,10 +15,13 @@ import { TOOLS } from './toolbar.js';
 import { stationHoverText } from './views.js';
 import { togglePause } from './speedControl.js';
 import { playSound } from './sounds.js';
+import { isNarrowScreen } from './sidePanels.js';
 import { formatMoney, formatPopulation } from './format.js';
 
 // 너무 멀리서 역을 놓으려 할 때 안내
 const TOO_FAR = '더 확대해야 역을 놓을 수 있어요';
+// 고른 자리가 아래 판의 윗변에서 이만큼(px) 안쪽까지 내려와 있으면 가린 것으로 친다
+const SHEET_MARGIN_PX = 24;
 
 export function bindMapInput(ctx) {
   const {
@@ -83,6 +86,18 @@ export function bindMapInput(ctx) {
     }, ESTIMATE_DELAY_MS);
   }
 
+  // 좁은 화면: coord 자리가 아래에서 올라온 판에 가려 있으면, 위쪽 버튼 묶음과 판 사이 가운데로 지도를 민다
+  // (고른 역이 제 카드에 가리면 손가락으로 끌어 옮길 수 없다)
+  function keepAboveSheet(coord) {
+    if (!isNarrowScreen()) return;
+    const sheet = document.querySelector('.side').getBoundingClientRect();
+    if (sheet.height === 0) return;
+    const top = document.querySelector('.top-left').getBoundingClientRect().bottom;
+    const y = map.project(coord).y;
+    if (y > top && y < sheet.top - SHEET_MARGIN_PX) return;
+    map.panBy([0, y - (top + sheet.top) / 2]);
+  }
+
   function clearPreview() {
     clearTimeout(estimateTimer);
     ui.hover = null;
@@ -135,6 +150,7 @@ export function bindMapInput(ctx) {
       select(trackId ? { type: 'track', id: trackId } : null);
     }
     render();
+    if (ui.selected) keepAboveSheet(stationId ? findStation(stationId).coord : coord);
   });
 
   map.on('mousemove', (event) => {

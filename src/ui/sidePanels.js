@@ -24,13 +24,16 @@ const PANEL_FOLDED_KEY = 'railmap-panel-folded';
 // 이보다 좁은 창은 휴대폰 배치 (styles/mobile.css와 같은 값)
 const NARROW_SCREEN_PX = 700;
 
+// 지금 창이 휴대폰 배치인지 (오른쪽 패널이 아래에서 올라오는 판이 된다)
+export const isNarrowScreen = () => window.innerWidth < NARROW_SCREEN_PX;
+
 // app.js가 넘겨주는 것: ui(화면 상태), select·render·notice, routeTool([노선] 도구),
 // deleteSelected(고른 것 지우기), previewDelete(지울 것 미리 보기)
 // 결과: { show({ routes, shapes }) } — 다시 그릴 때마다 부른다
 export function createSidePanels({ ui, select, render, notice, routeTool, deleteSelected, previewDelete }) {
   // 고른 적이 없으면 좁은 화면(휴대폰)에서는 접은 채로 시작한다 (아래에서 올라오는 판이 지도를 반쯤 가리므로)
   const storedFold = localStorage.getItem(PANEL_FOLDED_KEY);
-  ui.panelFolded = storedFold === null ? window.innerWidth < NARROW_SCREEN_PX : storedFold === '1';
+  ui.panelFolded = storedFold === null ? isNarrowScreen() : storedFold === '1';
 
   const closeCard = () => {
     select(null);
@@ -94,7 +97,10 @@ export function createSidePanels({ ui, select, render, notice, routeTool, delete
     // 선로 도구를 쓰는 동안은 노선 목록을 번호 띠로 잠깐 접어 지도를 넓게 쓴다 (도구를 바꾸면 다시 펼친다)
     const drafting = ui.tool === 'route';
     const folded = ui.panelFolded || (ui.tool === 'track' && !ui.trackPanelOpen);
-    const card = drafting ? null : infoPanelView(ui.selected, shapes);
+    // 좁은 화면에서 [역 놓기]·[선로]로 짓는 동안은 방금 지은 역·선로 카드를 열지 않는다
+    // (아래에서 올라오는 판이 다음에 누를 지도를 가린다. 이름은 지도에 보이고, 잘못 지었으면 [↶], 카드는 [선택]으로 눌러 본다)
+    const building = isNarrowScreen() && (ui.tool === 'station' || ui.tool === 'track');
+    const card = drafting || building ? null : infoPanelView(ui.selected, shapes);
     let mode = null;
     if (drafting) mode = 'draft';
     else if (ui.selected?.type === 'route') mode = 'detail';

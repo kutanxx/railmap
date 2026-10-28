@@ -13,6 +13,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 가운데에서 시작하는 상자는 화면 반 폭으로 줄어들려 하므로, 글자 길이만큼 넓게 (화면 폭까지) */
+  width: max-content;
   max-width: calc(100vw - 32px);
   padding: 6px 6px 6px 14px;
   border: 2px solid var(--navy);

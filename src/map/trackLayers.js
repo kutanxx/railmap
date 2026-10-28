@@ -1,5 +1,6 @@
 // 선로와 그리는 중인 선로 미리보기를 지도 레이어로 그린다.
 // 화면은 상태를 읽어서 그리기만 한다.
+import { hitPad } from './hitPad.js';
 
 const TRACK_SOURCE = 'tracks';
 // 터널 구간 (땅 높이가 있는 가상 지도만): 선로 몸통 위에 땅 색 점선을 그어 속이 빈 점선처럼 보이게 한다
@@ -210,7 +211,7 @@ export function updateTracks(map, lines, selectedIds) {
 
 // 화면의 한 점(px) 근처에 있는 선로의 id를 돌려준다. 없으면 null
 export function trackIdAt(map, point) {
-  const pad = 4;
+  const pad = hitPad(4);
   const features = map.queryRenderedFeatures(
     [
       [point.x - pad, point.y - pad],
@@ -324,7 +325,7 @@ export function updateHandles(map, handles) {
 
 // 화면의 한 점(px) 근처의 손잡이 { kind, index }. 없으면 null
 export function handleAt(map, point) {
-  const pad = 6;
+  const pad = hitPad(6);
   const features = map.queryRenderedFeatures(
     [
       [point.x - pad, point.y - pad],

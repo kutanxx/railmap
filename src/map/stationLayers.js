@@ -8,6 +8,7 @@ import {
 } from '../config.js';
 import { getRegion } from '../game/region.js';
 import { ensureCapsuleImage } from './stationIcons.js';
+import { hitPad } from './hitPad.js';
 
 // 역은 줌에 따라 다르게 그린다 (근거: reports/나라별 노선도 역 표기.md)
 // - 가까이 (PLATFORM_REAL_SIZE_ZOOM 이상): 실제 크기의 승강장 띠 + 대합실 (ui/stationBands.js가 모양을 정한다)
@@ -230,7 +231,7 @@ export function updateStations(map, stations, selectedId, shapes, bands, station
 
 // 화면의 한 점(px) 근처에 있는 역의 id를 돌려준다. 없으면 null
 export function stationIdAt(map, point) {
-  const pad = 4; // 클릭을 조금 빗나가도 잡히게 하는 여유 (px)
+  const pad = hitPad(4); // 클릭을 조금 빗나가도 잡히게 하는 여유 (px, 손가락이면 넓게)
   const features = map.queryRenderedFeatures(
     [
       [point.x - pad, point.y - pad],
