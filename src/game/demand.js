@@ -58,6 +58,7 @@ export function getEconomy() {
 // 노선망과 인구로 월 수입과 운영비를 다시 계산한다
 export function updateEconomy() {
   runSeconds.clear();
+  lengthKm.clear();
   const { stations, tracks, routes } = getState();
   const running = routes.filter((route) => route.trainCount > 0);
   const graph = buildGraph(running);
@@ -164,6 +165,13 @@ export function updateEconomy() {
 
 // ── 안쪽에서만 쓰는 계산 ──────────────────
 
+// 선로 길이 (km). 한 번 계산할 때마다 선로별로 기억해 둔다 (곡선 선로는 점이 많아 길이 재기가 느리다)
+const lengthKm = new Map();
+function trackKm(track) {
+  if (!lengthKm.has(track.id)) lengthKm.set(track.id, trackLengthKm(track));
+  return lengthKm.get(track.id);
+}
+
 // 선로 하나를 역에서 역까지 달리는 데 걸리는 시간 (게임 초). 한 번 계산할 때마다 선로별로 기억해 둔다
 const runSeconds = new Map();
 function trackRunSeconds(track) {
@@ -211,7 +219,7 @@ function spreadOverSharers(trip, sharers, riders, segmentWanted) {
   const segmentsByRoute = new Map();
   for (const key of trip.segments) {
     const [routeId, a, b] = key.split('|');
-    const km = trackLengthKm(findTrackBetween(a, b));
+    const km = trackKm(findTrackBetween(a, b));
     const list = segmentsByRoute.get(routeId) ?? [];
     list.push({ pair: `${a}|${b}`, km });
     segmentsByRoute.set(routeId, list);
@@ -234,7 +242,7 @@ function spreadOverSharers(trip, sharers, riders, segmentWanted) {
   return { routeKm, share };
 }
 
-const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) => sum + trackLengthKm(track), 0);
+const routeLengthKm = (route) => routeTracks(route).reduce((sum, track) => sum + trackKm(track), 0);
 
 // 노선 하나를 왕복하는 데 걸리는 시간 (분): 달리는 시간 × 2 + 역에 서는 시간
 // (가운데 역은 오가며 두 번, 끝 역은 한 번 선다. sim.js의 배차 간격과 같은 계산)

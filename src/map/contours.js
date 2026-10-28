@@ -57,7 +57,8 @@ export function setContoursVisible(map, visible) {
 // 높이마다 등고선 하나 (MultiLineString: 칸마다 짧은 선분)
 function contourLines({ west, north, stepLng, stepLat, nx, ny, heights }) {
   const at = (i, j) => heights[j * nx + i];
-  const top = Math.max(...heights);
+  // 칸이 아주 많아서 Math.max(...heights)로 한꺼번에 넘기지 않는다 (브라우저마다 넘길 수 있는 개수에 한계가 있다)
+  const top = heights.reduce((max, height) => Math.max(max, height), -Infinity);
   const features = [];
   for (let level = INTERVAL; level < top; level += INTERVAL) {
     const segments = [];

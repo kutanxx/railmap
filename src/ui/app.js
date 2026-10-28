@@ -14,6 +14,7 @@ import { removeRoute } from '../game/routes.js';
 import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
+import { onMapDataSettled, mapDataLoaded } from '../map/mapFeatures.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
@@ -193,6 +194,10 @@ export function startApp(map, loadMessage) {
   let stationExits = null;
   let lastBands = null; // 마지막으로 그린 역들과 그 모양
   function updateStationExits() {
+    // 역을 끌어 옮기는 동안은 찾지 않는다 (이웃 역 출구까지 매 마우스 움직임마다 건물을 다시 읽어 끊겼다). 놓으면 찾는다
+    if (ui.stationPreview) return;
+    // 지도 조각을 덜 받았으면 다음에 (조각이 다 오면 onMapDataSettled가 다시 부른다). 빈 땅으로 잘못 기억하지 않게
+    if (!mapDataLoaded(map)) return;
     if (stationExits && lastBands) {
       stationExits.update(lastBands.stations, lastBands.bands, ui.stationPreview?.id);
       arrangeStationLabels(map, stationExits.coords());
@@ -209,18 +214,11 @@ export function startApp(map, loadMessage) {
     }
   }
 
-  // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
-  function render() {
-    dropMissing();
-    const { routes, speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
-    const stations = shownStations();
-    const { stationRoutes } = routeColors(routes);
-    // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
-    const shapes = stationShapes(stations, getState().tracks, routes);
-    const bands = stationBands(stations, getState().tracks, routes, shapes);
-    lastBands = { stations, bands };
+  // 위쪽 날짜·자금·월 수지와 정산 숫자, 배속, 파산 창, 통계 그래프만 다시 그린다
+  // (매달 정산·배속 바꾸기처럼 철도망은 그대로이고 날짜·돈만 바뀌었을 때는 이것만 부른다)
+  function renderHud() {
+    const { speed, money, year, month, monthsOverDebtLimit, bankrupt } = getState();
     reveal.update();
-
     renderBadge(document.getElementById('badge'), {
       year,
       month,
@@ -244,10 +242,24 @@ export function startApp(map, loadMessage) {
     }
     shownMonth = monthKey;
     stats.update();
+    speedControl.setActive(speed);
+  }
+
+  // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
+  function render() {
+    dropMissing();
+    renderHud();
+    const { routes } = getState();
+    const stations = shownStations();
+    const { stationRoutes } = routeColors(routes);
+    // 승강장 방향(선로 따라 자동), 환승역·종착역, 가까이서 보이는 띠·대합실 모양
+    const shapes = stationShapes(stations, getState().tracks, routes);
+    const bands = stationBands(stations, getState().tracks, routes, shapes);
+    lastBands = { stations, bands };
+    const economy = getEconomy();
     diagram.update();
     toolbar.setActive(ui.tool, trackTool.isCurve(), trackTool.isPlan());
     toggles.show();
-    speedControl.setActive(speed);
     renderTracks();
     updateStations(map, stations, ui.selected?.type === 'station' ? ui.selected.id : null, shapes, bands, stationRoutes);
     // 500m 원: 역 놓기 도구면 마우스 자리, 아니면 고른 역 둘레
@@ -316,23 +328,29 @@ export function startApp(map, loadMessage) {
   // 관제실 모드를 켜 둔 채 끝냈으면 레이어를 다 올린 지금 어두운 색을 입힌다
   toggles.applyControlRoom();
   // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾고 말풍선 자리를 다시 고른다
-  map.on('idle', updateStationExits);
+  onMapDataSettled(map, updateStationExits);
 
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──
   const animation = startAnimation(map);
 
   // 상태가 바뀌면: 열차를 노선에 맞추고 → 수입·운영비를 다시 계산하고 → 화면을 다시 그린다
-  subscribe(() => {
+  // 날짜·돈만 바뀐 때(kind 'time': 매달 정산, 배속)는 철도망 계산을 건너뛰고 위쪽 숫자만 다시 그린다
+  subscribe((state, kind) => {
+    if (kind !== 'network') return;
     syncTrains();
     animation.markTrainsChanged();
   });
-  subscribe(updateEconomy);
+  subscribe((state, kind) => {
+    if (kind === 'network') updateEconomy();
+  });
   // 게임 목표: 수요를 다시 계산한 뒤에 확인한다 (이루면 말풍선과 보상)
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   subscribe(goals.update);
-  subscribe(() => warnings.crowding());
-  subscribe(warnings.debt);
-  subscribe(render);
+  subscribe((state, kind) => {
+    if (kind === 'network') warnings.crowding();
+  });
+  subscribe(() => warnings.debt());
+  subscribe((state, kind) => (kind === 'network' ? render() : renderHud()));
   // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
   syncTrains();
   updateEconomy();

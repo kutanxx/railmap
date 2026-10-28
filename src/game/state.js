@@ -75,14 +75,16 @@ export function getState() {
   return state;
 }
 
-// 상태가 바뀔 때마다 불릴 함수를 등록한다
+// 상태가 바뀔 때마다 불릴 함수를 등록한다. listener(state, kind)
+// kind: 'network' = 철도망이 바뀌었을 수 있음 (짓기·지우기·되돌리기·불러오기),
+//       'time' = 날짜·돈·배속만 바뀜 (매달 정산, 멈춤·배속, 목표 보상). 화면은 이때 위쪽 숫자만 다시 그려도 된다
 export function subscribe(listener) {
   listeners.add(listener);
 }
 
 // (game 폴더 안에서만 쓴다)
-export function notify() {
-  for (const listener of listeners) listener(state);
+export function notify(kind = 'network') {
+  for (const listener of listeners) listener(state, kind);
 }
 
 // ── 되돌리기 ───────────────────────────
@@ -176,7 +178,7 @@ export function redo() {
 export function setSpeed(speed) {
   if (state.bankrupt) return;
   state.speed = speed;
-  notify();
+  notify('time');
 }
 
 // 이 공사비를 낼 수 있는지: 자금이 모자라도 빚 한도(DEBT_LIMIT)까지는 빚을 내서 지을 수 있다
@@ -213,7 +215,7 @@ export function settleMonth(revenue, opex, riders) {
     state.month = 1;
     state.year += 1;
   }
-  notify();
+  notify('time');
 }
 
 // ── 찾기: 역 ────────────────────────────

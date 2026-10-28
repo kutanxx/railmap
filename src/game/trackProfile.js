@@ -6,7 +6,7 @@
 // 3) 땅이 선로보다 TUNNEL_DEPTH_M 넘게 높으면 터널, 물 위이거나 선로가 땅보다 VIADUCT_HEIGHT_M 넘게 높으면 교량.
 //    MIN_TUNNEL_M보다 짧은 터널은 땅을 깎아 지나가는 것으로 친다
 // 높이 자료가 없는 실제 지도(서울)는 땅·선로 높이를 0으로 두고, 물 위만 교량으로 판정한다.
-import { length, lineString, along } from '@turf/turf';
+import { distance } from '@turf/turf';
 import {
   PROFILE_STEP_M,
   PROFILE_SMOOTH_M,
@@ -57,13 +57,29 @@ export function trackProfile(coords) {
 
 // 실제 분석 (결과는 trackProfile 설명과 같다)
 function analyze(coords) {
-  const km = coords.length >= 2 ? length(lineString(coords), { units: 'kilometers' }) : 0;
+  // 토막마다 길이를 한 번만 재고, 선을 한 번 따라가며 PROFILE_STEP_M마다 점을 찍는다
+  // (점마다 처음부터 다시 재던 것보다 긴 곡선 선로에서 훨씬 빠르다)
+  const pieces = coords.slice(1).map((point, i) => distance(coords[i], point, { units: 'kilometers' }));
+  const km = pieces.reduce((sum, piece) => sum + piece, 0);
   const count = Math.max(2, Math.ceil((km * 1000) / PROFILE_STEP_M) + 1);
   const stepKm = km / (count - 1);
-  const line = coords.length >= 2 ? lineString(coords) : null;
   const points = [];
+  let piece = 0;
+  let pieceStart = 0; // 지금 토막이 시작하는 곳까지의 거리 (km)
   for (let i = 0; i < count; i++) {
-    points.push(line ? along(line, i * stepKm, { units: 'kilometers' }).geometry.coordinates : coords[0]);
+    if (pieces.length === 0) {
+      points.push(coords[0]);
+      continue;
+    }
+    const target = i * stepKm;
+    while (piece < pieces.length - 1 && pieceStart + pieces[piece] < target) {
+      pieceStart += pieces[piece];
+      piece += 1;
+    }
+    const t = pieces[piece] > 0 ? Math.min(1, Math.max(0, (target - pieceStart) / pieces[piece])) : 0;
+    const [x1, y1] = coords[piece];
+    const [x2, y2] = coords[piece + 1];
+    points.push([x1 + (x2 - x1) * t, y1 + (y2 - y1) * t]);
   }
   const water = km > 0 ? waterTest(points) : points.map(() => false);
   const terrain = hasTerrain();

@@ -20,6 +20,22 @@ export function useVirtualMap(data) {
 
 export const isVirtualMap = () => virtual !== null;
 
+// 지도를 다 움직였거나 새 지도 조각을 받은 뒤, 잠깐(SETTLE_MS) 조용해지면 fn을 부른다.
+// MapLibre의 'idle'은 쓰지 않는다: 열차가 달리는 동안은 매 프레임 열차를 다시 그려서 'idle'이 오지 않는다
+// (5초 동안 0번, 2026-10-28 확인). 그러면 지도를 옮겨도 출구·말풍선·물 모양이 새로 읽히지 않았다
+const SETTLE_MS = 250;
+export function onMapDataSettled(map, fn) {
+  let timer = null;
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(fn, SETTLE_MS);
+  };
+  map.on('moveend', later);
+  map.on('sourcedata', (event) => {
+    if (event.sourceId === BASE_SOURCE && event.tile) later();
+  });
+}
+
 // 지금 화면의 지도 자료(건물·도로)를 다 불러왔는지. 덜 불러온 채로 역을 놓으면 주변 인구가 적게 잡힌다
 export const mapDataLoaded = (map) => virtual !== null || map.isSourceLoaded(BASE_SOURCE);
 

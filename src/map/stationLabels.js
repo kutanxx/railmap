@@ -135,13 +135,17 @@ export function arrangeStationLabels(map, exitCoords) {
   const { clientWidth, clientHeight } = map.getContainer();
   const placed = []; // 먼저 자리를 정한 말풍선들 (화면 네모)
 
+  // 크기를 먼저 모두 읽고 나서 자리를 고쳐 쓴다 (읽기·쓰기를 번갈아 하면 브라우저가 말풍선마다 화면 배치를 다시 계산한다)
+  const visible = [];
   for (const label of labels.values()) {
     // 노란 점만 보이는 역은 자리를 차지하지 않는다
     if (label.mode === 'dot') continue;
     const at = map.project(label.marker.getLngLat());
     if (at.x < -200 || at.y < -200 || at.x > clientWidth + 200 || at.y > clientHeight + 200) continue;
-    const width = label.bubble.offsetWidth;
-    const height = label.bubble.offsetHeight;
+    visible.push({ label, at, width: label.bubble.offsetWidth, height: label.bubble.offsetHeight });
+  }
+
+  for (const { label, at, width, height } of visible) {
     let best = 0;
     let bestScore = Infinity;
     PLACES.forEach((place, order) => {

@@ -72,6 +72,6 @@ export function checkGoals() {
     state.achievedGoals.push(item.index);
     state.money += item.goal.reward;
   }
-  notify();
+  notify('time');
   return reached;
 }

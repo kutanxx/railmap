@@ -43,6 +43,11 @@ function tunnelsOf(id, coords) {
 // ui: app.js의 화면 상태, shownCoord(역): 끌고 있는 역이면 끄는 자리, 아니면 역 자리
 export function drawTracks(map, ui, shownCoord) {
   const { tracks, routes } = getState();
+  // 지워진 선로의 터널 기억은 버린다
+  if (tunnelCache.size > tracks.length) {
+    const ids = new Set(tracks.map((track) => track.id));
+    for (const id of tunnelCache.keys()) if (!ids.has(id)) tunnelCache.delete(id);
+  }
   const { trackColor } = routeColors(routes);
   // 혼잡도 보기를 켜면 가운데 줄을 노선 색 대신 구간 혼잡도 단계로 (열차가 다니지 않는 선로는 칠하지 않는다)
   const { trackLoad } = getEconomy();

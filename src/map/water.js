@@ -1,11 +1,11 @@
 // 물(한강·호수·강) 위인지 재기. 물 위를 지나는 선로 구간은 교량이 된다 (game/trackProfile.js).
 // 물 모양은 지도 자료에서 읽는다 (mapFeatures.js). 실제 지도는 불러온 타일만 있어서 화면 밖 먼 곳의 물은 못 볼 수 있다.
-import { readMapFeatures } from './mapFeatures.js';
+import { readMapFeatures, onMapDataSettled } from './mapFeatures.js';
 
 // 교량으로 치지 않는 물 (수영장)
 const SKIPPED_CLASSES = new Set(['swimming_pool']);
 
-// 지도마다 읽어 둔 물 모양. 지도를 움직여 타일을 새로 불러오면(idle) 다시 읽는다
+// 지도마다 읽어 둔 물 모양. 지도를 움직이거나 타일을 새로 불러오면 다시 읽는다
 // version은 다시 읽은 물 모양이 전과 달라졌을 때만 1씩 늘린다 (선로 분석을 기억해 둘지 정하는 데 쓴다)
 const cache = new WeakMap();
 
@@ -14,7 +14,7 @@ function waterShapes(map) {
   if (!entry) {
     entry = { shapes: null, size: -1, version: 0 };
     cache.set(map, entry);
-    map.on('idle', () => {
+    onMapDataSettled(map, () => {
       entry.shapes = null;
     });
   }
