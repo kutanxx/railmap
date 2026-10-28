@@ -45,6 +45,7 @@ import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { createTrackEditor } from './trackEditor.js';
 import { createHelpCard } from './helpCard.js';
+import { createTips } from './tips.js';
 import { createTutorial } from './tutorial.js';
 import { hasTerrain, terrainGrid } from '../game/terrain.js';
 import { createProfilePanel } from './profilePanel.js';
@@ -130,6 +131,8 @@ export function startApp(map, loadMessage) {
   document.getElementById('badge').addEventListener('click', togglePause);
   // 튜토리얼 (처음 온 사람에게 저절로) 과 조작 안내 카드 ([?])
   const tutorial = createTutorial(document.getElementById('tutorial'));
+  // 튜토리얼 뒤 새 기능(계획 선로, 노선도, 통계, 찾기)을 쓸 일이 생기면 한 번씩 알려준다 (tips.js)
+  const tips = createTips({ ui, notice });
   createHelpCard(document.getElementById('help'), document.getElementById('help-button'), {
     onTutorial: tutorial.start,
   });
@@ -277,6 +280,8 @@ export function startApp(map, loadMessage) {
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';
     // 선로를 그리는 동안은 mapInput.js가 그리는 선로의 종단면도를 보여준다
     if (!trackTool.isDrawing()) profilePanel.show(hasTerrain() ? profilePanelView(ui.selected) : null);
+    // 처음 쓸 때 안내는 버튼들을 다 그린 뒤에 (강조할 버튼이 보이는 상태여야 한다)
+    tips.update();
   }
 
   // 혼잡·빚 경고 말풍선 (warnings.js)
@@ -350,7 +355,13 @@ export function startApp(map, loadMessage) {
     if (kind === 'network') warnings.crowding();
   });
   subscribe(() => warnings.debt());
-  subscribe((state, kind) => (kind === 'network' ? render() : renderHud()));
+  subscribe((state, kind) => {
+    if (kind === 'network') render();
+    else {
+      renderHud();
+      tips.update();
+    }
+  });
   // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
   syncTrains();
   updateEconomy();
