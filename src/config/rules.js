@@ -32,9 +32,12 @@ export const CURVE_TENSION = 0.4;
 // 역에 멈춰 있는 시간 (게임 시간 초)
 export const STATION_DWELL_SECONDS = 30;
 
-// 노선 하나에 처음 넣는 열차 수와 최대 열차 수
+// 노선 하나에 처음 넣는 열차 수
 export const DEFAULT_TRAINS_PER_ROUTE = 1;
+// 노선 하나의 최대 열차 수: 열차 사이(배차 간격)가 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값).
+// 긴 노선(왕복 2시간이면 60대)은 많이 넣을 수 있고, 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 넣을 수 있다 (game/routes.js의 maxTrainCount)
 export const MAX_TRAINS_PER_ROUTE = 10;
+export const MIN_HEADWAY_MINUTES = 2;
 
 // 열차 한 편에 탈 수 있는 사람 수 (서울 지하철 10량 정원 약 1,600명보다 조금 작게)
 export const TRAIN_CAPACITY = 1000;

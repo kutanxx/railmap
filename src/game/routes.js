@@ -1,9 +1,10 @@
 // 노선 고치기: 만들기, 이름·색·열차 수 바꾸기, 역 끼워넣기·빼기, 지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
-import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE } from '../config.js';
+import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, MIN_HEADWAY_MINUTES } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
 import { routeColorFor, routeNameFor, expressNameAndColor } from './routeColors.js';
 import { kindOf, trainSpec } from './routeKinds.js';
+import { roundTripMinutes } from './tripFinder.js';
 
 // 노선 번호 (1호선이면 1). 노선 id가 "r번호"라서 이름을 바꿔도 번호는 그대로다
 export const routeNumber = (route) => Number(route.id.slice(1));
@@ -116,13 +117,19 @@ export function moveRouteStop(routeId, from, to) {
   return null;
 }
 
-// 노선의 열차 수를 바꾼다 (0 ~ MAX_TRAINS_PER_ROUTE)
+// 노선에 넣을 수 있는 최대 열차 수: 배차 간격이 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값),
+// 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 (config.js)
+export function maxTrainCount(route) {
+  return Math.max(MAX_TRAINS_PER_ROUTE, Math.floor(roundTripMinutes(route) / MIN_HEADWAY_MINUTES));
+}
+
+// 노선의 열차 수를 바꾼다 (0 ~ maxTrainCount)
 // 늘린 열차 값을 빚 한도 안에서 낼 수 없으면 바꾸지 않고 null을 돌려준다
 export function setRouteTrainCount(id, count) {
   return change(null, () => {
     const route = findRoute(id);
     if (!route) return null;
-    const next = Math.max(0, Math.min(MAX_TRAINS_PER_ROUTE, count));
+    const next = Math.max(0, Math.min(maxTrainCount(route), count));
     const cost = trainPurchaseCost(route, next);
     if (!canAfford(cost)) return null;
     getState().money -= cost;
