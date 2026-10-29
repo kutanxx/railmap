@@ -1,6 +1,6 @@
 // 노선 고치기: 만들기, 이름·색·열차 수 바꾸기, 역 끼워넣기·빼기, 지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
-import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, MIN_HEADWAY_MINUTES, MAX_TRAINS_TOTAL } from '../config.js';
+import { DEFAULT_TRAINS_PER_ROUTE, MIN_HEADWAY_MINUTES, MAX_TRAINS_TOTAL } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
 import { routeColorFor, routeNameFor, expressNameAndColor } from './routeColors.js';
 import { kindOf, trainSpec } from './routeKinds.js';
@@ -120,10 +120,10 @@ export function moveRouteStop(routeId, from, to) {
   return null;
 }
 
-// 노선에 넣을 수 있는 최대 열차 수: 배차 간격이 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값),
-// 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 (config.js). 지도 전체 한도는 trainLimit이 함께 본다
+// 노선에 넣을 수 있는 최대 열차 수: 배차 간격이 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값, 적어도 1대).
+// 지도 전체 한도는 trainLimit이 함께 본다
 export function maxTrainCount(route) {
-  return Math.max(MAX_TRAINS_PER_ROUTE, Math.floor(roundTripMinutes(route) / MIN_HEADWAY_MINUTES));
+  return Math.max(1, Math.floor(roundTripMinutes(route) / MIN_HEADWAY_MINUTES));
 }
 
 // 지도 전체 열차 수

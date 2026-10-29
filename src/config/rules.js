@@ -34,9 +34,8 @@ export const STATION_DWELL_SECONDS = 30;
 
 // 노선 하나에 처음 넣는 열차 수
 export const DEFAULT_TRAINS_PER_ROUTE = 1;
-// 노선 하나의 최대 열차 수: 열차 사이(배차 간격)가 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값).
-// 긴 노선(왕복 2시간이면 60대)은 많이 넣을 수 있고, 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 넣을 수 있다 (game/routes.js의 maxTrainCount)
-export const MAX_TRAINS_PER_ROUTE = 10;
+// 노선 하나의 최대 열차 수: 열차 사이(배차 간격)가 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값, 적어도 1대).
+// 노선이 길수록 많이 넣을 수 있다: 왕복 10분이면 5대, 1시간이면 30대, 2시간이면 60대 (game/routes.js의 maxTrainCount)
 export const MIN_HEADWAY_MINUTES = 2;
 // 지도 전체 열차 수 한도: 화면이 느려지지 않게 (2026-10 런던 실제 노선망으로 잼: 1,000대까지 1초에 60장 넘게 부드럽고,
 // 2,000대가 넘으면 끊김이 보였다. 보통 노트북·휴대폰을 생각해 조금 낮췄다). 돈이 드는 일반 게임에서는 거의 닿지 않는다
