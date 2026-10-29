@@ -6,12 +6,14 @@
 // 처음 온 사람이 열세 개 중에 고르는 숙제 없이 한 번 눌러 시작하게 한다 (reports/레일맵 시작 화면 개선 조사.md).
 // 지도를 고르면 지도가 뜰 때까지 "불러오는 중" 표시를 띄운다 (showMapLoading, main.js).
 // 카드를 누르면 그 지도로 시작(저장이 있으면 이어하기), [샌드박스]는 돈 무제한 게임 (저장 칸이 따로다).
+// 실제 노선망 프리셋이 있는 지도(서울)는 카드 맨 아래 [실제 노선망으로 시작]으로 실제 노선을 깐 샌드박스를 연다 (game/presets.js).
 // 지도 그림은 public/thumbnails/<지도 id>.svg (node tools/make-thumbnails.mjs로 만든다).
 import { REGIONS, RECOMMENDED_REGION } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
 import { prefetchMap } from '../map/prefetch.js';
 import { renderSharedCard } from './shareLink.js';
 import { clearSharedLink } from '../game/share.js';
+import { presetOf } from '../game/presets.js';
 
 // 마지막으로 고른 묶음 탭을 기억하는 브라우저 저장 이름
 const TAB_KEY = 'railmap-start-tab';
@@ -55,8 +57,8 @@ function make(tag, className, text) {
   return element;
 }
 
-// element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지, shared: 받은 노선망 또는 없음 }으로
-// 끝나는 Promise를 돌려준다. link: 공유 링크로 들어왔을 때 { shared: 받은 노선망, problem: 읽지 못한 이유 } (main.js)
+// element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지, shared: 받은 노선망 또는 없음,
+// preset: [실제 노선망으로 시작]을 골랐으면 true }으로 끝나는 Promise를 돌려준다. link: 공유 링크로 들어왔을 때 { shared: 받은 노선망, problem: 읽지 못한 이유 } (main.js)
 export function chooseRegion(element, link = {}) {
   element.innerHTML = `
     <div class="start-card">
@@ -78,7 +80,7 @@ export function chooseRegion(element, link = {}) {
       <h2 class="start-section start-new-title">새로 시작할 지도</h2>
       <div class="start-tabs" role="tablist" aria-label="지도 묶음"></div>
       <div class="start-choices" id="start-choices" role="tabpanel"></div>
-      <p class="start-credit">지도 그림 © OpenStreetMap 기여자 · OpenFreeMap</p>
+      <p class="start-credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자 · OpenFreeMap</p>
     </div>
   `;
   element.hidden = false;
@@ -93,9 +95,9 @@ export function chooseRegion(element, link = {}) {
   const groups = groupRegions();
 
   return new Promise((resolve) => {
-    const choose = (id, sandbox) => {
+    const choose = (id, sandbox, extra = {}) => {
       element.hidden = true;
-      resolve({ id, sandbox });
+      resolve({ id, sandbox, ...extra });
     };
 
     // 공유받은 노선망: 그 지도의 샌드박스로 연다. 열거나 닫으면 주소에서 공유 자료를 지운다
@@ -257,7 +259,31 @@ function regionCard(id, region, choose) {
   footer.append(sandbox);
 
   card.append(main, footer);
+  const preset = presetOf(id);
+  if (preset) card.append(presetButton(id, preset, sandboxInfo, choose));
   return card;
+}
+
+// 카드 맨 아래 [실제 노선망으로 시작]: 실제 노선을 미리 깐 게임(game/presets.js)을 그 지도의 샌드박스로 연다.
+// 샌드박스 저장이 이미 있으면 첫 번째 누름에서 "덮어쓸까요?"로 바꾸고, 한 번 더 누르면 연다 (브라우저 confirm 창 대신)
+function presetButton(id, preset, sandboxInfo, choose) {
+  const button = make('button', 'start-preset');
+  button.type = 'button';
+  const title = make('b', '', '실제 노선망으로 시작');
+  const note = make('small', '', `${preset.label} · 샌드박스`);
+  button.append(title, note);
+  button.title = '실제 지하철 노선을 미리 깔아 둔 샌드박스 (돈 무제한). 노선 자료 © OpenStreetMap 기여자';
+  const hasSandbox = sandboxInfo && !sandboxInfo.broken;
+  button.addEventListener('click', () => {
+    if (hasSandbox && !button.classList.contains('armed')) {
+      button.classList.add('armed');
+      title.textContent = '샌드박스를 바꿀까요?';
+      note.textContent = '하던 샌드박스가 이 노선망으로 바뀌어요. 한 번 더 누르세요';
+      return;
+    }
+    choose(id, true, { preset: true });
+  });
+  return button;
 }
 
 // 맨 위 큰 칸: 왼쪽 지도 그림, 오른쪽 작은 꼬리표 · 제목 · 설명 · [가기 ▶]. 칸 전체가 버튼

@@ -14,7 +14,7 @@
 - **광역급행과 고속철도역**: 노선을 GTX 같은 광역급행으로 만들면 빠르게 멀리 나르고, 서울역·도쿄역 같은 고속철도역 옆에 역을 지으면 기차 타는 사람들까지 승객이 돼요
 - **돈 관리**: 매달 운임 수입에서 운영비가 빠져요. 빚은 한도까지 낼 수 있고, 너무 오래 한도 아래에 있으면 파산해요. 나라마다 요금 방식이 달라요 (서울 거리 비례, 도쿄 거리 구간, 런던 구역제, 뉴욕·파리 균일)
 - **보는 재미**: 혼잡도 색칠, 지하철 노선도 보기(그림 저장), 달마다 통계 그래프, 어두운 관제실 모드, 가까이 보면 승강장과 출구까지
-- **편의 기능**: 되돌리기·다시 하기, 계획 선로(돈 없이 그려 두기), 역·노선 찾기, 자동 저장, 샌드박스(돈 무제한), 링크로 노선망 공유
+- **편의 기능**: 되돌리기·다시 하기, 계획 선로(돈 없이 그려 두기), 역·노선 찾기, 자동 저장, 샌드박스(돈 무제한), 링크로 노선망 공유, 서울 지하철 1~9호선을 미리 깐 실제 노선망으로 시작하기
 
 ## 조작법
 
@@ -55,4 +55,4 @@ npm run dev
 
 - 지도: © [OpenStreetMap](https://www.openstreetmap.org/copyright) 기여자, [OpenMapTiles](https://openmaptiles.org/), 지도 타일은 [OpenFreeMap](https://openfreemap.org/)
 - 화면 글꼴: [Pretendard](https://github.com/orioncactus/pretendard) (SIL Open Font License 1.1)
-- 역 이름은 지도에 적힌 동네 이름에서 따와요. 실제 노선 이름과 색의 출처는 [src/lineColors.js](src/lineColors.js) 맨 위에 적혀 있어요
+- 역 이름은 지도에 적힌 동네 이름에서 따와요. 실제 노선 이름과 색의 출처는 [src/lineColors.js](src/lineColors.js) 맨 위에 적혀 있어요. 서울 실제 노선망의 역 순서와 자리도 OpenStreetMap 자료예요 ([tools/make-presets.mjs](tools/make-presets.mjs))

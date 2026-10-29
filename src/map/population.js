@@ -28,7 +28,12 @@ export const zoomedInEnough = (map) => isVirtualMap() || map.getZoom() >= STATIO
 // 결과: { population, builtArea: 건물 면적(㎡), cells: [[경도, 위도, 면적㎡], …] }
 // 건물 데이터가 없으면 builtArea = null, cells = null, 인구는 기본값
 export function estimatePopulation(map, coord) {
-  const features = readMapFeatures(map, 'building');
+  return populationFromBuildings(readMapFeatures(map, 'building'), coord);
+}
+
+// 건물 지물 목록(GeoJSON, 경도·위도)으로 coord 둘레 인구를 잰다 (estimatePopulation과 같은 결과).
+// 지도 없이도 쓸 수 있다: 실제 노선망 프리셋을 만드는 도구(tools/make-presets.mjs)가 지도 조각에서 읽은 건물로 부른다
+export function populationFromBuildings(features, coord) {
   // 너무 멀리 축소하면 건물 데이터가 아예 없다
   if (features.length === 0) {
     return { population: DEFAULT_STATION_POPULATION, builtArea: null, cells: null };

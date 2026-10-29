@@ -303,6 +303,52 @@
   color: #d3dce5;
 }
 
+/* [실제 노선망으로 시작 / 1~9호선 · 샌드박스]: 카드 맨 아래 한 줄 전체 (실제 노선망이 있는 지도만) */
+.start-preset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-top: 1px solid var(--info-border);
+  border-radius: 0;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.start-preset b {
+  font-weight: 700;
+}
+
+.start-preset small {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.start-preset:hover {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.start-preset:hover small {
+  color: #d3dce5;
+}
+
+/* 하던 샌드박스를 바꾸기 전 한 번 더 묻는 상태: 위험한 버튼처럼 빨간 글자 */
+.start-preset.armed,
+.start-preset.armed small {
+  background: #ffffff;
+  color: var(--danger);
+}
+
 /* 지도 그림 출처 (OpenStreetMap 자료) */
 .start-credit {
   margin: 16px 0 0;
