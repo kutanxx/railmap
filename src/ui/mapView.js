@@ -13,6 +13,9 @@ import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { isNarrowScreen } from './sidePanels.js';
 
+// 역 말풍선이 밑으로 들어가지 않게 피하는 화면 판들 (labelArea)
+const LABEL_COVERS = '.top-left .top-row, .bottom-left, #tutorial, #profile';
+
 // ui: 화면 상태 (app.js)
 // 결과: { shownCoord, drawStations, updateStationExits, start }
 export function createMapView({ map, ui }) {
@@ -40,12 +43,27 @@ export function createMapView({ map, ui }) {
     }
   }
 
-  // 역 말풍선을 놓을 수 있는 지도 화면 { right, bottom } (px): 펼친 오른쪽 패널(좁은 화면은 아래 판)이 덮은 곳은 뺀다
+  // 역 말풍선을 놓을 수 있는 지도 화면 { right, bottom, covers } (px): 펼친 오른쪽 패널(좁은 화면은 아래 판)이 덮은 곳은 빼고,
+  // covers = 지도 위에 떠 있는 화면 판들(위쪽 버튼 줄, 왼쪽 아래 버튼, 튜토리얼 카드, 종단면도)의 네모 (지도 화면 기준)
   function labelArea() {
-    const { clientWidth: width, clientHeight: height } = map.getContainer();
-    if (!document.body.classList.contains('side-panel-open')) return { right: width, bottom: height };
+    const container = map.getContainer();
+    const { clientWidth: width, clientHeight: height } = container;
+    const origin = container.getBoundingClientRect();
+    const covers = [...document.querySelectorAll(LABEL_COVERS)]
+      .map((element) => element.getBoundingClientRect())
+      // 숨은 판(hidden, H 키로 숨긴 화면)은 크기가 0이다
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => ({
+        left: rect.left - origin.left,
+        top: rect.top - origin.top,
+        right: rect.right - origin.left,
+        bottom: rect.bottom - origin.top,
+      }));
+    if (!document.body.classList.contains('side-panel-open')) return { right: width, bottom: height, covers };
     const side = document.querySelector('.side').getBoundingClientRect();
-    return isNarrowScreen() ? { right: width, bottom: side.top } : { right: side.left, bottom: height };
+    return isNarrowScreen()
+      ? { right: width, bottom: side.top, covers }
+      : { right: side.left, bottom: height, covers };
   }
 
   // 역 쪽을 다시 그린다. stationRoutes: 역마다 서는 노선 색 (views.js의 routeColors), stationRiders: 역별 이용객

@@ -131,7 +131,8 @@ function showForZoom(map) {
 // 말풍선 자리를 다시 고른다: 출구 배지와 먼저 놓인 다른 말풍선을 되도록 덮지 않고, 화면 밖으로 나가지 않는 곳으로.
 // 어느 자리든 먼저 놓인 말풍선과 겹치면 숨긴다 (고른 역은 언제나 보인다)
 // exitCoords: 지도에 보이는 출구 자리들 [[경도, 위도], …]
-// area: 말풍선이 보이는 지도 화면 { right, bottom } (px, 패널이 덮은 곳을 뺀 것). 없으면 지도 전체
+// area: 말풍선이 보이는 지도 화면 { right, bottom, covers } (px, 패널이 덮은 곳을 뺀 것. covers는 지도 위에 떠 있는
+// 버튼 줄·튜토리얼 카드 같은 화면 판들의 네모). 없으면 지도 전체
 // 지도를 움직이거나 출구가 바뀔 때마다 부른다. 화면 밖 역은 건너뛴다
 export function arrangeStationLabels(map, exitCoords, area = null) {
   const zoom = map.getZoom();
@@ -141,6 +142,7 @@ export function arrangeStationLabels(map, exitCoords, area = null) {
   const { clientWidth, clientHeight } = map.getContainer();
   const right = area?.right ?? clientWidth;
   const bottom = area?.bottom ?? clientHeight;
+  const covers = area?.covers ?? [];
   const placed = []; // 먼저 자리를 정한 말풍선들 (화면 네모)
 
   // 크기를 먼저 모두 읽고 나서 자리를 고쳐 쓴다 (읽기·쓰기를 번갈아 하면 브라우저가 말풍선마다 화면 배치를 다시 계산한다)
@@ -166,8 +168,13 @@ export function arrangeStationLabels(map, exitCoords, area = null) {
     let bestCrowd = 0;
     PLACES.forEach((place, order) => {
       const box = shift(bubbleBox(place, width, height), at);
-      // 화면 가장자리·패널 밑으로 들어가는 자리도 출구 하나를 덮는 것만큼 나쁘게 친다 (이름이 잘리거나 가려지지 않게)
-      const offScreen = box.left < 0 || box.top < 0 || box.right > right || box.bottom > bottom;
+      // 화면 가장자리·패널·화면 판 밑으로 들어가는 자리도 출구 하나를 덮는 것만큼 나쁘게 친다 (이름이 잘리거나 가려지지 않게)
+      const offScreen =
+        box.left < 0 ||
+        box.top < 0 ||
+        box.right > right ||
+        box.bottom > bottom ||
+        covers.some((cover) => boxesOverlap(box, cover));
       const crowd = placed.filter((other) => boxesOverlap(box, other)).length;
       const covered = exits.filter((exit) => boxNearPoint(box, exit, exitRadius)).length + (offScreen ? 1 : 0);
       // 다른 말풍선과 겹치는 자리는 가장 나쁘다
