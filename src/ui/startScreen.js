@@ -1,5 +1,6 @@
 // 시작 화면: 어느 지도에서 할지 고른다 (regions.js의 REGIONS).
 // 위에서부터: 제목과 작은 노선 그림 → (휴대폰·좁은 창이면) "컴퓨터에서 가장 잘 돌아가요" 한 줄
+// → (공유 링크로 들어왔으면) "공유받은 노선망" 칸 (ui/shareLink.js)
 // → [이어서 하기] (저장이 있는 게임만) 또는, 저장이 하나도 없으면 "처음이라면 · 서울에서 바로 시작" 큰 칸
 // → 묶음 탭 (한국 도시 / 세계 도시 / 가상 지도) → 고른 묶음의 지도 카드 (지도 그림, 이름, 한 줄 설명, 저장 상태, [샌드박스]).
 // 처음 온 사람이 열한 개 중에 고르는 숙제 없이 한 번 눌러 시작하게 한다 (reports/레일맵 시작 화면 개선 조사.md).
@@ -9,6 +10,8 @@
 import { REGIONS, RECOMMENDED_REGION } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
 import { prefetchMap } from '../map/prefetch.js';
+import { renderSharedCard } from './shareLink.js';
+import { clearSharedLink } from '../game/share.js';
 
 // 마지막으로 고른 묶음 탭을 기억하는 브라우저 저장 이름
 const TAB_KEY = 'railmap-start-tab';
@@ -52,8 +55,9 @@ function make(tag, className, text) {
   return element;
 }
 
-// element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지 }로 끝나는 Promise를 돌려준다
-export function chooseRegion(element) {
+// element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지, shared: 받은 노선망 또는 없음 }으로
+// 끝나는 Promise를 돌려준다. link: 공유 링크로 들어왔을 때 { shared: 받은 노선망, problem: 읽지 못한 이유 } (main.js)
+export function chooseRegion(element, link = {}) {
   element.innerHTML = `
     <div class="start-card">
       <header class="start-head">
@@ -64,6 +68,7 @@ export function chooseRegion(element) {
         ${ROUTE_ART}
       </header>
       <p class="start-device" hidden>손가락으로도 할 수 있어요: 두 손가락으로 지도를 움직이고 키우세요. 화면이 넓은 컴퓨터에서 가장 편해요.</p>
+      <section class="start-shared" hidden></section>
       <section class="start-continue" hidden>
         <div class="start-continue-latest"></div>
         <h2 class="start-section start-continue-more" hidden>다른 저장 이어하기</h2>
@@ -92,6 +97,18 @@ export function chooseRegion(element) {
       element.hidden = true;
       resolve({ id, sandbox });
     };
+
+    // 공유받은 노선망: 그 지도의 샌드박스로 연다. 열거나 닫으면 주소에서 공유 자료를 지운다
+    renderSharedCard(element.querySelector('.start-shared'), {
+      shared: link.shared,
+      problem: link.problem,
+      onOpen: () => {
+        clearSharedLink();
+        element.hidden = true;
+        resolve({ id: link.shared.region, sandbox: true, shared: link.shared });
+      },
+      onClose: clearSharedLink,
+    });
 
     // 이어서 하기: 저장이 있는 게임들. 가장 최근에 한 게임은 맨 위에 큰 칸으로, 나머지는 그 아래 작은 줄로
     // (저장한 때가 같으면, 예를 들어 예전 저장끼리면, 일반 게임 먼저 그다음 샌드박스 순서)

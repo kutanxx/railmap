@@ -139,6 +139,12 @@ export function savedGameInfo(regionId, sandbox = false) {
   }
 }
 
+// 받은 노선망(공유 링크, game/share.js)을 그 지도의 샌드박스 저장 칸에 넣는다. 있던 샌드박스 저장은 바뀐다
+// (덮어쓰기 전에 시작 화면이 묻는다, ui/shareLink.js)
+export function writeSandboxSave(data) {
+  localStorage.setItem(storageKey(data.region, true), JSON.stringify({ ...data, savedAt: Date.now() }));
+}
+
 // 브라우저에 저장해 둔 게임이 있으면 불러온다. 불러왔으면 true
 // 저장 내용이 망가졌으면 이유를 담은 에러를 던진다
 export function loadFromBrowser() {

@@ -102,6 +102,70 @@
   color: var(--navy);
 }
 
+/* ── 공유 링크로 받은 노선망 칸 (맨 위, ui/shareLink.js) ── */
+.start-shared {
+  margin-top: 16px;
+}
+
+.start-shared-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  color: var(--navy);
+}
+
+.start-shared-card p {
+  margin: 0;
+}
+
+.start-shared-text {
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.start-shared-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.start-shared-buttons .start-first-go {
+  margin-top: 0;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.start-shared-close {
+  padding: 10px 18px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 링크 복사가 막혔을 때 띄우는 링크 칸 */
+.share-link-input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+}
+
 /* ── 지도를 고른 뒤 지도가 뜰 때까지: 화면 가운데 "불러오는 중" 판 (main.js) ── */
 .map-loading {
   position: fixed;

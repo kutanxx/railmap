@@ -7,12 +7,23 @@ import { setRegion, getRegion, setSandbox, isSandbox } from './game/region.js';
 import { createMap } from './map/createMap.js';
 import { useVirtualMap } from './map/mapFeatures.js';
 import { setTerrain } from './game/terrain.js';
-import { loadFromBrowser, resetGame } from './game/save.js';
+import { loadFromBrowser, resetGame, writeSandboxSave } from './game/save.js';
+import { readSharedLink } from './game/share.js';
 import { renderBadge } from './ui/badge.js';
 import { chooseRegion, showMapLoading } from './ui/startScreen.js';
 import { startApp } from './ui/app.js';
 
-const choice = await chooseRegion(document.getElementById('start'));
+// 공유 링크(…/#share=…)로 들어왔으면 시작 화면 맨 위에 "공유받은 노선망" 칸을 띄운다 (game/share.js)
+// 링크가 잘렸거나 망가졌으면 그 칸에 이유를 보여준다
+const link = {};
+try {
+  link.shared = await readSharedLink();
+} catch (error) {
+  link.problem = error.message;
+}
+const choice = await chooseRegion(document.getElementById('start'), link);
+// 받은 노선망을 열면 그 지도의 샌드박스 저장 칸에 넣고, 아래에서 그 저장을 불러온다
+if (choice.shared) writeSandboxSave(choice.shared);
 setRegion(choice.id);
 setSandbox(choice.sandbox);
 const region = getRegion();
@@ -37,8 +48,11 @@ if (region.id === 'sollae') {
 // 이어 할 게임이 없으면 이 지도의 시작 자금으로 새 게임을 차린다
 let loadMessage = null;
 try {
-  if (loadFromBrowser()) loadMessage = { text: '저장된 게임을 이어서 해요', tone: 'info' };
-  else {
+  if (loadFromBrowser()) {
+    loadMessage = choice.shared
+      ? { text: '공유받은 노선망을 샌드박스로 열었어요', tone: 'info' }
+      : { text: '저장된 게임을 이어서 해요', tone: 'info' };
+  } else {
     resetGame();
     // 새 게임은 멈춘 채 시작한다고 알려준다 (튜토리얼이 뜨는 처음 온 사람에게는 튜토리얼이 대신 안내한다, app.js)
     loadMessage = { text: '시간이 멈춘 채 시작해요. 준비되면 Space나 위쪽 [1배]를 누르세요', tone: 'info', newGame: true };
