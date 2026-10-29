@@ -13,8 +13,8 @@ import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { isNarrowScreen } from './sidePanels.js';
 
-// 역 말풍선이 밑으로 들어가지 않게 피하는 화면 판들 (labelArea)
-const LABEL_COVERS = '.top-left .top-row, .bottom-left, #tutorial, #profile';
+// 역 말풍선이 밑으로 들어가지 않게 피하는 화면 판들 (labelArea). #route-strip은 오른쪽 패널을 접었을 때의 노선 번호 띠
+const LABEL_COVERS = '.top-left .top-row, .bottom-left, #tutorial, #profile, #route-strip';
 
 // ui: 화면 상태 (app.js)
 // 결과: { shownCoord, drawStations, updateStationExits, start }
@@ -44,7 +44,7 @@ export function createMapView({ map, ui }) {
   }
 
   // 역 말풍선을 놓을 수 있는 지도 화면 { right, bottom, covers } (px): 펼친 오른쪽 패널(좁은 화면은 아래 판)이 덮은 곳은 빼고,
-  // covers = 지도 위에 떠 있는 화면 판들(위쪽 버튼 줄, 왼쪽 아래 버튼, 튜토리얼 카드, 종단면도)의 네모 (지도 화면 기준)
+  // covers = 지도 위에 떠 있는 화면 판들(위쪽 버튼 줄, 왼쪽 아래 버튼, 튜토리얼 카드, 종단면도, 노선 번호 띠)의 네모 (지도 화면 기준)
   function labelArea() {
     const container = map.getContainer();
     const { clientWidth: width, clientHeight: height } = container;

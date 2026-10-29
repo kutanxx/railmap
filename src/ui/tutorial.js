@@ -126,8 +126,10 @@ export function createTutorial(element) {
     localStorage.setItem(DONE_KEY, '1');
   }
 
-  // 처음 온 사람이면 바로 시작한다
-  if (!localStorage.getItem(DONE_KEY)) start();
+  // 처음 온 사람이 빈 지도에서 시작하면 바로 시작한다. 노선이 이미 있는 게임(실제 노선망, 공유받은 노선망)은
+  // 단계가 저절로 다 넘어가 버려서 띄우지 않는다 (불러올 때 말풍선이 [1배]를 알려준다, main.js).
+  // "다 봤다"로 적지는 않아서 나중에 빈 지도에서 시작하면 나온다
+  if (!localStorage.getItem(DONE_KEY) && getState().routes.length === 0) start();
   else element.hidden = true;
 
   return { start };

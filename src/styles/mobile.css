@@ -99,6 +99,11 @@
     max-width: min(320px, 80vw);
   }
 
+  /* 자금 줄 숫자를 한 단계 작게: 실제 노선망처럼 숫자가 길어도 한 줄에 들어가게 */
+  .status {
+    font-size: var(--text-body);
+  }
+
   /* 매달 정산 숫자는 자금 줄 아래(도구 버튼 자리)가 아니라 자금 줄 위에 겹쳐 띄운다 */
   .status-flash {
     top: 0;

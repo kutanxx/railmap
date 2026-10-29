@@ -126,3 +126,8 @@ export const CALLOUT_WARN_SECONDS = 8;
 export const REVEAL_NOTICE_DELAY_SECONDS = CALLOUT_SECONDS + 0.5;
 // 지난 알림을 몇 개까지 기억할지 (위쪽 [알림] 목록)
 export const NOTICE_LOG_SIZE = 20;
+
+// ── 링크로 공유 ([메뉴]의 [링크로 공유]) ────────
+// 공유 링크가 이 글자 수보다 길면 복사한 뒤 "메신저에 따라 잘릴 수 있다"고 알린다 (디스코드 한 메시지가 2,000자).
+// 역 60곳쯤부터 넘는다 (서울 실제 노선망 역 320곳은 약 1.4만 자)
+export const SHARE_LONG_LINK_CHARS = 2000;

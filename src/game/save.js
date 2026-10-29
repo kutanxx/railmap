@@ -20,7 +20,7 @@ import {
 
 const state = getState();
 
-const SAVE_VERSION = 1;
+export const SAVE_VERSION = 1;
 
 // 역 목록을 저장용으로: 건물 칸(cells)을 격자 번호(cellGrid)로 바꿔 적는다 (못 바꾸는 역은 그대로)
 function packStations(network) {

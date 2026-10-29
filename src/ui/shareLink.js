@@ -5,17 +5,27 @@
 import { REGIONS } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
 import { shareLink } from '../game/share.js';
+import { SHARE_LONG_LINK_CHARS } from '../config.js';
 
 // [링크로 공유]: notice(글, 모양)는 화면 가운데 말풍선
 export function copyShareLink(notice) {
   shareLink()
     .then((link) =>
       navigator.clipboard.writeText(link).then(
-        () => notice('공유 링크를 복사했어요. 메신저에 붙여 넣어 보내세요 (받은 사람은 샌드박스로 열어요)'),
+        () =>
+          link.length > SHARE_LONG_LINK_CHARS
+            ? notice(`공유 링크를 복사했어요. 다만 ${longLinkText(link)}`, 'warn')
+            : notice('공유 링크를 복사했어요. 메신저에 붙여 넣어 보내세요 (받은 사람은 샌드박스로 열어요)'),
         () => showLinkBox(link),
       ),
     )
     .catch((error) => notice(`공유 링크를 만들지 못했어요: ${error.message}`, 'bad'));
+}
+
+// 링크가 길 때 덧붙이는 말 (노선망이 클수록 링크가 길다. 주소 안에 노선망을 다 넣어서 서버 없이 열린다)
+function longLinkText(link) {
+  const chars = link.length.toLocaleString('ko-KR');
+  return `링크가 ${chars}자로 길어서 디스코드처럼 글자 수가 정해진 메신저에서는 잘릴 수 있어요. 그럴 땐 [메뉴]의 [내보내기] 파일을 보내세요.`;
 }
 
 // 복사가 막혔을 때: 화면 가운데 창에 링크를 띄워 직접 복사하게 한다
@@ -26,11 +36,15 @@ function showLinkBox(link) {
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
       <div class="dialog-title" id="share-title">공유 링크</div>
       <p class="dialog-text">아래 링크를 길게 누르거나 전부 골라 복사해 보내세요.</p>
+      <p class="dialog-text share-link-long" hidden></p>
       <input class="share-link-input" type="text" readonly aria-label="공유 링크" />
       <div class="dialog-buttons"><button type="button" class="dialog-primary">닫기</button></div>
     </div>`;
   const input = box.querySelector('input');
   input.value = link;
+  const long = box.querySelector('.share-link-long');
+  long.hidden = link.length <= SHARE_LONG_LINK_CHARS;
+  long.textContent = longLinkText(link);
   box.querySelector('button').addEventListener('click', () => box.remove());
   document.body.append(box);
   input.select();
