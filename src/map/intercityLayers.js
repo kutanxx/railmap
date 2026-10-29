@@ -1,5 +1,5 @@
 // 고속철도역(처음부터 있는 고정 역, game/intercity.js)을 지도에 그린다.
-// 플레이어가 지은 것이 아니므로 색 없이 기존 철도 회색으로: 흰 동그라미 + 회색 테두리, 이름 아래 작게 "고속철도".
+// 플레이어가 지은 것이 아니므로 색 없이 기존 철도 회색으로: 흰 동그라미 + 회색 테두리, 이름 아래 작게 종류 ("고속철도" 또는 "공항").
 // 이어진 지하철역이 있으면 둘 사이를 남색 점선(갈아타는 통로)으로 잇는다. 플레이어가 역을 지어 생긴 것이라 출구 통로처럼 남색.
 const POINT_SOURCE = 'intercity';
 const LINK_SOURCE = 'intercity-links';
@@ -47,7 +47,7 @@ export function addIntercityLayers(map) {
     source: POINT_SOURCE,
     minzoom: LABEL_MIN_ZOOM,
     layout: {
-      'text-field': ['format', ['get', 'name'], {}, '\n고속철도', { 'font-scale': 0.8 }],
+      'text-field': ['format', ['get', 'name'], {}, ['concat', '\n', ['get', 'label']], { 'font-scale': 0.8 }],
       'text-font': ['Noto Sans Bold'],
       'text-size': 12,
       'text-anchor': 'top',
@@ -58,7 +58,7 @@ export function addIntercityLayers(map) {
   });
 }
 
-// hubs: 지금 지도의 고속철도역들 [{ name, coord, size }]
+// hubs: 지금 지도의 고속철도역들 [{ name, coord, size, label }]
 // links: 이어진 것들 [{ hub, coord: 이어진 지하철역 자리 }]
 export function updateIntercity(map, hubs, links) {
   map.getSource(POINT_SOURCE).setData({
@@ -66,7 +66,7 @@ export function updateIntercity(map, hubs, links) {
     features: hubs.map((hub) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: hub.coord },
-      properties: { name: hub.name, size: hub.size },
+      properties: { name: hub.name, size: hub.size, label: hub.label },
     })),
   });
   map.getSource(LINK_SOURCE).setData({

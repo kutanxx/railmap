@@ -170,7 +170,7 @@ export function createPanel(
     // 이어진 고속철도역: 그 역을 드나드는 사람이 이 역 승객 수요에 더해진다 (game/intercity.js)
     intercityText.hidden = view.intercity.length === 0;
     intercityText.textContent = view.intercity
-      .map((hub) => `고속철도 ${hub.name}과(와) 이어져 있어요 · 드나드는 사람 +${formatPeopleShort(hub.people)}명`)
+      .map((hub) => `${hub.label} ${hub.name}과(와) 이어져 있어요 · 드나드는 사람 +${formatPeopleShort(hub.people)}명`)
       .join(' / ');
     tagText.textContent = view.tag ? `${view.tag}역` : '';
     badges.replaceChildren(

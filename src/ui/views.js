@@ -201,7 +201,7 @@ export function stationHoverText(stationId) {
   const routes = getState().routes.filter((route) => route.stations.includes(stationId));
   // 고속철도역과 이어졌으면 이름 뒤에 그 역을 붙인다
   const hubs = getEconomy().stationIntercity.get(stationId) ?? [];
-  const name = hubs.length > 0 ? `${station.name} (고속철도 ${hubs.map((hub) => hub.name).join('·')})` : station.name;
+  const name = hubs.length > 0 ? `${station.name} (${hubs.map((hub) => `${hub.label} ${hub.name}`).join('·')})` : station.name;
   if (routes.length === 0) return `${name} · 아직 노선 없음`;
   const riders = getEconomy().stationRiders.get(stationId) ?? 0;
   return `${name} · 하루 ${formatPopulation(riders)} · ${routes.map((route) => route.name).join(', ')}`;

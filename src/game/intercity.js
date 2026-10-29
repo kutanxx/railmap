@@ -1,4 +1,4 @@
-// 고속철도역: 처음부터 지도에 있는 고정 역 (src/intercityStations.js). 플레이어가 짓거나 운영하지 않는다.
+// 고속철도역(과 공항역): 처음부터 지도에 있는 고정 역 (src/intercityStations.js). 플레이어가 짓거나 운영하지 않는다.
 // 고속철도역에서 INTERCITY_LINK_M 안의 가장 가까운 지하철역 하나가 "이어진 역"이 되고,
 // 고속철도역을 드나드는 사람(INTERCITY_PEOPLE)이 그 역 인구에 더해진다 (demand.js가 승객 수요에 쓴다).
 import { distance } from '@turf/turf';
@@ -6,9 +6,14 @@ import { INTERCITY_LINK_M, INTERCITY_PEOPLE } from '../config.js';
 import { INTERCITY_STATIONS } from '../intercityStations.js';
 import { getRegion } from './region.js';
 
-// 지금 지도의 고속철도역들 [{ name, coord, size, people }]
+// 지금 지도의 고속철도역들 [{ name, coord, size, people, label }]
+// label: 화면에 적는 종류 이름 — 공항역이면 '공항', 아니면 '고속철도'
 export function intercityStations() {
-  return (INTERCITY_STATIONS[getRegion().id] ?? []).map((hub) => ({ ...hub, people: INTERCITY_PEOPLE[hub.size] }));
+  return (INTERCITY_STATIONS[getRegion().id] ?? []).map((hub) => ({
+    ...hub,
+    people: INTERCITY_PEOPLE[hub.size],
+    label: hub.kind === 'airport' ? '공항' : '고속철도',
+  }));
 }
 
 // 미터 단위 거리

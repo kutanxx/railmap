@@ -72,7 +72,7 @@ export function bindMapInput(ctx) {
     const people = measured ? `주변 인구 약 ${formatPopulation(estimate.population)}` : '주변 인구 재는 중…';
     // 고속철도역 가까이면 이어진다고 알려준다 (그 역을 드나드는 사람이 승객 수요에 더해진다)
     const hubs = measured
-      ? estimate.hubs.map((hub) => ` · 고속철도 ${hub.name}과(와) 이어져요 +${formatPopulation(hub.people)}`).join('')
+      ? estimate.hubs.map((hub) => ` · ${hub.label} ${hub.name}과(와) 이어져요 +${formatPopulation(hub.people)}`).join('')
       : '';
     tip(point, `${cost} · ${people}${hubs}`, stationCost());
   }

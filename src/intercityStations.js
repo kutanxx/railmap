@@ -1,9 +1,11 @@
-// 도시마다 처음부터 지도에 있는 고속철도역 (KTX·SRT, 신칸센, 암트랙, 유로스타·TGV 등).
+// 도시마다 처음부터 지도에 있는 고속철도역 (KTX·SRT, 신칸센, 암트랙, 유로스타·TGV 등)과 공항역.
 // 플레이어가 짓거나 운영하지 않는 "고정 역"이다: 누를 수도 지울 수도 없고 열차도 다니지 않는다.
 // 가까이(config.js의 INTERCITY_LINK_M 안) 지하철역을 지으면, 이 역을 드나드는 사람이 그 지하철역 인구에 더해진다 (game/intercity.js).
 // 그때 새 지하철역은 이 이름을 받는다 (서울역 옆 지하철역은 "서울역")
 // size: 'large'(큰 역) | 'medium'(중간 역) — 드나드는 사람 수는 config.js의 INTERCITY_PEOPLE
-// 자리는 역 건물 가운데쯤 [경도, 위도]. 출처: OpenStreetMap 역 자리. 인천은 지금 KTX가 서는 역이 없어서 비워 둔다.
+// kind: 'airport'면 공항역 (지도·역 카드에 "공항"으로 적는다). 없으면 고속철도역
+// 자리는 역 건물 가운데쯤 [경도, 위도]. 출처: OpenStreetMap 역 자리.
+// 인천은 지금 KTX가 서는 역이 없어서, 대신 인천국제공항의 공항철도역 두 곳을 공항역으로 둔다.
 // 솔내 지방(가상 지도)은 솔내 마을 남서쪽에 지어낸 역을 하나 둔다.
 export const INTERCITY_STATIONS = {
   seoul: [
@@ -18,7 +20,10 @@ export const INTERCITY_STATIONS = {
     { name: '부산역', coord: [129.0397, 35.1152], size: 'large' },
     { name: '구포역', coord: [128.9973, 35.2054], size: 'medium' },
   ],
-  incheon: [],
+  incheon: [
+    { name: '인천공항1터미널역', coord: [126.4525, 37.4475], size: 'large', kind: 'airport' },
+    { name: '인천공항2터미널역', coord: [126.4337, 37.4665], size: 'medium', kind: 'airport' },
+  ],
   daegu: [
     { name: '동대구역', coord: [128.6287, 35.8793], size: 'large' },
     { name: '대구역', coord: [128.5964, 35.8758], size: 'medium' },

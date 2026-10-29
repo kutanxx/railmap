@@ -19,7 +19,7 @@ const SEARCH_TIP_STATIONS = 15;
 const STATS_TIP_MONTHS = 3;
 const EXPRESS_TIP_ROUTES = 3;
 
-// 안내: id, 나올 때(when), 글, 강조할 버튼 찾기
+// 안내: id, 나올 때(when), 글(지도마다 달라지면 글을 만드는 함수), 강조할 버튼 찾기
 const TIPS = [
   {
     id: 'plan',
@@ -33,7 +33,9 @@ const TIPS = [
     // 첫 노선을 만든 뒤, 아직 고속철도역과 이어진 역이 없으면 (고속철도역이 있는 지도만)
     when: (state) =>
       state.routes.length > 0 && intercityStations().length > 0 && getEconomy().stationIntercity.size === 0,
-    text: `지도의 회색 동그라미는 고속철도역이에요. ${INTERCITY_LINK_M}m 안에 역을 지으면 기차를 타고 내리는 사람들이 더해져 승객이 크게 늘어요.`,
+    // 지도마다 고속철도역·공항역 중 있는 것으로 부른다 (인천은 공항역)
+    text: () =>
+      `지도의 회색 동그라미는 ${[...new Set(intercityStations().map((hub) => hub.label))].join('·')}역이에요. ${INTERCITY_LINK_M}m 안에 역을 지으면 그곳을 드나드는 사람들이 더해져 승객이 크게 늘어요.`,
     button: () => null,
   },
   {
@@ -89,7 +91,7 @@ export function createTips({ ui, notice }) {
     seen.add(tip.id);
     localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]));
     lastShown = Date.now();
-    notice(tip.text);
+    notice(typeof tip.text === 'function' ? tip.text() : tip.text);
     const button = tip.button();
     if (button && !button.closest('[hidden]')) {
       button.classList.add('tutorial-target');
