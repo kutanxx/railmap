@@ -134,6 +134,22 @@ export const REGIONS = {
     soundStyle: 'marimba',
     riderGoalScale: 1,
   },
+  osaka: {
+    name: '오사카',
+    country: 'jp',
+    description: '우메다와 난바를 미도스지선이 꿰는 상인의 도시',
+    // 요도야바시 (우메다와 난바 사이)
+    center: [135.5, 34.69],
+    zoom: 14,
+    bounds: [135.38, 34.56, 135.62, 34.8],
+    startMoney: 600,
+    // 1배면 평균 4.2만 명 (2026-10-29, 8곳): 우메다 7.4만, 신사이바시 4.5만, 난바 4.5만, 쓰루하시 3.6만,
+    // 덴가차야 3.6만, 덴노지 3.5만, 혼마치 3.5만, 교바시 3.4만
+    populationScale: 0.55,
+    trackCostScale: 1,
+    soundStyle: 'marimba',
+    riderGoalScale: 1,
+  },
   newyork: {
     name: '뉴욕',
     country: 'us',
@@ -145,6 +161,22 @@ export const REGIONS = {
     startMoney: 600,
     // 큰 건물이 많아 1배면 평균 5.5만 명: 그랜드센트럴 9.0만, 타임스스퀘어 7.4만, 브루클린 애틀랜틱 3.8만, 퀸스 잭슨하이츠 3.2만
     populationScale: 0.4,
+    trackCostScale: 1,
+    soundStyle: 'bell',
+    riderGoalScale: 1,
+  },
+  chicago: {
+    name: '시카고',
+    country: 'us',
+    description: '도심 루프를 고가 철도 L이 빙 도는 바람의 도시',
+    // 루프 (도심, 고가 철도가 네모로 도는 곳)
+    center: [-87.63, 41.882],
+    zoom: 14,
+    bounds: [-87.94, 41.64, -87.52, 42.03],
+    startMoney: 600,
+    // 1배면 평균 3.7만 명 (2026-10-29, 8곳): 루프 먼로 5.8만·클라크/레이크 5.5만, 시카고애비뉴 4.8만, 풀러턴 3.4만,
+    // 위커파크 3.1만, 로건스퀘어 2.7만, 하이드파크 2.5만, 차이나타운 2.0만
+    populationScale: 0.6,
     trackCostScale: 1,
     soundStyle: 'bell',
     riderGoalScale: 1,

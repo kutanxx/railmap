@@ -38,6 +38,16 @@ export const INTERCITY_STATIONS = {
     { name: '시나가와역', coord: [139.7387, 35.6285], size: 'large' },
     { name: '우에노역', coord: [139.7774, 35.7141], size: 'medium' },
   ],
+  osaka: [
+    { name: '신오사카역', coord: [135.5003, 34.7334], size: 'large' },
+    { name: '오사카역', coord: [135.4959, 34.7025], size: 'medium' },
+    { name: '오사카공항역', coord: [135.4402, 34.7869], size: 'medium', kind: 'airport' },
+  ],
+  chicago: [
+    { name: '유니언역', coord: [-87.6403, 41.8789], size: 'large' },
+    { name: '오헤어공항역', coord: [-87.9043, 41.9773], size: 'large', kind: 'airport' },
+    { name: '미드웨이공항역', coord: [-87.7378, 41.7866], size: 'medium', kind: 'airport' },
+  ],
   newyork: [
     { name: '펜실베이니아역', coord: [-73.9935, 40.7506], size: 'large' },
     { name: '그랜드 센트럴역', coord: [-73.9772, 40.7527], size: 'medium' },

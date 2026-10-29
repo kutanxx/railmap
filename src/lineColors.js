@@ -10,6 +10,8 @@
 // - 뉴욕: MTA의 전통 노선 색(Pantone 기준, 노선도·표지판의 색). 노선 묶음마다 한 색 (1/2/3, 4/5/6 …). 회색이 둘이라 셔틀(S)은 뺐다
 // - 런던: TfL Colour Standard의 화면용 색 (알파벳 순, 엘리자베스선은 TfL Design Idiom). 노던선은 원래 검정이다
 // - 파리: 일드프랑스 모빌리테(IDFM) 공개 자료의 공식 웹 색 (1~14호선. 3bis·7bis는 13·6호선과 같은 색이라 뺐다)
+// - 오사카: 오사카 메트로 9개 노선 (번호 순). 영어 위키백과 Module:Adjacent stations/Osaka Metro의 색 (2026-10-29 확인)
+// - 시카고: CTA 'L' 8개 노선. 영어 위키백과 Module:Adjacent stations/CTA의 색 (2026-10-29 확인)
 // 순서: 번호가 있는 노선은 번호 순, 그 뒤에 그 도시의 이름 있는 노선을 덧붙였다
 export const LINE_COLORS = {
   seoul: [
@@ -65,6 +67,27 @@ export const LINE_COLORS = {
     { name: '도에이 미타선', color: '#006AB8' },
     { name: '도에이 신주쿠선', color: '#B0BF1E' },
     { name: '도에이 오에도선', color: '#CE045B' },
+  ],
+  osaka: [
+    { name: '미도스지선', color: '#E5171F' },
+    { name: '다니마치선', color: '#522886' },
+    { name: '요쓰바시선', color: '#0078BE' },
+    { name: '주오선', color: '#019A66' },
+    { name: '센니치마에선', color: '#E44D93' },
+    { name: '사카이스지선', color: '#814721' },
+    { name: '나가호리쓰루미료쿠치선', color: '#A9CC51' },
+    { name: '이마자토스지선', color: '#EE7B1A' },
+    { name: '난코포트타운선', color: '#00A0DE' },
+  ],
+  chicago: [
+    { name: '레드라인', color: '#C60C30' },
+    { name: '블루라인', color: '#00A1DE' },
+    { name: '브라운라인', color: '#62361B' },
+    { name: '그린라인', color: '#009B3A' },
+    { name: '오렌지라인', color: '#F9461C' },
+    { name: '퍼플라인', color: '#522398' },
+    { name: '핑크라인', color: '#E27EA6' },
+    { name: '옐로라인', color: '#F9E300' },
   ],
   newyork: [
     { name: '브로드웨이–7번가선', color: '#EE352E' }, // 1·2·3
