@@ -22,7 +22,7 @@ import { getState } from '../src/game/state.js';
 import { loadData } from '../src/game/save.js';
 import { clearTrackMemory, roundTripMinutes } from '../src/game/tripFinder.js';
 import { maxTrainCount } from '../src/game/routes.js';
-import { CITIES, JOINS } from './presets/cities.mjs';
+import { CITIES, JOINS, APART, SAME_NAME_DISTANCE } from './presets/cities.mjs';
 import { meters, sleep, overpass, buildingsNear } from './presets/osm.mjs';
 import { SNAP_MAX_M, routePath, snapStops, waypointsBetween } from './presets/trackPath.mjs';
 import { makeStopName, mergeStations } from './presets/stations.mjs';
@@ -113,7 +113,7 @@ async function makePreset(regionId) {
   }
 
   // 3. 정류 위치를 역으로 합친다 (presets/stations.mjs)
-  const stations = mergeStations(picked, JOINS[regionId]);
+  const stations = mergeStations(picked, JOINS[regionId], APART[regionId], SAME_NAME_DISTANCE[regionId]);
 
   // 4. 선로 (이웃한 두 역마다 하나, 실제 선로 모양) 와 노선
   const tracks = [];

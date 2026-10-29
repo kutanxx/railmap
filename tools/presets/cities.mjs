@@ -70,6 +70,31 @@ export const CITIES = {
     { number: 7, master: 2656070 }, // 핑크라인
     { number: 8, master: 2622574 }, // 옐로라인
   ],
+  // 뉴욕: 계통(1·2·3, A·C·E …)마다 노선 하나. 이름은 뉴욕 사람들이 부르는 대로 "A 트레인", 색은 lineColors.js의 노선 묶음 색.
+  // 셔틀(S, 역 2~5곳), Z(J와 같은 선로에서 몇 역만 서는 계통), 다이아몬드 급행(<6> <7> <F>)은 뺐다
+  newyork: [
+    { number: 1, name: '1 트레인', master: 9651536 },
+    { number: 1, name: '2 트레인', master: 9655665 },
+    { number: 1, name: '3 트레인', master: 9663807 },
+    { number: 2, name: '4 트레인', master: 9677108 },
+    { number: 2, name: '5 트레인', master: 9682651 },
+    { number: 2, name: '6 트레인', master: 366777 },
+    { number: 3, name: '7 트레인', master: 366765 },
+    { number: 4, name: 'A 트레인', master: 366774 },
+    { number: 4, name: 'C 트레인', master: 9767766 },
+    { number: 4, name: 'E 트레인', master: 9769302 },
+    { number: 5, name: 'B 트레인', master: 9748435 },
+    { number: 5, name: 'D 트레인', master: 9769161 },
+    { number: 5, name: 'F 트레인', master: 9753684 },
+    { number: 5, name: 'M 트레인', master: 9712349 },
+    { number: 6, name: 'G 트레인', master: 366764 },
+    { number: 7, name: 'J 트레인', master: 9747970 },
+    { number: 8, name: 'L 트레인', master: 9716997 },
+    { number: 9, name: 'N 트레인', master: 366768 },
+    { number: 9, name: 'Q 트레인', master: 366769 },
+    { number: 9, name: 'R 트레인', master: 366780 },
+    { number: 9, name: 'W 트레인', master: 6942556 },
+  ],
   london: [
     { number: 1, master: 7666698 }, // 베이커루선
     { number: 2, master: 7254206 }, // 센트럴선
@@ -113,3 +138,16 @@ export const JOINS = {
   ],
   osaka: [['다니마치로쿠초메', '다니마치6초메']], // 같은 역의 다른 한글 표기
 };
+
+// 가까워도 갈아탈 수 없는 따로인 역 (정류 위치가 MERGE_M 안에 붙어 있어도 합치지 않는다)
+export const APART = {
+  newyork: [
+    ['Park Place', 'City Hall'],
+    ['Grand Army Plaza', '7th Avenue'],
+    ['Broadway–Lafayette Street', 'Prince Street'],
+  ],
+};
+
+// 이름이 같은 정류 위치를 같은 역으로 치는 거리(m)를 도시마다 다르게 (적지 않으면 stations.mjs의 SAME_NAME_M).
+// 뉴욕은 길 번호가 역 이름이라 "23rd Street"가 맨해튼에만 다섯 곳(애비뉴마다 따로)이어서 짧게 둔다
+export const SAME_NAME_DISTANCE = { newyork: 200 };

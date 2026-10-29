@@ -53,12 +53,14 @@ export function makeStopName(stationNodes, country) {
 // 정류 위치를 역으로 합친다 (같은 이름이고 SAME_NAME_M 안, MERGE_M 안, 괄호만 다르거나 JOINS에 적힌 이름이면 LINKED_M 안)
 // picked: 고른 계통들 ({ stops, base }), joins: 그 도시의 JOINS. 계통마다 variant.groups(정류 위치마다 역 묶음)를 적고,
 // 묶음마다 group.station을 만든다. 결과: 게임 역 목록 [{ id, name, coord, angle }]
-export function mergeStations(picked, joins = []) {
-  const linked = (a, b) =>
-    inBrackets(a, b) || inBrackets(b, a) || joins.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+// apart: 그 도시의 APART (가까워도 합치지 않는 이름 짝), sameNameM: 같은 이름을 같은 역으로 치는 거리 (도시마다 다를 때)
+export function mergeStations(picked, joins = [], apart = [], sameNameM = SAME_NAME_M) {
+  const pairIn = (pairs, a, b) => pairs.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  const linked = (a, b) => inBrackets(a, b) || inBrackets(b, a) || pairIn(joins, a, b);
   const sameStation = (a, b) => {
+    if (pairIn(apart, a.name, b.name)) return false;
     const gap = meters(a.coord, b.coord);
-    return gap < MERGE_M || (sameNameKey(a.name) === sameNameKey(b.name) && gap < SAME_NAME_M) || (linked(a.name, b.name) && gap < LINKED_M);
+    return gap < MERGE_M || (sameNameKey(a.name) === sameNameKey(b.name) && gap < sameNameM) || (linked(a.name, b.name) && gap < LINKED_M);
   };
   const groups = []; // { names: Set, counts: Map(이름 → 정류 위치 수), stops: [] }
   const groupOf = (stop) => {
@@ -102,6 +104,12 @@ export function mergeStations(picked, joins = []) {
   }
   const renamed = stations.filter((station) => / \(/.test(station.name) && sameName.get(station.name.replace(/ \(.*$/, '')) > 1);
   if (renamed.length) console.log(`  이름이 같은 다른 역에 노선 이름을 붙임: ${renamed.map((station) => station.name).join(', ')}`);
+  // 같은 이름인데 꽤 떨어진 정류 위치를 합친 역도 알려준다 (따로인 역을 잘못 합쳤는지 살펴보게)
+  for (const group of groups.filter((g) => g.names.size === 1)) {
+    let far = 0;
+    for (const a of group.coords) for (const b of group.coords) far = Math.max(far, meters(a, b));
+    if (far > 250) console.log(`  같은 이름으로 합친 역: ${[...group.names][0]} (가장 먼 정류 위치끼리 ${Math.round(far)}m)`);
+  }
   for (const group of groups.filter((g) => g.names.size > 1)) {
     let far = 0;
     for (const a of group.coords) for (const b of group.coords) far = Math.max(far, meters(a, b));

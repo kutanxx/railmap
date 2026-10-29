@@ -13,6 +13,7 @@ import { syncTrains } from '../game/sim.js';
 import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
+import { startEconomyWorker, requestEconomy } from '../game/economyJob.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
@@ -305,22 +306,22 @@ export function startApp(map, loadMessage) {
   // ── 애니메이션: 매 프레임 시간을 흘리고 열차를 다시 그린다 (animation.js) ──
   const animation = startAnimation(map);
 
-  // 상태가 바뀌면: 열차를 노선에 맞추고 → 수입·운영비를 다시 계산하고 → 화면을 다시 그린다
+  // 상태가 바뀌면: 열차를 노선에 맞추고 → 화면을 바로 다시 그리고 → 수입·운영비는 일꾼이 다시 계산한다 (economyJob.js).
+  // 계산이 끝나면 목표·혼잡 경고를 확인하고 숫자가 바뀐 화면을 한 번 더 그린다 (역이 많아도 열차가 멈추지 않게)
   // 날짜·돈만 바뀐 때(kind 'time': 매달 정산, 배속)는 철도망 계산을 건너뛰고 위쪽 숫자만 다시 그린다
+  const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   subscribe((state, kind) => {
     if (kind !== 'network') return;
     syncTrains();
     animation.markTrainsChanged();
+    requestEconomy(() => {
+      goals.update();
+      warnings.crowding();
+      render();
+    });
   });
-  subscribe((state, kind) => {
-    if (kind === 'network') updateEconomy();
-  });
-  // 게임 목표: 수요를 다시 계산한 뒤에 확인한다 (이루면 말풍선과 보상)
-  const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
+  // 게임 목표: 매달 정산 뒤에 확인한다 (이루면 말풍선과 보상)
   subscribe(goals.update);
-  subscribe((state, kind) => {
-    if (kind === 'network') warnings.crowding();
-  });
   subscribe(() => warnings.debt());
   subscribe((state, kind) => {
     if (kind === 'network') render();
@@ -329,9 +330,10 @@ export function startApp(map, loadMessage) {
       tips.update();
     }
   });
-  // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다
+  // 불러온 게임이 있으면 그 노선에 맞춰 열차를 놓고 수입을 계산한 뒤 그린다 (처음 한 번은 화면에서 바로 계산한다)
   syncTrains();
   updateEconomy();
+  startEconomyWorker();
   warnings.crowding({ silent: true });
   render();
   // 불러온 게임이 이미 이룬 목표도 확인한다 (목표 기록이 없는 예전 저장 파일)

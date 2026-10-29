@@ -9,6 +9,7 @@ import { useVirtualMap } from './map/mapFeatures.js';
 import { setTerrain } from './game/terrain.js';
 import { loadFromBrowser, resetGame, writeSandboxSave } from './game/save.js';
 import { readSharedLink } from './game/share.js';
+import { measureStations } from './map/buildingTiles.js';
 import { loadPreset, presetOf } from './game/presets.js';
 import { renderBadge } from './ui/badge.js';
 import { chooseRegion, showMapLoading } from './ui/startScreen.js';
@@ -23,8 +24,6 @@ try {
   link.problem = error.message;
 }
 const choice = await chooseRegion(document.getElementById('start'), link);
-// 받은 노선망을 열면 그 지도의 샌드박스 저장 칸에 넣고, 아래에서 그 저장을 불러온다
-if (choice.shared) writeSandboxSave(choice.shared);
 setRegion(choice.id);
 setSandbox(choice.sandbox);
 const region = getRegion();
@@ -58,6 +57,23 @@ if (region.id === 'sollae') {
   setTerrain((await import('./data/sollae-height.json')).default);
 }
 
+// 공유받은 노선망을 열면 그 지도의 샌드박스 저장 칸에 넣고, 아래에서 그 저장을 불러온다.
+// 링크에는 역 주변 건물 칸이 없어서 지도 조각으로 다시 잰다 (가까운 역끼리 사람을 나누는 계산이 보낸 사람과 같아지게,
+// map/buildingTiles.js). 재지 못하면 (인터넷이 끊김) 링크에 적힌 역 인구를 그대로 쓰고, 지도가 뜬 뒤에 알려준다
+let sharedProblem = null;
+if (choice.shared) {
+  let shared = choice.shared;
+  try {
+    const stations = await measureStations(shared.network.stations, (percent) =>
+      loading.note(`공유받은 노선망의 역 주변 건물을 재는 중 ${percent}%`),
+    );
+    shared = { ...shared, network: { ...shared.network, stations } };
+  } catch (error) {
+    sharedProblem = error.message;
+  }
+  writeSandboxSave(shared);
+}
+
 // 브라우저에 저장해 둔 이 지도의 게임이 있으면 이어서 한다
 // 저장 내용이 망가졌으면 새 게임으로 시작하고, 지도가 뜬 뒤에 이유를 알려준다
 // 이어 할 게임이 없으면 이 지도의 시작 자금으로 새 게임을 차린다
@@ -77,6 +93,9 @@ try {
 } catch (error) {
   resetGame();
   loadMessage = { text: `저장된 게임을 읽지 못해 새로 시작해요: ${error.message}`, tone: 'bad' };
+}
+if (sharedProblem) {
+  loadMessage = { text: `역 주변 건물을 재지 못해 링크에 적힌 역 인구를 그대로 써요 (${sharedProblem})`, tone: 'warn' };
 }
 if (presetProblem) loadMessage = { text: `실제 노선망을 받지 못했어요: ${presetProblem}. 인터넷 연결을 확인해 주세요`, tone: 'bad' };
 

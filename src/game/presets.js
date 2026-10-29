@@ -1,7 +1,7 @@
 // 실제 노선망 프리셋: 실제 도시의 지하철 노선을 미리 깔아 둔 게임 저장 (tools/make-presets.mjs가 src/data/presets/에 만든다).
 // 시작 화면 지도 카드의 [실제 노선망으로 시작]이 그 지도의 샌드박스로 연다 (ui/startScreen.js, main.js).
-// 자료가 커서(서울 약 1MB) 처음부터 받지 않고, 고를 때만 받는다.
-// 뉴욕은 없다: 역이 400곳이 넘고 노선(계통)이 같은 선로를 많이 겹쳐 다녀서 게임이 느려진다.
+// 자료가 커서(뉴욕 약 1.2MB) 처음부터 받지 않고, 고를 때만 받는다.
+// 뉴욕은 역이 400곳 가까이 되어 승객 계산이 0.3초쯤 걸리지만, 계산은 화면과 따로 도는 일꾼이 해서 화면이 멈추지 않는다 (economyJob.js).
 // 노선 자료: © OpenStreetMap 기여자 (ODbL)
 
 // 지도 id → { label: 카드에 보일 노선 설명, load: 자료 받기 }
@@ -14,6 +14,7 @@ const PRESETS = {
   gwangju: { label: '1호선', load: () => import('../data/presets/gwangju.json') },
   tokyo: { label: '도쿄메트로·도에이 13개 노선', load: () => import('../data/presets/tokyo.json') },
   osaka: { label: '오사카 메트로 9개 노선', load: () => import('../data/presets/osaka.json') },
+  newyork: { label: '지하철 21개 계통', load: () => import('../data/presets/newyork.json') },
   chicago: { label: "'L' 8개 노선", load: () => import('../data/presets/chicago.json') },
   london: { label: '지하철 11개 노선', load: () => import('../data/presets/london.json') },
   paris: { label: '메트로 1~14호선', load: () => import('../data/presets/paris.json') },

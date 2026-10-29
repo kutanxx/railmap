@@ -13,6 +13,7 @@
 // (길찾기는 그중 한 노선만 고르므로, 그대로 두면 나중에 만든 노선은 승객이 0명이 된다)
 // 길찾기(가장 빠른 여행, 기다리는 시간·갈아타기)는 tripFinder.js가 한다
 // 상태가 바뀔 때만 다시 계산하고(updateEconomy), 매달 정산 때는 저장해 둔 값을 쓴다(getEconomy).
+// 게임 중에는 화면과 따로 도는 일꾼(economyWorker.js)이 이 계산을 하고 결과를 setEconomy로 넣는다 (economyJob.js).
 import { getState, routeTracks, builtTracks } from './state.js';
 import { monthlyOpex, fareWon } from './economy.js';
 import { sharedPopulations } from './catchment.js';
@@ -64,6 +65,11 @@ let economy = {
 
 export function getEconomy() {
   return economy;
+}
+
+// 다른 곳(승객 계산 일꾼, economyJob.js)에서 계산한 결과를 넣는다
+export function setEconomy(value) {
+  economy = value;
 }
 
 // 노선망과 인구로 월 수입과 운영비를 다시 계산한다
