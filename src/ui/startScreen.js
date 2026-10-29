@@ -6,7 +6,7 @@
 // 처음 온 사람이 열세 개 중에 고르는 숙제 없이 한 번 눌러 시작하게 한다 (reports/레일맵 시작 화면 개선 조사.md).
 // 지도를 고르면 지도가 뜰 때까지 "불러오는 중" 표시를 띄운다 (showMapLoading, main.js).
 // 카드를 누르면 그 지도로 시작(저장이 있으면 이어하기), [샌드박스]는 돈 무제한 게임 (저장 칸이 따로다).
-// 실제 노선망 프리셋이 있는 지도(서울)는 카드 맨 아래 [실제 노선망으로 시작]으로 실제 노선을 깐 샌드박스를 연다 (game/presets.js).
+// 실제 노선망 프리셋이 있는 지도(뉴욕·솔내 말고 모두)는 카드 맨 아래 [실제 노선망으로 시작]으로 실제 노선을 깐 샌드박스를 연다 (game/presets.js).
 // 지도 그림은 public/thumbnails/<지도 id>.svg (node tools/make-thumbnails.mjs로 만든다).
 import { REGIONS, RECOMMENDED_REGION } from '../regions.js';
 import { savedGameInfo } from '../game/save.js';
