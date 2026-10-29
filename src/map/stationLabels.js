@@ -4,6 +4,8 @@
 // MapLibre Marker(지도 좌표에 붙어 다니는 HTML 조각)로 만들어서
 // 확대·이동해도 역 위치에 붙어 있다.
 // 말풍선은 역 둘레 여러 자리 중 출구 배지와 다른 말풍선을 덮지 않는 곳에 놓는다 (arrangeStationLabels).
+// 어느 자리에 놓아도 다른 말풍선과 겹치면 그 말풍선은 숨긴다 (역이 빽빽한 곳). 중요한 역부터 자리를 잡는다:
+// 고른 역 → 환승역·종착역 → 하루 이용객이 많은 역. 숨은 이름은 더 확대하면 나타난다.
 // 멀리서 볼수록 말풍선을 줄인다 (config.js LABEL_NAME_ZOOM, LABEL_DETAIL_ZOOM, showForZoom).
 import { Marker } from 'maplibre-gl';
 import {
@@ -16,8 +18,9 @@ import {
 import { formatPeopleShort } from '../ui/format.js';
 import { inkOn } from './ink.js';
 
-// 역 id → { element, marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, coordKey,
-//          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양, far: 노란 점을 숨겼는지 }
+// 역 id → { element, marker, line, bubble, placeKey, name, tag, dots, routesKey, riders, riderCount, coordKey,
+//          important: 환승역·종착역인지, selected: 고른 역인지, mode: 지금 보이는 모양, far: 노란 점을 숨겼는지,
+//          crowded: 자리가 없어 말풍선을 숨겼는지 }
 const labels = new Map();
 // 줌을 바꿀 때마다 말풍선 모양을 맞추도록 지도에 한 번만 등록한다
 const watchedMaps = new WeakSet();
@@ -89,6 +92,7 @@ export function updateStationLabels(map, stations, stationRoutes, riders, shapes
     }
     // 하루 이용객: 노선이 지나지 않아 0이면 비운다
     const count = riders.get(station.id) ?? 0;
+    label.riderCount = count;
     const ridersText = count > 0 ? formatPeopleShort(count) : '';
     if (label.riders.textContent !== ridersText) label.riders.textContent = ridersText;
   }
@@ -124,7 +128,8 @@ function showForZoom(map) {
   }
 }
 
-// 말풍선 자리를 다시 고른다: 출구 배지와 먼저 놓인 다른 말풍선을 되도록 덮지 않고, 화면 밖으로 나가지 않는 곳으로
+// 말풍선 자리를 다시 고른다: 출구 배지와 먼저 놓인 다른 말풍선을 되도록 덮지 않고, 화면 밖으로 나가지 않는 곳으로.
+// 어느 자리든 먼저 놓인 말풍선과 겹치면 숨긴다 (고른 역은 언제나 보인다)
 // exitCoords: 지도에 보이는 출구 자리들 [[경도, 위도], …]
 // area: 말풍선이 보이는 지도 화면 { right, bottom } (px, 패널이 덮은 곳을 뺀 것). 없으면 지도 전체
 // 지도를 움직이거나 출구가 바뀔 때마다 부른다. 화면 밖 역은 건너뛴다
@@ -147,24 +152,39 @@ export function arrangeStationLabels(map, exitCoords, area = null) {
     if (at.x < -200 || at.y < -200 || at.x > clientWidth + 200 || at.y > clientHeight + 200) continue;
     visible.push({ label, at, width: label.bubble.offsetWidth, height: label.bubble.offsetHeight });
   }
+  // 중요한 역부터 자리를 잡는다: 고른 역 → 환승역·종착역 → 하루 이용객이 많은 역
+  visible.sort(
+    (a, b) =>
+      b.label.selected - a.label.selected ||
+      b.label.important - a.label.important ||
+      b.label.riderCount - a.label.riderCount,
+  );
 
   for (const { label, at, width, height } of visible) {
     let best = 0;
     let bestScore = Infinity;
+    let bestCrowd = 0;
     PLACES.forEach((place, order) => {
       const box = shift(bubbleBox(place, width, height), at);
-      // 화면 가장자리·패널 밑으로 들어가는 자리도 하나를 덮는 것만큼 나쁘게 친다 (이름이 잘리거나 가려지지 않게)
+      // 화면 가장자리·패널 밑으로 들어가는 자리도 출구 하나를 덮는 것만큼 나쁘게 친다 (이름이 잘리거나 가려지지 않게)
       const offScreen = box.left < 0 || box.top < 0 || box.right > right || box.bottom > bottom;
-      const covered =
-        exits.filter((exit) => boxNearPoint(box, exit, exitRadius)).length +
-        placed.filter((other) => boxesOverlap(box, other)).length +
-        (offScreen ? 1 : 0);
-      const score = covered * 100 + order;
+      const crowd = placed.filter((other) => boxesOverlap(box, other)).length;
+      const covered = exits.filter((exit) => boxNearPoint(box, exit, exitRadius)).length + (offScreen ? 1 : 0);
+      // 다른 말풍선과 겹치는 자리는 가장 나쁘다
+      const score = crowd * 10000 + covered * 100 + order;
       if (score < bestScore) {
         bestScore = score;
         best = order;
+        bestCrowd = crowd;
       }
     });
+    // 어느 자리든 다른 말풍선과 겹치면 숨긴다 (고른 역은 빼고). 숨긴 말풍선은 자리를 차지하지 않는다
+    const crowded = bestCrowd > 0 && !label.selected;
+    if (label.crowded !== crowded) {
+      label.crowded = crowded;
+      label.element.classList.toggle('station-label-crowded', crowded);
+    }
+    if (crowded) continue;
     placed.push(shift(bubbleBox(PLACES[best], width, height), at));
     // 자리나 말풍선 크기가 바뀌었을 때만 고친다
     const placeKey = `${best},${width},${height}`;
@@ -245,10 +265,12 @@ function createLabel(map, coord) {
     dots,
     routesKey: '',
     riders: ridersCount,
+    riderCount: 0,
     coordKey: coord.join(','),
     important: false,
     selected: false,
     mode: 'full',
     far: false,
+    crowded: false,
   };
 }

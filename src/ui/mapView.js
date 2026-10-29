@@ -77,9 +77,11 @@ export function createMapView({ map, ui }) {
 
   // 게임 레이어를 다 올린 뒤에 부른다 (출구 레이어가 있어야 한다)
   // 지도를 움직이고 타일을 다 불러오면, 새로 보이는 역의 출구를 찾고 말풍선 자리를 다시 고른다
+  // 말풍선 자리는 움직임이 멈추자마자 한 번 먼저 고른다 (타일을 기다리는 몇 초 동안 줌을 바꿔 새로 보인 이름표끼리 겹치지 않게)
   function start() {
     stationExits = createStationExits(map);
     onMapDataSettled(map, updateStationExits);
+    map.on('moveend', () => arrangeStationLabels(map, stationExits.coords(), labelArea()));
   }
 
   return { shownCoord, drawStations, updateStationExits, start };

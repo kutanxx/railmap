@@ -17,6 +17,13 @@
   display: none;
 }
 
+/* 자리가 없어 숨긴 말풍선 (map/stationLabels.js의 arrangeStationLabels, 역이 빽빽한 곳).
+   display 대신 visibility로 숨겨서, 다음에 자리를 고를 때 말풍선 크기를 그대로 잴 수 있다 */
+.station-label-crowded .station-label-line,
+.station-label-crowded .station-label-bubble {
+  visibility: hidden;
+}
+
 /* 역 위치의 노란 점 */
 .station-label-dot {
   position: absolute;
