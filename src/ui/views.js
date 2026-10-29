@@ -14,7 +14,7 @@ import { getEconomy } from '../game/demand.js';
 import { removalPreview, plannedTrackCost, allPlannedCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
-import { routeNumber, kindChangeCost, maxTrainCount } from '../game/routes.js';
+import { routeNumber, kindChangeCost, trainLimit } from '../game/routes.js';
 import { kindOf, isExpress } from '../game/routeKinds.js';
 import { routeHeadway } from '../game/sim.js';
 import { formatPopulation } from './format.js';
@@ -149,7 +149,8 @@ export function routePanelView({ mode, selected, draft, draftKind, routes, inser
       lengthKm: routeLengthKm(route),
       stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,
-      maxTrains: maxTrainCount(route),
+      // 열차 수 한도와 까닭 ('headway' 노선 하나의 한도 | 'total' 지도 전체 한도)
+      trainLimit: trainLimit(route),
       revenue: routeRevenue.get(route.id) ?? 0,
       riders: routeRiders.get(route.id) ?? 0,
       avgKm: routeAvgKm.get(route.id) ?? 0,

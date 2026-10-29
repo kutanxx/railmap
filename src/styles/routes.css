@@ -323,6 +323,14 @@
   font-size: var(--text-small);
 }
 
+/* 열차 수 한도에 닿아 [+]를 막았을 때 그 까닭 (ui/routePanel.js) */
+.route-trains-why {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+
 /* 노선 목록의 "혼잡" 표시 */
 .route-item-crowded {
   flex: none;

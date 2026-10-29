@@ -1,6 +1,7 @@
 // 오른쪽 노선 패널: 한 번에 하나만 보여준다 — 새 노선 만들기 안내('draft'), 고른 노선 정보('detail'), 노선 목록('list').
 // 노선 정보 맨 위의 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose). 목록의 [▸]는 패널을 접는다 (onFold).
 // 상태를 직접 고치지 않고 받은 함수들(onSelect 등)로 알려주기만 한다.
+import { MIN_HEADWAY_MINUTES, MAX_TRAINS_TOTAL } from '../config.js';
 import { ROUTE_KINDS, trainSpec } from '../game/routeKinds.js';
 import { colorChoices } from '../game/routeColors.js';
 import { bindNameInput } from './nameInput.js';
@@ -75,6 +76,7 @@ export function createRoutePanel(
           <button type="button" class="route-trains-plus" aria-label="열차 더하기">+</button>
           <span class="route-trains-price"></span>
         </div>
+        <p class="route-trains-why" hidden></p>
       </div>
       <dl class="panel-facts">
         <dt>혼잡도</dt><dd class="route-load"></dd>
@@ -115,6 +117,7 @@ export function createRoutePanel(
   const ridersText = element.querySelector('.route-riders');
   const loadText = element.querySelector('.route-load');
   const trainPrice = element.querySelector('.route-trains-price');
+  const trainWhy = element.querySelector('.route-trains-why');
   const avgKmText = element.querySelector('.route-avg-km');
   const stopList = element.querySelector('.route-stops');
   const insertButton = element.querySelector('.route-insert');
@@ -237,12 +240,19 @@ export function createRoutePanel(
         selected.kindChangeCost > 0
           ? `${other === 'express' ? '광역급행으로' : '지하철로'} 바꾸면 열차 ${trainCount}대 값 차이 ${formatMoney(selected.kindChangeCost)}`
           : kindNote(selected.kind);
-      // 최대 열차 수는 노선이 길수록 많다 (game/routes.js의 maxTrainCount)
-      trainPrice.textContent = `1대 ${formatMoney(trainSpec(selected.kind).trainCost)} · 최대 ${selected.maxTrains}대`;
+      // 최대 열차 수는 노선이 길수록 많고, 지도 전체 열차 수에도 한도가 있다 (game/routes.js의 trainLimit)
+      const limit = selected.trainLimit;
+      trainPrice.textContent = `1대 ${formatMoney(trainSpec(selected.kind).trainCost)} · 최대 ${limit.max}대`;
       removalText.textContent = `지우면 열차 ${trainCount}대도 함께 사라져요 (열차 값은 돌려받지 않아요). 선로와 역은 남아요.`;
       trainCountText.textContent = `${trainCount}대`;
       minusButton.disabled = trainCount <= 0;
-      plusButton.disabled = trainCount >= selected.maxTrains;
+      // 한도에 닿으면 [+]를 막고 바로 아래에 까닭을 적는다 (막힌 버튼은 눌러도 말풍선을 띄울 수 없어서)
+      const full = trainCount >= limit.max;
+      plusButton.disabled = full;
+      const why = full ? trainLimitText(limit) : '';
+      trainWhy.hidden = !full;
+      trainWhy.textContent = why;
+      plusButton.title = why;
       lengthText.textContent = `${selected.lengthKm.toFixed(2)} km`;
       ridersText.textContent = selected.trainCount > 0 ? formatPopulation(selected.riders) : '0명';
       showLoad(selected);
@@ -333,4 +343,12 @@ export function createRoutePanel(
   }
 
   return { show };
+}
+
+// 열차 수 한도에 닿았을 때 알려주는 글
+function trainLimitText({ max, reason }) {
+  if (reason === 'total') {
+    return `지도 전체 열차가 ${MAX_TRAINS_TOTAL}대라 더 넣을 수 없어요 (화면이 느려지지 않게). 다른 노선의 열차를 빼면 넣을 수 있어요.`;
+  }
+  return `열차 사이가 ${MIN_HEADWAY_MINUTES}분보다 좁아지지 않게 이 노선은 ${max}대까지예요. 노선이 길수록 더 넣을 수 있어요.`;
 }

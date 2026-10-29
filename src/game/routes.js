@@ -1,6 +1,6 @@
 // 노선 고치기: 만들기, 이름·색·열차 수 바꾸기, 역 끼워넣기·빼기, 지우기.
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
-import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, MIN_HEADWAY_MINUTES } from '../config.js';
+import { DEFAULT_TRAINS_PER_ROUTE, MAX_TRAINS_PER_ROUTE, MIN_HEADWAY_MINUTES, MAX_TRAINS_TOTAL } from '../config.js';
 import { getState, change, canAfford, findStation, findTrackBetween, findRoute } from './state.js';
 import { routeColorFor, routeNameFor, expressNameAndColor } from './routeColors.js';
 import { kindOf, trainSpec } from './routeKinds.js';
@@ -21,8 +21,11 @@ export function newRouteCost(kind = 'subway') {
 export function addRoute(stationIds, kind = 'subway') {
   return change(null, () => {
     const state = getState();
-    if (!canAfford(newRouteCost(kind))) return null;
-    state.money -= newRouteCost(kind);
+    // 지도 전체 열차가 한도(MAX_TRAINS_TOTAL)에 닿았으면 열차 없이 만들고 열차 값도 내지 않는다 (노선 패널이 이유를 알려준다)
+    const trains = Math.min(DEFAULT_TRAINS_PER_ROUTE, Math.max(0, MAX_TRAINS_TOTAL - totalTrains()));
+    const cost = trains * trainSpec(kind).trainCost;
+    if (!canAfford(cost)) return null;
+    state.money -= cost;
     const number = state.nextRouteNumber;
     state.nextRouteNumber += 1;
     const express = kindOf(kind) === 'express';
@@ -34,7 +37,7 @@ export function addRoute(stationIds, kind = 'subway') {
       name,
       color,
       stations: stationIds,
-      trainCount: DEFAULT_TRAINS_PER_ROUTE,
+      trainCount: trains,
     };
     // 지하철은 따로 적지 않는다 (예전 저장 파일과 같은 모양)
     if (express) route.kind = 'express';
@@ -118,18 +121,29 @@ export function moveRouteStop(routeId, from, to) {
 }
 
 // 노선에 넣을 수 있는 최대 열차 수: 배차 간격이 MIN_HEADWAY_MINUTES분보다 짧아지지 않을 만큼 (왕복 시간 ÷ 이 값),
-// 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 (config.js)
+// 짧은 노선도 MAX_TRAINS_PER_ROUTE대까지는 (config.js). 지도 전체 한도는 trainLimit이 함께 본다
 export function maxTrainCount(route) {
   return Math.max(MAX_TRAINS_PER_ROUTE, Math.floor(roundTripMinutes(route) / MIN_HEADWAY_MINUTES));
 }
 
-// 노선의 열차 수를 바꾼다 (0 ~ maxTrainCount)
+// 지도 전체 열차 수
+export const totalTrains = () => getState().routes.reduce((sum, route) => sum + route.trainCount, 0);
+
+// 이 노선의 열차 수 한도와 그 까닭: { max, reason: 'headway'(노선 하나의 한도) | 'total'(지도 전체 한도 MAX_TRAINS_TOTAL) }
+// 예전 저장이 이미 지도 전체 한도를 넘었으면 지금 열차 수까지만 (줄이지는 않는다)
+export function trainLimit(route) {
+  const own = maxTrainCount(route);
+  const room = MAX_TRAINS_TOTAL - (totalTrains() - route.trainCount);
+  return room < own ? { max: Math.max(route.trainCount, room), reason: 'total' } : { max: own, reason: 'headway' };
+}
+
+// 노선의 열차 수를 바꾼다 (0 ~ trainLimit의 max)
 // 늘린 열차 값을 빚 한도 안에서 낼 수 없으면 바꾸지 않고 null을 돌려준다
 export function setRouteTrainCount(id, count) {
   return change(null, () => {
     const route = findRoute(id);
     if (!route) return null;
-    const next = Math.max(0, Math.min(maxTrainCount(route), count));
+    const next = Math.max(0, Math.min(trainLimit(route).max, count));
     const cost = trainPurchaseCost(route, next);
     if (!canAfford(cost)) return null;
     getState().money -= cost;
