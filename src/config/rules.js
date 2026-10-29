@@ -170,7 +170,8 @@ export const INTERCITY_PEOPLE = { large: 30000, medium: 15000 };
 // ── 게임 목표 (game/goals.js) ─────────────
 // 위에서부터 차례로 보여주고, 이루면 말풍선과 함께 보상(억)을 준다. 샌드박스에는 목표가 없다
 // kind: 'routes' 노선 수, 'stations' 역 수, 'transfers' 환승역 수, 'riders' 하루 승객 (지도의 riderGoalScale을 곱한다),
-//       'net' 월 수지(억, 이 값을 넘으면. 0이면 "흑자"), 'money' 자금(억)
+//       'net' 월 수지(억, 이 값을 넘으면. 0이면 "흑자"), 'money' 자금(억),
+//       'hubs' 노선이 서는 역과 이어진 고속철도역(인천은 공항역) 수, 'express' 광역급행 노선 수
 // 보상은 "다음 목표로 가는 한 걸음" 값에 맞췄다. 서울 기준으로 잰 값 (2026-10-27):
 //   첫 노선(역 6개·열차 1대): 공사비 약 450억, 하루 승객 약 1.4만, 수지 +2억/월 → 열차를 늘리면 2만
 //   노선 3개(역 30개): 승객 약 10만, 수지 +22억/월 / 역 50개·노선 8개·환승 15곳: 승객 약 28만, 수지 +76억/월
@@ -178,12 +179,16 @@ export const INTERCITY_PEOPLE = { large: 30000, medium: 15000 };
 // 목표는 매달 정산 때 위에서부터 확인하고 못 이룬 첫 목표에서 멈추므로, 실제로 짓는 순서대로 놓는다.
 // 2026-10-28: 노선 3개쯤에서 목표 4개(노선 3·승객 5만·역 20·승객 10만, 470억)가 한꺼번에 이뤄지고
 // 그 뒤 흑자 +50억까지 한참 비어서, 사이에 환승역 3곳·흑자 +25억·노선 6개를 넣었다
+// 2026-10-29: 새 기능을 써 보게 고속철도역 잇기(첫 노선 무렵)와 첫 광역급행(노선 3개 뒤, 급행 열차 15억)을 넣었다.
+// 예전 저장에서 이미 지나친 자리에 끼운 목표는 뒤 목표를 막지 않는다 (game/goals.js)
 export const GOALS = [
   { kind: 'routes', value: 1, reward: 30 },
   { kind: 'riders', value: 20000, reward: 40 },
+  { kind: 'hubs', value: 1, reward: 60 },
   { kind: 'transfers', value: 1, reward: 80 },
   { kind: 'net', value: 10, reward: 50 },
   { kind: 'routes', value: 3, reward: 100 },
+  { kind: 'express', value: 1, reward: 100 },
   { kind: 'riders', value: 50000, reward: 100 },
   { kind: 'stations', value: 20, reward: 120 },
   { kind: 'transfers', value: 3, reward: 120 },

@@ -2,12 +2,15 @@
 // (목록 사이에 목표를 더해도 이미 이룬 목표가 바뀌지 않게 순서 번호가 아니라 이름으로 적는다)
 // 이루면 보상(억)을 자금에 더한다. 샌드박스에는 목표가 없다.
 // 목표는 매달 정산할 때만, 위에서부터 차례로 확인한다 (아직 못 이룬 첫 목표에서 멈춘다).
+// 다만 이미 이룬 가장 뒤 목표보다 앞에 있는 못 이룬 목표(나중에 목록 사이에 끼운 목표)는 멈추게 하지 않는다:
+// 이루면 보상하고, 못 이뤄도 그 뒤 목표를 계속 확인한다 (예전 저장 파일이 새로 끼운 목표에 막히지 않게).
 // 멈춘 채 짓고 보상을 받은 뒤 되돌려 공사비를 돌려받는 일을 막으려고: 정산이 지나면 그 공사는 되돌려도 돈이 안 돌아온다.
 // 게임 규칙만 담고 화면은 부르지 않는다 (말풍선과 목록은 ui/goalsPanel.js).
 import { GOALS } from '../config.js';
 import { getState, notify } from './state.js';
 import { getRegion, isSandbox } from './region.js';
 import { getEconomy } from './demand.js';
+import { isExpress } from './routeKinds.js';
 
 // 목표 하나의 지금 값 (목표와 같은 단위)
 function currentValue(goal) {
@@ -27,6 +30,14 @@ function currentValue(goal) {
     }
     return [...shapes.values()].filter((set) => set.size >= 2).length;
   }
+  if (goal.kind === 'hubs') {
+    // 노선이 서는 역과 이어진 고속철도역(공항역) 수 (역만 지어 두고 노선이 없으면 세지 않는다)
+    const served = new Set(state.routes.flatMap((route) => route.stations));
+    let count = 0;
+    for (const [id, hubs] of economy.stationIntercity) if (served.has(id)) count += hubs.length;
+    return count;
+  }
+  if (goal.kind === 'express') return state.routes.filter(isExpress).length;
   if (goal.kind === 'riders') return economy.dailyRiders;
   if (goal.kind === 'net') return economy.net;
   if (goal.kind === 'money') return state.money;
@@ -73,13 +84,15 @@ export function checkGoals() {
   const first = checkedAt === null;
   checkedAt = state.settledMonths;
   if (first || isSandbox() || state.bankrupt) return [];
-  // 위에서부터 차례로: 아직 못 이룬 목표를 만나면 멈춘다
+  // 위에서부터 차례로: 아직 못 이룬 목표를 만나면 멈춘다 (이미 이룬 가장 뒤 목표보다 앞의 것은 건너뛰고 계속)
+  const list = goalList();
+  const lastDone = list.reduce((last, item, i) => (item.done ? i : last), -1);
   const reached = [];
-  for (const item of goalList()) {
+  for (const [i, item] of list.entries()) {
     if (item.done) continue;
     const met = item.goal.kind === 'net' ? item.current > item.target : item.current >= item.target;
-    if (!met) break;
-    reached.push(item);
+    if (met) reached.push(item);
+    else if (i > lastDone) break;
   }
   if (reached.length === 0) return [];
   for (const item of reached) {

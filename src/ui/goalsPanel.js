@@ -5,6 +5,7 @@ import { isSandbox } from '../game/region.js';
 import { showMoneyCallout } from './callouts.js';
 import { createPopover } from './popovers.js';
 import { formatMoney, formatPopulation } from './format.js';
+import { intercityStations } from '../game/intercity.js';
 
 // 목표를 사람 말로
 function goalText({ goal, target }) {
@@ -17,6 +18,12 @@ function goalText({ goal, target }) {
   }
   if (goal.kind === 'net') return target === 0 ? '월 수지 흑자' : `월 수지 +${formatMoney(target)}`;
   if (goal.kind === 'money') return `자금 ${formatMoney(target)}`;
+  if (goal.kind === 'hubs') {
+    // 지도마다 고속철도역·공항역 중 있는 것으로 부른다 (인천은 공항역)
+    const kind = [...new Set(intercityStations().map((hub) => hub.label))].join('·');
+    return target === 1 ? `${kind}역과 노선 잇기` : `${kind}역 ${target}곳과 잇기`;
+  }
+  if (goal.kind === 'express') return target === 1 ? '첫 광역급행 노선' : `광역급행 노선 ${target}개`;
   return '';
 }
 
