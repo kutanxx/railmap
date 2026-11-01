@@ -1,8 +1,10 @@
 // 역과 선로 짓기·고치기: 역 짓기·이름·옮기기·방향·지우기, 선로 깔기·경유점 바꾸기·직선/곡선 바꾸기·지우기,
-// 계획 선로 그려 두기·짓기.
+// 계획 선로 그려 두기·짓기. 선로 위에 역을 놓으면 그 선로를 둘로 나누고 지나는 노선이 새 역에 선다 (사이 역).
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
 // 공사비는 빚 한도 안에서만 낼 수 있다 (canAfford). 계획 선로는 그리고 고칠 때 돈이 들지 않고, 지을 때 한꺼번에 낸다.
+import { STATION_ON_TRACK_MIN_M } from '../config.js';
 import { stationCost, stationMoveFee, trackCostForCoords } from './economy.js';
+import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from './earth.js';
 import { shapeCoords } from './trackShape.js';
 import {
   getState,
@@ -21,26 +23,110 @@ const state = getState();
 // ── 역 ──────────────────────────────
 
 // coord 자리에 새 역을 짓고, 지은 역을 돌려준다. name: 역 이름 (가까운 지명, map/placeNames.js. 없으면 "역 n")
+// onTrack: 선로 위에 놓았으면 그 선로 id. 선로를 이 역에서 둘로 나누고, 그 선로로 이 역 앞뒤를 지나던 노선이 이 역에 서게 한다
+// (coord는 trackSplitPoint로 선로 위에 맞춘 자리여야 한다). 선로 공사비는 들지 않고 역 값만 낸다
 // 빚 한도 안에서도 공사비를 낼 수 없으면 짓지 않고 null을 돌려준다
-export function addStation(coord, { population, builtArea, cells }, name = null) {
+export function addStation(coord, { population, builtArea, cells }, name = null, onTrack = null) {
   return change(null, () => {
     const cost = stationCost();
     if (!canAfford(cost)) return null;
+    const split = onTrack ? trackSplitPoint(onTrack, coord) : null;
     state.money -= cost;
     const number = state.nextStationNumber;
     state.nextStationNumber += 1;
     const station = {
       id: `s${number}`,
       name: name ?? `역 ${number}`,
-      coord,
+      coord: split?.coord ?? coord,
       angle: 0,
       population,
       builtArea,
       cells,
     };
     state.stations.push(station);
+    if (split) splitTrack(findTrack(onTrack), station.id, split);
     return station;
   });
+}
+
+// 선로를 역 stationId에서 둘로 나눈다: 앞쪽은 원래 선로(id 그대로), 뒤쪽은 새 선로. 모양(직선·곡선·계획)은 그대로.
+// 그 선로로 두 끝 역 사이를 바로 오가던 노선은 사이에 이 역을 넣는다 (같은 구간을 여러 번 지나면 모두)
+function splitTrack(track, stationId, { before, after }) {
+  const { from, to } = track;
+  const number = state.nextTrackNumber;
+  state.nextTrackNumber += 1;
+  const rest = { ...track, id: `t${number}`, from: stationId, to, waypoints: after };
+  track.to = stationId;
+  track.waypoints = before;
+  state.tracks.push(rest);
+  for (const route of state.routes) {
+    for (let i = route.stations.length - 2; i >= 0; i--) {
+      const [a, b] = [route.stations[i], route.stations[i + 1]];
+      if ((a === from && b === to) || (a === to && b === from)) route.stations.splice(i + 1, 0, stationId);
+    }
+  }
+}
+
+// 선로 위에 역을 놓을 자리: coord에서 가장 가까운 선로 위의 점과, 그 점 앞뒤로 나뉘는 경유점들.
+// 양 끝 역에서 STATION_ON_TRACK_MIN_M보다 가까우면 null (나누지 않는다)
+// 결과: { coord: [경도, 위도], before: 앞쪽 경유점들, after: 뒤쪽 경유점들 }
+export function trackSplitPoint(trackId, coord) {
+  const track = findTrack(trackId);
+  if (!track) return null;
+  const coords = trackCoords(track);
+  // 경도·위도를 미터 평면으로 (도시 하나 크기에서는 평평하게 봐도 된다)
+  const kx = metersPerDegreeLng(coord[1]);
+  const toMeters = ([lng, lat]) => [lng * kx, lat * METERS_PER_DEGREE_LAT];
+  const points = coords.map(toMeters);
+  const [px, py] = toMeters(coord);
+  // 선로 처음부터 각 점까지 거리
+  const along = [0];
+  for (let i = 1; i < points.length; i++) {
+    along.push(along[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+  }
+  // 가장 가까운 선분 위의 점
+  let best = null;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1];
+    const [dx, dy] = [points[i][0] - ax, points[i][1] - ay];
+    const length2 = dx * dx + dy * dy;
+    const t = length2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / length2));
+    const distance = Math.hypot(ax + dx * t - px, ay + dy * t - py);
+    if (!best || distance < best.distance) {
+      const [lng0, lat0] = coords[i - 1];
+      const [lng1, lat1] = coords[i];
+      best = {
+        distance,
+        at: along[i - 1] + Math.sqrt(length2) * t,
+        coord: [lng0 + (lng1 - lng0) * t, lat0 + (lat1 - lat0) * t],
+      };
+    }
+  }
+  if (!best || best.at < STATION_ON_TRACK_MIN_M || along.at(-1) - best.at < STATION_ON_TRACK_MIN_M) return null;
+  // 경유점마다 선로 위 어디쯤인지 (선로가 지나는 가장 가까운 점) 보고 앞뒤로 나눈다
+  const before = [];
+  const after = [];
+  for (const waypoint of track.waypoints) {
+    const [wx, wy] = toMeters(waypoint);
+    let nearest = 0;
+    points.forEach(([x, y], i) => {
+      if (Math.hypot(x - wx, y - wy) < Math.hypot(points[nearest][0] - wx, points[nearest][1] - wy)) nearest = i;
+    });
+    (along[nearest] < best.at ? before : after).push(waypoint);
+  }
+  return { coord: best.coord, before, after };
+}
+
+// 선로 trackId를 나누는 역을 놓으면 그 역에 서게 될 노선들 (그 선로로 두 끝 역 사이를 바로 오가는 노선)
+export function routesThroughTrack(trackId) {
+  const track = findTrack(trackId);
+  if (!track) return [];
+  return state.routes.filter((route) =>
+    route.stations.some((id, i) => {
+      const next = route.stations[i + 1];
+      return (id === track.from && next === track.to) || (id === track.to && next === track.from);
+    }),
+  );
 }
 
 export function renameStation(id, name) {

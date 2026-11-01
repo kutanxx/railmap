@@ -6,7 +6,7 @@ import { estimatePopulation, zoomedInEnough } from '../map/population.js';
 import { nearbyPlaceName } from '../map/placeNames.js';
 import { mapDataLoaded } from '../map/mapFeatures.js';
 import { getState, findStation, undo, redo } from '../game/state.js';
-import { addStation } from '../game/build.js';
+import { addStation, trackSplitPoint, routesThroughTrack } from '../game/build.js';
 import { sharedPopulations } from '../game/catchment.js';
 import { intercityLinks } from '../game/intercity.js';
 import { insertStationIntoRoute } from '../game/routes.js';
@@ -54,10 +54,12 @@ export function bindMapInput(ctx) {
     return id && findStation(id) ? id : null;
   };
 
-  // 마우스 옆 공사비 안내: 못 지으면 붉게, 빚을 내서 지으면 주황으로 (costNote)
-  const tip = (point, text, cost) => {
+  // 마우스 옆 공사비 안내: 못 지으면 붉게, 빚을 내서 지으면 주황으로 (costNote). nextLine: 아랫줄에 덧붙일 글
+  const tip = (point, text, cost, nextLine = '') => {
     const note = costNote(cost);
-    cursorTip.show(point.x, point.y, note ? `${text} · ${note.text}` : text, note?.tone ?? 'info');
+    const first = note ? `${text} · ${note.text}` : text;
+    cursorTip.show(point.x, point.y, nextLine ? `${first}
+${nextLine}` : first, note?.tone ?? 'info');
   };
 
   // ── 역 놓기 미리보기: 마우스 자리에 500m 원, 마우스가 멈추면 주변 인구 ──
@@ -67,7 +69,22 @@ export function bindMapInput(ctx) {
   let estimate = null; // { key: 잰 자리, population: 이웃 역과 나눈 뒤 인구, hubs: 이어질 고속철도역들 }
   const placeKey = (coord) => coord.map((value) => value.toFixed(5)).join(',');
 
-  function showStationTip(point, coord) {
+  // 선로 위에 놓으면 생길 일 (사이 역): "2호선 선로 위 · 놓으면 2호선 역이 돼요", 둘 이상이면 환승역
+  function onTrackText(trackId) {
+    const names = routesThroughTrack(trackId).map((route) => route.name);
+    if (names.length === 0) return '선로 위 · 놓으면 선로가 이 역에서 둘로 나뉘어요';
+    const which = names.join('·');
+    return `${which} 선로 위 · 놓으면 ${which} ${names.length >= 2 ? '환승역' : '역'}이 돼요`;
+  }
+
+  // 화면의 한 점에 역을 놓을 자리: 선로 위면 선로에 맞춘 자리와 그 선로 id (양 끝 역에 너무 가까우면 선로를 나누지 않는다)
+  function stationSpot(point, coord) {
+    const trackId = trackIdAt(map, point);
+    const split = trackId ? trackSplitPoint(trackId, coord) : null;
+    return split ? { coord: split.coord, trackId } : { coord, trackId: null };
+  }
+
+  function showStationTip(point, coord, trackId) {
     const cost = `역 공사비 ${formatMoney(stationCost())}`;
     const measured = estimate?.key === placeKey(coord);
     const people = measured ? `주변 인구 약 ${formatPopulation(estimate.population)}` : '주변 인구 재는 중…';
@@ -75,13 +92,14 @@ export function bindMapInput(ctx) {
     const hubs = measured
       ? estimate.hubs.map((hub) => ` · ${hub.label} ${hub.name}과(와) 이어져요 +${formatPopulation(hub.people)}`).join('')
       : '';
-    tip(point, `${cost} · ${people}${hubs}`, stationCost());
+    tip(point, `${cost} · ${people}${hubs}`, stationCost(), trackId ? onTrackText(trackId) : '');
   }
 
-  function previewStation(point, coord) {
+  function previewStation(point, cursor) {
+    const { coord, trackId } = stationSpot(point, cursor);
     ui.hover = coord;
     updateCatchment(map, coord);
-    showStationTip(point, coord);
+    showStationTip(point, coord, trackId);
     clearTimeout(estimateTimer);
     estimateTimer = setTimeout(() => {
       const { population, cells } = estimatePopulation(map, coord);
@@ -93,7 +111,7 @@ export function bindMapInput(ctx) {
         .filter(({ stationId }) => stationId === preview.id)
         .map(({ hub }) => hub);
       estimate = { key: placeKey(coord), population: shared, hubs };
-      if (ui.tool === 'station' && ui.hover === coord) showStationTip(point, coord);
+      if (ui.tool === 'station' && ui.hover === coord) showStationTip(point, coord, trackId);
     }, ESTIMATE_DELAY_MS);
   }
 
@@ -154,13 +172,15 @@ export function bindMapInput(ctx) {
         showCallout(map, coord, '지도를 불러오는 중이에요. 잠시 뒤에 놓아 주세요', 'bad');
         return;
       }
+      // 선로 위에 놓으면 선로에 맞춘 자리에 짓고 그 선로를 나눈다 (사이 역)
+      const spot = stationSpot(event.point, coord);
       // 이름은 가까운 지명에서 (다른 역이 쓰는 이름은 피한다). 고속철도역과 이어지는 자리면 그 역 이름 (서울역 옆은 "서울역")
       const usedNames = new Set(getState().stations.map((station) => station.name));
-      const hub = intercityLinks([...getState().stations, { id: NEW_STATION, coord }]).find(
+      const hub = intercityLinks([...getState().stations, { id: NEW_STATION, coord: spot.coord }]).find(
         ({ stationId }) => stationId === NEW_STATION,
       )?.hub;
-      const name = hub && !usedNames.has(hub.name) ? hub.name : nearbyPlaceName(map, coord, usedNames);
-      const station = addStation(coord, estimatePopulation(map, coord), name);
+      const name = hub && !usedNames.has(hub.name) ? hub.name : nearbyPlaceName(map, spot.coord, usedNames);
+      const station = addStation(spot.coord, estimatePopulation(map, spot.coord), name, spot.trackId);
       if (station) {
         select({ type: 'station', id: station.id });
         playSound('station');

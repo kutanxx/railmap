@@ -96,6 +96,9 @@ export const TUNNEL_COST_PER_KM = 230;
 export const STATION_COST = 40;
 // 역을 끌어서 옮길 때 내는 이전 비용 = 역 값 × 이 비율 (+ 늘어난 선로 길이만큼의 공사비)
 export const STATION_MOVE_COST_RATIO = 0.25;
+// 선로 위에 역을 놓으면 그 선로를 둘로 나누고 지나는 노선이 새 역에 서게 한다 (사이 역).
+// 다만 선로 끝 역에서 이 거리(미터)보다 가까우면 나누지 않고 그냥 역만 놓는다 (역이 겹쳐 붙지 않게)
+export const STATION_ON_TRACK_MIN_M = 60;
 
 // 매달 운영비 = 역 개수 × OPEX_PER_STATION + 선로 km × OPEX_PER_TRACK_KM × 지도의 trackCostScale
 //              + 열차 대수 × OPEX_PER_TRAIN
