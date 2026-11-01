@@ -67,7 +67,7 @@ export async function saveDiagramPng({ world, title, routes, fileName }) {
       svgElement('text', { x: PAD + x + 28, y: cy + 5, fill: cssColor('navy'), 'font-family': FONT, 'font-size': 15 }, route.name),
     );
   }
-  // 노선도 복사본: 왼쪽 위가 여백 안쪽에 오게 옮긴다
+  // 노선도 복사본: 왼쪽 위가 여백 안쪽에 오게 옮긴다 (이 함수의 첫 await 전에 복사한다. diagramView.js가 바로 뒤에 이름 자리를 되돌린다)
   const copy = world.cloneNode(true);
   copy.setAttribute('transform', `translate(${PAD - box.x} ${top - box.y})`);
   // 역 이름은 화면 CSS(.diagram-label) 대신 직접 모양을 적는다

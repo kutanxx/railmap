@@ -102,11 +102,12 @@
 }
 
 /* 역 이름: 남색 글자 + 땅색 테두리 (선 위에 겹쳐도 읽히게) */
+/* 역 이름은 확대해도 화면에서 같은 크기 (--diagram-scale은 diagramLabels.js가 확대 정도로 정한다) */
 .diagram-label {
   fill: var(--navy);
-  font-size: var(--text-small);
+  font-size: calc(var(--text-small) / var(--diagram-scale, 1));
   font-weight: 700;
-  stroke-width: 4px;
+  stroke-width: calc(4px / var(--diagram-scale, 1));
   stroke-linejoin: round;
   paint-order: stroke;
 }

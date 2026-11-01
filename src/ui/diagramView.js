@@ -3,7 +3,7 @@
 // - 같은 두 역 사이를 여러 노선이 지나면 나란히 그린다 (노선 번호 순서)
 // - 일반역은 흰 원 + 노선 색 테두리, 환승역은 흰 원 + 굵은 남색 테두리 (지도의 아주 먼 줌 모양과 같다).
 //   위쪽 막대에서 [벡풍][비녤리풍]으로 선 굵기·역 모양을 바꿀 수 있다 (diagramSkins.js)
-// - 역 이름은 선이 덜 지나는 쪽에 붙인다
+// - 역 이름은 선이 덜 지나는 쪽에 붙이고, 확대해도 같은 크기로 보인다. 겹치는 이름은 숨겼다가 확대하면 보인다 (diagramLabels.js)
 // - 끌어서 옮기고, 휠이나 두 손가락으로 확대한다. 역을 누르면 노선도를 닫고 지도에서 그 역으로 간다
 // - [그림 저장]으로 PNG 파일을 받는다 (diagramExport.js)
 // - D 키, Esc, [닫기]로 닫는다. 상태는 읽기만 한다
@@ -14,17 +14,14 @@ import { getRegion } from '../game/region.js';
 import { routeNumber } from '../game/routes.js';
 import { isExpress } from '../game/routeKinds.js';
 import { routeBadge } from './routeBadge.js';
-import { diagramPositions, edgePoints, offsetPolyline, segmentHitsBox, angleGap } from './diagramLayout.js';
+import { diagramPositions, edgePoints, offsetPolyline } from './diagramLayout.js';
+import { createDiagramLabels } from './diagramLabels.js';
 import { SKINS, loadSkin, saveSkin, stationMark } from './diagramSkins.js';
 import { FINGER } from '../map/hitPad.js';
 
 // 그림 크기 (px, 확대 1배일 때). 선 굵기·나란한 간격·역 크기는 고른 모양마다 (diagramSkins.js의 SKINS)
 const MAX_UNIT = 110; // 역 간격 1이 화면에서 가장 클 때 (역이 몇 개 없을 때 너무 커지지 않게)
 const MARGIN = 90; // 화면 가장자리 여백 (역 이름이 잘리지 않게)
-const LABEL_GAP = 6; // 역 원과 이름 사이
-const LABEL_PAD = 2; // 이름끼리 띄울 여유 (px)
-// 역 이름을 붙일 수 있는 8방향 (앞쪽이 먼저 고려된다: 오른쪽, 왼쪽, 위, 아래, 대각선)
-const LABEL_SIDES = [0, 180, -90, 90, -45, -135, 45, 135].map((deg) => (deg * Math.PI) / 180);
 
 // onPickStation(역 id): 역을 눌렀을 때 (app.js가 지도를 그 역으로 옮기고 고른다)
 // 결과: { open, close, toggle, isOpen, update }
@@ -58,6 +55,8 @@ export function createDiagramView({ onPickStation }) {
   saveButton.addEventListener('click', () => {
     saveButton.textContent = '그림 저장';
     const { routes, year, month } = getState();
+    // 그림은 확대 1배 모양으로 저장한다: 이름 자리를 1배로 고르고, 복사한 뒤(saveDiagramPng가 바로 복사한다) 보던 확대로 되돌린다
+    labels?.arrange(1);
     saveDiagramPng({
       world,
       title: title.textContent,
@@ -67,6 +66,7 @@ export function createDiagramView({ onPickStation }) {
       saveButton.textContent = '저장 실패';
       saveButton.title = `그림을 만들지 못했어요: ${error.message}`;
     });
+    labels?.arrange(view.scale);
   });
 
   // 노선도 모양 [서울풍][벡풍][비녤리풍] (diagramSkins.js). 고르면 다시 그린다
@@ -91,7 +91,19 @@ export function createDiagramView({ onPickStation }) {
   let layoutCache = { key: null, positions: null };
   // 끌기·확대 상태
   let view = { x: 0, y: 0, scale: 1 };
-  const applyView = () => world.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.scale})`);
+  let labels = null; // 역 이름 자리 (diagramLabels.js)
+  let arrangedScale = null; // 이름 자리를 마지막으로 고른 확대 정도
+  let arrangeFrame = null;
+  const applyView = () => {
+    world.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.scale})`);
+    // 확대 정도가 바뀌면 다음 프레임에 이름 자리를 다시 고른다 (휠을 여러 번 굴려도 한 프레임에 한 번)
+    if (!labels || arrangedScale === view.scale || arrangeFrame) return;
+    arrangeFrame = requestAnimationFrame(() => {
+      arrangeFrame = null;
+      arrangedScale = view.scale;
+      labels.arrange(view.scale);
+    });
+  };
 
   // 노선망 모양이 같은지 알아보는 열쇠 (역 위치·이름, 노선 역 순서·색·이름)
   function networkKey(routes) {
@@ -119,6 +131,7 @@ export function createDiagramView({ onPickStation }) {
     const skin = SKINS[skinId];
     const key = networkKey(routes);
     if (key === drawnKey && drawnSkin === skinId) return;
+    labels = null; // 새로 그리는 동안 예전 이름표를 다시 놓지 않게
     // 모양만 바꿨으면 보던 자리·확대는 그대로 (같은 곳을 모양만 바꿔 견줄 수 있게)
     if (key !== drawnKey) {
       view = { x: 0, y: 0, scale: 1 };
@@ -211,61 +224,30 @@ export function createDiagramView({ onPickStation }) {
       const touching = [...edges.values()].filter((edge) => edge.a === id || edge.b === id);
       const spread = Math.max(0, ...touching.map((edge) => (edge.routes.length - 1) * skin.gap));
       const transfer = through.length >= 2;
+      const terminal = through.some((route) => route.stations[0] === id || route.stations.at(-1) === id);
       const radius = Math.max(transfer ? skin.radius + 2 : skin.radius, spread / 2 + 4);
-      return { id, x, y, radius, transfer, color: through[0].color, touching };
+      return { id, x, y, radius, transfer, terminal, color: through[0].color, touching };
     });
-    // 이름표끼리, 이름표와 다른 역 원이 겹치지 않게 놓은 자리들 { left, top, right, bottom }
-    const taken = marks.map(({ x, y, radius }) => ({ left: x - radius, top: y - radius, right: x + radius, bottom: y + radius }));
-    const boxesHit = (box) =>
-      taken.filter((other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top).length;
-    const linesHit = (box) => segments.filter(([p, q]) => segmentHitsBox(p, q, box)).length;
 
     const stationLayer = svgElement('g');
     world.append(stationLayer);
-    for (const { id, x, y, radius, transfer, color, touching } of marks) {
+    for (const mark of marks) {
+      const { id, x, y, radius, transfer, color, touching } = mark;
       const station = findStation(id);
       const group = svgElement('g', { class: 'diagram-station', tabindex: 0, role: 'button' });
       group.setAttribute('aria-label', `${station.name} 지도에서 보기`);
       // 선이 이 역에서 나가는 방향들 (역 모양의 눈금 방향과 이름 자리에 쓴다)
-      const outgoing = touching.map((edge) => {
+      const outgoing = (mark.outgoing = touching.map((edge) => {
         const points = edgeShape.get(`${edge.a}|${edge.b}`).points;
         const [p, q] = edge.a === id ? [points[0], points[1]] : [points.at(-1), points.at(-2)];
         return Math.atan2(q[1] - p[1], q[0] - p[0]);
-      });
+      }));
       group.append(stationMark(skinId, { x, y, radius, transfer, color, outgoing }));
       const label = svgElement('text', { class: 'diagram-label', stroke: cssColor('land') });
       label.textContent = station.name;
       group.append(label);
       stationLayer.append(group);
-
-      // 이름은 선이 나가는 방향들과 먼 쪽부터 놓아 보고, 다른 이름표·역과 겹치지 않는 첫 자리에 둔다
-      const clearance = (angle) => Math.min(...outgoing.map((o) => angleGap(o, angle)));
-      // 선과 넓게 떨어진 쪽부터 (거의 같으면 LABEL_SIDES 순서: 오른쪽, 왼쪽, 위, 아래, 대각선)
-      const sides = LABEL_SIDES.map((angle, order) => ({ angle, order, room: clearance(angle) })).sort((a, b) =>
-        Math.abs(b.room - a.room) < 0.01 ? a.order - b.order : b.room - a.room,
-      );
-      const place = (angle) => {
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        label.setAttribute('x', x + cos * (radius + LABEL_GAP));
-        label.setAttribute('y', y + sin * (radius + LABEL_GAP));
-        label.setAttribute('text-anchor', Math.abs(cos) < 0.1 ? 'middle' : cos > 0 ? 'start' : 'end');
-        label.setAttribute('dominant-baseline', Math.abs(sin) < 0.1 ? 'central' : sin > 0 ? 'hanging' : 'alphabetic');
-        // 이름 둘레에 조금 여유를 두고 잰다 (이름끼리 딱 붙어 보이지 않게)
-        const { x: left, y: top, width, height } = label.getBBox();
-        return { left: left - LABEL_PAD, top: top - LABEL_PAD, right: left + width + LABEL_PAD, bottom: top + height + LABEL_PAD };
-      };
-      // 트인 쪽부터 놓아 보고, 아무것도 덮지 않는 첫 자리에 둔다. 어디든 덮으면 가장 덜 덮는 자리
-      // (다른 이름·역을 덮는 것이 선을 덮는 것보다 훨씬 나쁘다)
-      let best = null;
-      for (const { angle } of sides) {
-        const box = place(angle);
-        const hits = boxesHit(box) * 100 + linesHit(box);
-        if (!best || hits < best.hits) best = { angle, box, hits };
-        if (hits === 0) break;
-      }
-      place(best.angle);
-      taken.push(best.box);
+      mark.label = label;
 
       const pick = () => {
         close();
@@ -279,6 +261,10 @@ export function createDiagramView({ onPickStation }) {
         pick();
       });
     }
+    // 역 이름 자리: 지금 확대 정도에 맞춰 고르고, 확대할 때마다 다시 (applyView)
+    labels = createDiagramLabels(root, marks, segments);
+    arrangedScale = view.scale;
+    labels.arrange(view.scale);
   }
 
   // 위쪽 막대의 노선 목록: 번호 배지 + 이름
