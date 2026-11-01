@@ -31,6 +31,8 @@ const LAYER_COLORS = [
   ['intercity-circles', 'circle-stroke-color', '#A69C8B', '#73828F'],
   ['intercity-labels', 'text-color', '#6F6656', '#9AA7B4'],
   ['intercity-labels', 'text-halo-color', '#EFE7D6', '#1E2630'],
+  // 개통 연출에서 거둬지는 선로 테두리 (map/sweepLayers.js)
+  ['sweep-casing', 'line-color', '#D8C9AA', '#1E2630'],
   // 노선망이 자란 모습 다시 보기 (map/timelapseLayers.js, 보는 동안만 있다)
   ['timelapse-casing', 'line-color', '#D8C9AA', '#1E2630'],
   ['timelapse-station', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],

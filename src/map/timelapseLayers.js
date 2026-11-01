@@ -1,7 +1,7 @@
 // 노선망이 자란 모습 다시 보기(ui/timelapse.js)가 그리는 레이어: 그 장면의 선로와 역.
 // 노선이 다니는 선로는 그 노선 색으로(먼저 만든 노선의 색), 노선이 없는 선로는 게임 선로 색, 계획 선로는 주황 점선.
 // 역은 승강장 색 동그라미 + 남색 테두리. 보는 동안 게임 레이어는 숨긴다 (map/gameLayers.js의 gameLayerIds)
-import { shapeCoords } from '../game/trackShape.js';
+import { loggedTrackCoords } from '../game/buildLog.js';
 
 const TRACK_SOURCE = 'timelapse-tracks';
 const STATION_SOURCE = 'timelapse-stations';
@@ -67,7 +67,6 @@ export function removeTimelapseLayers(map) {
 
 // 장면 하나를 그린다 (frame: game/buildLog.js의 buildLogFrames 한 칸)
 export function showTimelapseFrame(map, frame) {
-  const coordOf = new Map([...frame.stations.values()].map(([id, lng, lat]) => [id, [lng, lat]]));
   // 이웃한 두 역 사이("역|역") → 그 사이를 다니는 노선 중 먼저 만든 노선의 색
   const colorOf = new Map();
   for (const [, color, stations] of frame.routes.values()) {
@@ -77,20 +76,19 @@ export function showTimelapseFrame(map, frame) {
     }
   }
   const tracks = [];
-  for (const [, from, to, steps, flags] of frame.tracks.values()) {
-    if (!coordOf.has(from) || !coordOf.has(to)) continue;
-    const waypoints = [];
-    for (let i = 0; i + 1 < steps.length; i += 2) waypoints.push([steps[i], steps[i + 1]]);
-    const coords = shapeCoords([coordOf.get(from), ...waypoints, coordOf.get(to)], (flags & 1) === 1);
+  for (const track of frame.tracks.values()) {
+    const coords = loggedTrackCoords(track, frame.stations);
+    if (!coords) continue;
+    const [, from, to, , flags] = track;
     tracks.push({
       type: 'Feature',
       geometry: { type: 'LineString', coordinates: coords },
       properties: { color: colorOf.get([from, to].sort().join('|')) ?? null, planned: (flags & 2) === 2 },
     });
   }
-  const stations = [...coordOf.values()].map((coordinates) => ({
+  const stations = [...frame.stations.values()].map(([, lng, lat]) => ({
     type: 'Feature',
-    geometry: { type: 'Point', coordinates },
+    geometry: { type: 'Point', coordinates: [lng, lat] },
     properties: {},
   }));
   map.getSource(TRACK_SOURCE).setData({ type: 'FeatureCollection', features: tracks });

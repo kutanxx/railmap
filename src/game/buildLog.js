@@ -10,6 +10,7 @@
 //              remove: { stations: [id], tracks: [id], routes: [id] } }
 import { BUILD_LOG_MAX_ENTRIES } from '../config.js';
 import { getState, subscribe } from './state.js';
+import { shapeCoords } from './trackShape.js';
 
 const KINDS = ['stations', 'tracks', 'routes'];
 const round5 = (value) => Math.round(value * 1e5) / 1e5;
@@ -26,6 +27,30 @@ const shapeOf = {
   ],
   routes: (route) => [route.id, route.color, [...route.stations]],
 };
+
+// 지금 철도망의 짧은 모양: { stations: Map(id → 모양), tracks, routes } (장면에 적는 모양과 같다. 개통 연출 ui/lineSweep.js가 쓴다)
+export function networkShapes() {
+  const state = getState();
+  return Object.fromEntries(KINDS.map((kind) => [kind, new Map(state[kind].map((item) => [item.id, shapeOf[kind](item)]))]));
+}
+
+// 짧은 모양들(shapes)에 장면 하나를 적용한다 (없어진 것을 빼고 새 모양을 넣는다)
+export function applyEntry(shapes, entry) {
+  for (const kind of KINDS) {
+    for (const id of entry.remove[kind]) shapes[kind].delete(id);
+    for (const item of entry.add[kind]) shapes[kind].set(item[0], item);
+  }
+}
+
+// 짧은 모양의 선로가 지나는 좌표들 (stations: 역 id → 짧은 모양). 양 끝 역을 모르면 null
+export function loggedTrackCoords(track, stations) {
+  const [, from, to, steps, flags] = track;
+  if (!stations.has(from) || !stations.has(to)) return null;
+  const at = (id) => stations.get(id).slice(1, 3);
+  const waypoints = [];
+  for (let i = 0; i + 1 < steps.length; i += 2) waypoints.push([steps[i], steps[i + 1]]);
+  return shapeCoords([at(from), ...waypoints, at(to)], (flags & 1) === 1);
+}
 
 // 지금 철도망의 모양: { stations: Map(id → 모양 글자), … } (바뀌었는지 글자로 견준다)
 function snapshot() {
@@ -118,10 +143,7 @@ function mergeEntries(first, second) {
 export function buildLogFrames(log = getState().buildLog) {
   const current = Object.fromEntries(KINDS.map((kind) => [kind, new Map()]));
   return log.flatMap((entry) => {
-    for (const kind of KINDS) {
-      for (const id of entry.remove[kind]) current[kind].delete(id);
-      for (const item of entry.add[kind]) current[kind].set(item[0], item);
-    }
+    applyEntry(current, entry);
     const frame = {
       year: entry.year,
       month: entry.month,

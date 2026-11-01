@@ -3,7 +3,7 @@
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
 // 선로 그리기 trackView.js, 역·이름표·출구 그리기 mapView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
 // 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js,
-// 노선망이 자란 모습 다시 보기 timelapse.js (짓기 기록 game/buildLog.js)
+// 노선망이 자란 모습 다시 보기 timelapse.js (짓기 기록 game/buildLog.js), 개통 연출 lineSweep.js
 import { BANKRUPT_GRACE_MONTHS, FOCUS_ZOOM } from '../config.js';
 import { getRegion, isSandbox } from '../game/region.js';
 import { addGameLayers } from '../map/gameLayers.js';
@@ -38,6 +38,7 @@ import { createReveal } from './reveal.js';
 import { createSearch } from './search.js';
 import { createDiagramView } from './diagramView.js';
 import { createTimelapse } from './timelapse.js';
+import { startLineSweep } from './lineSweep.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -327,6 +328,8 @@ export function startApp(map, loadMessage) {
   // 날짜·돈만 바뀐 때(kind 'time': 매달 정산, 배속)는 철도망 계산을 건너뛰고 위쪽 숫자만 다시 그린다
   // 철도망이 바뀔 때마다 바뀐 것을 날짜와 함께 적는다 (다시 보기에 쓴다, game/buildLog.js)
   startBuildLog();
+  // 개통 연출: 노선을 만들면 줄이 그려지고, 지우거나 되돌리면 거둬진다 (lineSweep.js, 짓기 기록을 읽으므로 그 뒤에)
+  startLineSweep(map, () => ui.controlRoom);
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   subscribe((state, kind) => {
     if (kind !== 'network') return;
