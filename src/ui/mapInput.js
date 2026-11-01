@@ -44,6 +44,7 @@ export function bindMapInput(ctx) {
     toggleHideUi,
     openSearch,
     diagram,
+    isTimelapseOpen,
   } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile, cancelDrags } = ctx;
 
@@ -115,6 +116,8 @@ export function bindMapInput(ctx) {
   }
 
   map.on('click', (event) => {
+    // 노선망이 자란 모습을 다시 보는 동안은 지도를 눌러도 게임 도구가 움직이지 않는다 (timelapse.js)
+    if (isTimelapseOpen()) return;
     const coord = event.lngLat.toArray();
     const stationId = stationAt(event.point);
 
@@ -174,7 +177,7 @@ export function bindMapInput(ctx) {
   map.on('mousemove', (event) => {
     // 손가락 화면: 누를 때 브라우저가 흉내 내는 마우스 움직임은 무시한다
     // (미리보기 선·마우스 옆 안내가 마지막으로 누른 자리에 남는다. 길이·공사비는 아래 그리기 막대에)
-    if (FINGER) return;
+    if (FINGER || isTimelapseOpen()) return;
     const stationId = stationAt(event.point);
 
     if (ui.tool === 'track') {

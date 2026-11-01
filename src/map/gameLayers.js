@@ -7,8 +7,21 @@ import { addTrainLayers } from './trainLayers.js';
 import { addPassageLayers, addExitLayers } from './exitLayers.js';
 import { addIntercityLayers } from './intercityLayers.js';
 
+// 게임이 올린 레이어 id들 (노선망 다시 보기가 보는 동안 숨겼다 되돌린다, ui/timelapse.js)
+let added = [];
+export const gameLayerIds = () => added;
+
 // contourGrid: 등고선을 그릴 땅 높이 격자 (땅 높이가 없는 실제 지도면 null)
 export function addGameLayers(map, contourGrid) {
+  const before = new Set(map.getStyle().layers.map((layer) => layer.id));
+  addAll(map, contourGrid);
+  added = map
+    .getStyle()
+    .layers.map((layer) => layer.id)
+    .filter((id) => !before.has(id));
+}
+
+function addAll(map, contourGrid) {
   if (contourGrid) addContourLayers(map, contourGrid);
   addCatchmentLayer(map);
   addTrackLayers(map);

@@ -154,6 +154,18 @@ export const REVEAL_NOTICE_DELAY_SECONDS = CALLOUT_SECONDS + 0.5;
 // 지난 알림을 몇 개까지 기억할지 (위쪽 [알림] 목록)
 export const NOTICE_LOG_SIZE = 20;
 
+// ── 노선망이 자란 모습 다시 보기 ([메뉴], ui/timelapse.js) ─────
+// 기록이 많든 적든 이만큼(실제 초) 안에 처음부터 끝까지 보여준다
+export const TIMELAPSE_SECONDS = 20;
+// 장면 하나를 보여주는 시간은 이만큼 사이로 맞춘다 (밀리초). 기록이 아주 적으면 천천히, 아주 많으면 빠르게
+export const TIMELAPSE_MIN_STEP_MS = 60;
+export const TIMELAPSE_MAX_STEP_MS = 900;
+// 처음 빈 지도와 마지막 다 자란 노선망을 보여주는 시간 (밀리초)
+export const TIMELAPSE_START_HOLD_MS = 700;
+export const TIMELAPSE_END_HOLD_MS = 1500;
+// 짓기 기록을 이만큼(장면)까지 기억한다. 넘으면 오래된 장면부터 둘씩 합친다 (저장 파일이 끝없이 커지지 않게)
+export const BUILD_LOG_MAX_ENTRIES = 3000;
+
 // ── 링크로 공유 ([메뉴]의 [링크로 공유]) ────────
 // 공유 링크가 이 글자 수보다 길면 복사한 뒤 "메신저에 따라 잘릴 수 있다"고 알린다 (디스코드 한 메시지가 2,000자).
 // 역 60곳쯤부터 넘는다 (서울 실제 노선망 역 320곳은 약 1.4만 자)

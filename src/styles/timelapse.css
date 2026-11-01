@@ -1,0 +1,85 @@
+/* 노선망이 자란 모습 다시 보기 ([메뉴]의 [노선망 자란 모습 보기], ui/timelapse.js) */
+
+/* 보는 동안 게임 버튼·패널·역 이름표는 숨긴다. 지도 출처 표기는 그대로 */
+body.timelapse-on :is(.top-left, .bottom-left, .side, .route-strip, .profile-panel, .tutorial, .cursor-tip, .search-box, .station-label) {
+  display: none !important;
+}
+
+/* 아래 가운데 막대: 날짜·역 수, 진행 막대, 버튼 (화면 판 공통 모양) */
+.timelapse-bar {
+  position: fixed;
+  /* 오른쪽 아래 지도 출처 표기 위로 */
+  bottom: 40px;
+  left: 50%;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(640px, calc(100vw - 32px));
+  padding: 8px 10px 8px 14px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-panel);
+  background: #ffffff;
+  box-shadow: var(--panel-ring);
+  color: var(--navy);
+  transform: translateX(-50%);
+}
+
+.timelapse-bar[hidden] {
+  display: none;
+}
+
+.timelapse-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.timelapse-date {
+  font-size: var(--text-strong);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.timelapse-count {
+  color: var(--muted);
+  font-size: var(--text-small);
+  white-space: nowrap;
+}
+
+/* 진행 막대: 얇은 띠 안을 남색으로 채운다 */
+.timelapse-progress {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--divider);
+}
+
+.timelapse-progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--navy);
+}
+
+.timelapse-bar .hud-button {
+  flex-shrink: 0;
+}
+
+.timelapse-bar .hud-button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* 좁은 화면: 글 줄과 버튼 줄로 나눈다 */
+@media (max-width: 700px) {
+  .timelapse-bar {
+    flex-wrap: wrap;
+    bottom: 16px;
+  }
+
+  .timelapse-progress {
+    flex-basis: 100%;
+    order: 1;
+  }
+}

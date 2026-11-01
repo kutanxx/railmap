@@ -31,6 +31,9 @@ const LAYER_COLORS = [
   ['intercity-circles', 'circle-stroke-color', '#A69C8B', '#73828F'],
   ['intercity-labels', 'text-color', '#6F6656', '#9AA7B4'],
   ['intercity-labels', 'text-halo-color', '#EFE7D6', '#1E2630'],
+  // 노선망이 자란 모습 다시 보기 (map/timelapseLayers.js, 보는 동안만 있다)
+  ['timelapse-casing', 'line-color', '#D8C9AA', '#1E2630'],
+  ['timelapse-station', 'circle-stroke-color', '#1F3A55', '#D3DCE5'],
 ];
 // 노선이 지나지 않는 선로의 가운데 줄 (노선이 지나면 노선 색)
 const CENTER = { day: '#D8C9AA', control: '#1E2630' };
@@ -53,4 +56,8 @@ export function applyMapTheme(map, on) {
     ['get', 'routeColor'],
     on ? CENTER.control : CENTER.day,
   ]);
+  // 다시 보기의 노선이 없는 선로는 게임 선로 몸통과 같은 색
+  if (map.getLayer('timelapse-track')) {
+    map.setPaintProperty('timelapse-track', 'line-color', ['coalesce', ['get', 'color'], on ? '#8C98A5' : '#3E4651']);
+  }
 }

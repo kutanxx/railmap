@@ -57,6 +57,8 @@ const state = {
   achievedGoals: [],
   // 이번 판에서 정산한 달 수 (저장하지 않는다). 목표는 이 값이 바뀔 때만 확인한다 (game/goals.js)
   settledMonths: 0,
+  // 짓기 기록: 철도망이 바뀐 장면들 (노선망이 자란 모습 다시 보기, game/buildLog.js가 적는다. 저장 파일에도 들어간다)
+  buildLog: [],
   // 다음에 붙일 번호. 지운 번호는 다시 쓰지 않는다
   nextStationNumber: 1,
   nextTrackNumber: 1,

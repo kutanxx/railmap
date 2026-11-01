@@ -2,7 +2,8 @@
 // 나눠 맡은 곳: 지도 클릭·마우스·키보드 mapInput.js, 선로 끌기 trackEditor.js, 역 끌기 stationMover.js,
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
 // 선로 그리기 trackView.js, 역·이름표·출구 그리기 mapView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
-// 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js
+// 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js,
+// 노선망이 자란 모습 다시 보기 timelapse.js (짓기 기록 game/buildLog.js)
 import { BANKRUPT_GRACE_MONTHS, FOCUS_ZOOM } from '../config.js';
 import { getRegion, isSandbox } from '../game/region.js';
 import { addGameLayers } from '../map/gameLayers.js';
@@ -15,6 +16,7 @@ import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { startEconomyWorker, requestEconomy } from '../game/economyJob.js';
 import { clearTrackMemory } from '../game/tripFinder.js';
+import { startBuildLog } from '../game/buildLog.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
@@ -35,6 +37,7 @@ import { createStatsPanel } from './statsPanel.js';
 import { createReveal } from './reveal.js';
 import { createSearch } from './search.js';
 import { createDiagramView } from './diagramView.js';
+import { createTimelapse } from './timelapse.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -269,9 +272,11 @@ export function startApp(map, loadMessage) {
   };
   // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
   const search = createSearch({ map, select, render });
+  // 노선망이 자란 모습 다시 보기 ([메뉴], timelapse.js)
+  const timelapse = createTimelapse({ map, notice, select, render, controlRoom: () => ui.controlRoom });
   // 새 게임 안내는 튜토리얼이 떠 있으면 내지 않는다 (튜토리얼이 같은 것을 안내한다)
   const startMessage = loadMessage?.newGame && !document.getElementById('tutorial').hidden ? null : loadMessage;
-  const { bankruptDialog } = bindSaveControls({ notice, loadMessage: startMessage, clearWork, render, onSearch: search.open });
+  const { bankruptDialog } = bindSaveControls({ notice, loadMessage: startMessage, clearWork, render, onSearch: search.open, onTimelapse: timelapse.open });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {
@@ -288,6 +293,7 @@ export function startApp(map, loadMessage) {
     toggleHideUi: toggles.toggleHideUi,
     openSearch: search.open,
     diagram,
+    isTimelapseOpen: timelapse.isOpen,
     toggleDraftCurve,
     toggleDraftPlan,
     showDraftProfile,
@@ -319,6 +325,8 @@ export function startApp(map, loadMessage) {
   // 상태가 바뀌면: 열차를 노선에 맞추고 → 화면을 바로 다시 그리고 → 수입·운영비는 일꾼이 다시 계산한다 (economyJob.js).
   // 계산이 끝나면 목표·혼잡 경고를 확인하고 숫자가 바뀐 화면을 한 번 더 그린다 (역이 많아도 열차가 멈추지 않게)
   // 날짜·돈만 바뀐 때(kind 'time': 매달 정산, 배속)는 철도망 계산을 건너뛰고 위쪽 숫자만 다시 그린다
+  // 철도망이 바뀔 때마다 바뀐 것을 날짜와 함께 적는다 (다시 보기에 쓴다, game/buildLog.js)
+  startBuildLog();
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   subscribe((state, kind) => {
     if (kind !== 'network') return;

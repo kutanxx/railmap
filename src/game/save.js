@@ -17,6 +17,7 @@ import {
   restoreNetwork,
   clearHistory,
 } from './state.js';
+import { resetBuildLog } from './buildLog.js';
 
 const state = getState();
 
@@ -47,6 +48,7 @@ export function saveData() {
     monthsOverDebtLimit: state.monthsOverDebtLimit,
     bankrupt: state.bankrupt,
     achievedGoals: state.achievedGoals,
+    buildLog: state.buildLog,
     // 저장한 때 (실제 시각, 밀리초). 시작 화면에서 가장 최근 게임을 크게 보여줄 때 쓴다
     savedAt: Date.now(),
   };
@@ -87,6 +89,8 @@ export function loadData(data) {
   state.bankrupt = data.bankrupt ?? false;
   // 목표 기록이 없는 예전 저장 파일은 아직 아무 목표도 이루지 않은 것으로 친다 (지금 상태로 다시 확인된다)
   state.achievedGoals = Array.isArray(data.achievedGoals) ? achievedGoalKeys(data.achievedGoals) : [];
+  // 짓기 기록 (없는 예전 파일·실제 노선망·공유받은 노선망은 지금 노선망을 첫 장면으로 적고 시작한다)
+  resetBuildLog(data.buildLog);
   clearHistory();
   notify();
 }
@@ -114,6 +118,7 @@ export function resetGame() {
   state.monthsOverDebtLimit = 0;
   state.bankrupt = false;
   state.achievedGoals = [];
+  resetBuildLog([]);
   clearHistory();
   notify();
 }

@@ -7,9 +7,9 @@ import { copyShareLink } from './shareLink.js';
 
 // notice: 화면 가운데 말풍선, loadMessage: 시작할 때 저장된 게임을 불러온 결과 (없으면 null)
 // clearWork: 불러오기·새로 시작 뒤 고르던 것과 그리던 것을 놓는다, render: 화면 다시 그리기,
-// onSearch: [메뉴]의 [역·노선 찾기] (search.js)
+// onSearch: [메뉴]의 [역·노선 찾기] (search.js), onTimelapse: [노선망 자란 모습 보기] (timelapse.js)
 // 결과: { bankruptDialog } — render가 파산했는지에 맞춰 창을 띄우고 숨긴다
-export function bindSaveControls({ notice, loadMessage, clearWork, render, onSearch }) {
+export function bindSaveControls({ notice, loadMessage, clearWork, render, onSearch, onTimelapse }) {
   startAutosave((problem) => notice(problem, 'warn'));
   if (loadMessage) notice(loadMessage.text, loadMessage.tone);
 
@@ -32,6 +32,7 @@ export function bindSaveControls({ notice, loadMessage, clearWork, render, onSea
   createPopover(document.getElementById('menu-button'), document.getElementById('file-menu'));
   createFileMenu(document.getElementById('file-menu'), {
     onSearch,
+    onTimelapse,
     // 지금 노선망을 담은 링크를 복사한다 (받은 사람은 샌드박스로 연다, shareLink.js)
     onShare: () => copyShareLink(notice),
     onExport: exportToFile,
