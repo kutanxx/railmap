@@ -39,6 +39,7 @@ import { createSearch } from './search.js';
 import { createDiagramView } from './diagramView.js';
 import { createTimelapse } from './timelapse.js';
 import { startLineSweep } from './lineSweep.js';
+import { createReachView } from './reachView.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -67,6 +68,7 @@ export function startApp(map, loadMessage) {
     panelFolded: false, // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지 (sidePanels.js가 브라우저에 기억한 값으로 정한다)
     trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
     newRouteKind: 'subway', // 새로 만들 노선의 종류: 'subway' 지하철 | 'express' 광역급행 (노선 패널에서 고른다)
+    reach: false, // 30분 지도: 켜면 고른 역에서 10·20·30분 안에 갈 수 있는 곳을 칠한다 (역 카드의 [30분 지도])
   };
 
   // 물 위(한강 등)를 지나는 선로는 교량 공사비를 받는다. 물 모양은 지도에서 읽는다
@@ -187,8 +189,19 @@ export function startApp(map, loadMessage) {
     if (ui.tool === 'track') setDraftPlan(!trackTool.isPlan());
   };
 
+  // 30분 지도 (역 카드의 [30분 지도], reachView.js)
+  const reachView = createReachView({ map, ui });
   // 오른쪽 패널: 역·선로 카드, 노선 패널, 접힌 노선 번호 띠 중 하나 (sidePanels.js)
-  const sidePanels = createSidePanels({ ui, select, render, notice, routeTool, deleteSelected, previewDelete });
+  const sidePanels = createSidePanels({
+    ui,
+    select,
+    render,
+    notice,
+    routeTool,
+    deleteSelected,
+    previewDelete,
+    toggleReach: reachView.toggle,
+  });
 
   // 지도 위 역·500m 원·괄호·이름표·출구 (mapView.js)
   const mapView = createMapView({ map, ui });
@@ -251,7 +264,7 @@ export function startApp(map, loadMessage) {
     toggles.show();
     renderTracks();
     const shapes = mapView.drawStations(stationRoutes, getEconomy().stationRiders);
-    sidePanels.show({ routes, shapes });
+    sidePanels.show({ routes, shapes, reach: reachView.update() });
     // 패널을 펼치고 접은 뒤에 (말풍선이 패널 밑으로 들어가지 않게 자리를 고른다)
     mapView.updateStationExits();
     map.getCanvas().style.cursor = ui.tool === 'select' ? '' : 'crosshair';

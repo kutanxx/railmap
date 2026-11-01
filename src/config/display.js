@@ -166,6 +166,14 @@ export const TIMELAPSE_END_HOLD_MS = 1500;
 // 짓기 기록을 이만큼(장면)까지 기억한다. 넘으면 오래된 장면부터 둘씩 합친다 (저장 파일이 끝없이 커지지 않게)
 export const BUILD_LOG_MAX_ENTRIES = 3000;
 
+// ── 30분 지도 (역 카드의 [30분 지도], game/reach.js) ─────────
+// 고른 역에서 이 시간(분) 안에 갈 수 있는 곳을 짧은 것부터 진한 색으로 칠한다
+export const REACH_BANDS = [10, 20, 30];
+// 걷는 빠르기 (1분에 몇 m): 출발역까지, 내린 역에서 남은 시간만큼 걸어서 갈 수 있는 곳도 넣는다 (80m ≈ 시속 4.8km)
+export const REACH_WALK_M_PER_MIN = 80;
+// 걸어서 닿는 둥근 곳을 몇 개의 점으로 그릴지 (많을수록 매끈하고 조금 느리다)
+export const REACH_CIRCLE_POINTS = 40;
+
 // ── 개통 연출 (ui/lineSweep.js) ─────────────────
 // 노선을 만들면 그 노선 색 줄이 첫 역에서 끝 역까지 그려지는 시간 (밀리초). 역을 끼워 넣으면 새로 생긴 구간만 그린다
 export const LINE_SWEEP_GROW_MS = 900;

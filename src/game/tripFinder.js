@@ -223,6 +223,36 @@ export function shortestTrips(graph, origin) {
   return trips;
 }
 
+// 출발역에서 다른 모든 역까지 가장 빨리 닿는 시간 (분, 처음 기다리는 시간·갈아타기 포함): Map(역 id → 분).
+// 갈 수 없는 역은 넣지 않는다. 30분 지도(game/reach.js)가 쓴다
+export function minutesFrom(graph, origin) {
+  const { nodes, edges, boarding, byStation } = graph;
+  const minutes = new Array(nodes.length).fill(Infinity);
+  const queue = new MinQueue();
+  for (const i of byStation.get(origin) ?? []) {
+    minutes[i] = boarding.get(i);
+    queue.push(minutes[i], i);
+  }
+  const done = new Array(nodes.length).fill(false);
+  while (queue.size > 0) {
+    const current = queue.pop();
+    if (done[current]) continue;
+    done[current] = true;
+    for (const { to, minutes: cost } of edges.get(current)) {
+      if (minutes[current] + cost < minutes[to]) {
+        minutes[to] = minutes[current] + cost;
+        queue.push(minutes[to], to);
+      }
+    }
+  }
+  const result = new Map();
+  for (const [station, group] of byStation) {
+    const best = Math.min(...group.map((i) => minutes[i]));
+    if (best < Infinity && station !== origin) result.set(station, best);
+  }
+  return result;
+}
+
 // 가장 작은 값부터 꺼내 주는 줄 (이진 힙). 값이 같으면 번호가 작은 것부터 (예전 방식과 같은 순서라 결과가 같다)
 class MinQueue {
   constructor() {

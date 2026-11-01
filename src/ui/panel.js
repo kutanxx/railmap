@@ -6,7 +6,7 @@ import { routeBadge } from './routeBadge.js';
 // 오른쪽 정보 패널: 고른 역 또는 선로의 카드. 노선 목록 자리에 잠시 갈아 끼운다 (app.js가 둘 중 하나만 보여준다).
 // 맨 위 [← 노선 목록]·[✕]는 고른 것을 놓고 목록으로 돌아간다 (onClose, Esc와 같다).
 // 역 카드: 이름(눌러서 고치기) · 환승/종착 · 지나는 노선 번호, 큰 숫자 셋(이용객, 주변 인구, 가장 붐빔),
-// 한 줄 설명, [역 삭제], 접힌 "자세히"(승강장 방향, 인구를 센 근거, 위치)
+// 한 줄 설명, [30분 지도] 켜고 끄기(onToggleReach)와 색 설명, [역 삭제], 접힌 "자세히"(승강장 방향, 인구를 센 근거, 위치)
 // 선로 카드: 길이·구간·경유점, [직선][곡선] (onSetCurve), [선로 삭제]. 계획 선로면 제목이 "계획 선로"이고 [짓기] (onBuildTrack),
 // 계획 선로가 둘 이상이면 [계획 선로 모두 짓기] (onBuildAllTracks)
 // 상태를 직접 고치지 않고 onRename, onRotate, onSetCurve, onBuildTrack, onBuildAllTracks, onDeleteStation, onDeleteTrack으로
@@ -24,6 +24,7 @@ export function createPanel(
     onDeleteStation,
     onDeleteTrack,
     onDeletePreview,
+    onToggleReach,
     onClose,
   },
 ) {
@@ -47,6 +48,13 @@ export function createPanel(
       </div>
       <p class="panel-hint panel-station-intercity"></p>
       <p class="panel-hint panel-station-note"></p>
+      <button type="button" class="panel-reach-toggle" aria-pressed="false" title="이 역에서 10·20·30분 안에 갈 수 있는 곳을 지도에 칠해요">30분 지도</button>
+      <div class="panel-reach-legend" hidden>
+        <span class="panel-reach-key"><i class="reach-swatch reach-10"></i>10분</span>
+        <span class="panel-reach-key"><i class="reach-swatch reach-20"></i>20분</span>
+        <span class="panel-reach-key"><i class="reach-swatch reach-30"></i>30분</span>
+        <p class="panel-hint panel-reach-note"></p>
+      </div>
       <button type="button" class="panel-delete panel-delete-station">역 삭제</button>
       <p class="panel-removal panel-station-removal"></p>
       <details class="panel-more">
@@ -105,6 +113,10 @@ export function createPanel(
   const noteText = element.querySelector('.panel-station-note');
   const intercityText = element.querySelector('.panel-station-intercity');
   const sourceText = element.querySelector('.panel-population-source');
+  const reachButton = element.querySelector('.panel-reach-toggle');
+  const reachLegend = element.querySelector('.panel-reach-legend');
+  const reachNote = element.querySelector('.panel-reach-note');
+  reachButton.addEventListener('click', onToggleReach);
   for (const button of element.querySelectorAll('.panel-back, .panel-close')) {
     button.addEventListener('click', onClose);
   }
@@ -164,7 +176,8 @@ export function createPanel(
   //          angle: 화면에 보이는 승강장 방향, followsTrack: 선로 모양을 따르는지, removal: 지우면 사라지는 것,
   //          tag: '환승' | '종착' | '', routes: 지나는 노선 [{ number, color }],
   //          maxLoad: 둘레 구간의 가장 높은 혼잡도 (열차가 안 다니면 null),
-  //          intercity: 이어진 고속철도역들 [{ name, people }] }
+  //          intercity: 이어진 고속철도역들 [{ name, people }],
+  //          reach: 30분 지도를 켰으면 { arrivals: 30분 안에 열차로 닿는 역 수 }, 껐으면 null }
   function showStation(view) {
     const { station: nextStation, sharedPopulation, riders, averageRiders, angle, followsTrack } = view;
     // 이어진 고속철도역: 그 역을 드나드는 사람이 이 역 승객 수요에 더해진다 (game/intercity.js)
@@ -207,6 +220,16 @@ export function createPanel(
     sourceText.textContent = source + shared;
     const [lng, lat] = nextStation.coord;
     coordText.textContent = `위도 ${lat.toFixed(5)}, 경도 ${lng.toFixed(5)}`;
+    // 30분 지도: 켜졌으면 버튼을 남색으로 채우고 색 설명을 보여준다
+    reachButton.classList.toggle('active', Boolean(view.reach));
+    reachButton.setAttribute('aria-pressed', String(Boolean(view.reach)));
+    reachLegend.hidden = !view.reach;
+    if (view.reach) {
+      reachNote.textContent =
+        view.reach.arrivals > 0
+          ? `걸어서, 또는 열차로 역 ${view.reach.arrivals}곳에 내려 걸어서 닿는 곳이에요.`
+          : '아직 이 역에서 탈 열차가 없어서 걸어서 닿는 곳만 칠했어요.';
+    }
   }
 
   // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지,

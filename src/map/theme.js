@@ -31,6 +31,10 @@ const LAYER_COLORS = [
   ['intercity-circles', 'circle-stroke-color', '#A69C8B', '#73828F'],
   ['intercity-labels', 'text-color', '#6F6656', '#9AA7B4'],
   ['intercity-labels', 'text-halo-color', '#EFE7D6', '#1E2630'],
+  // 30분 지도 (map/reachLayers.js): 10·20·30분, 짧을수록 진하게 (관제실은 바탕보다 밝은 남색 단계)
+  ['reach-0', 'fill-color', '#A3BDD6', '#33506B'],
+  ['reach-1', 'fill-color', '#BDCFDF', '#2C4258'],
+  ['reach-2', 'fill-color', '#D5DFE4', '#263646'],
   // 개통 연출에서 거둬지는 선로 테두리 (map/sweepLayers.js)
   ['sweep-casing', 'line-color', '#D8C9AA', '#1E2630'],
   // 노선망이 자란 모습 다시 보기 (map/timelapseLayers.js, 보는 동안만 있다)
