@@ -79,7 +79,7 @@ export function chooseRegion(element, link = {}) {
       <h2 class="start-section start-new-title">새로 시작할 지도</h2>
       <div class="start-tabs" role="tablist" aria-label="지도 묶음"></div>
       <div class="start-choices" id="start-choices" role="tabpanel"></div>
-      <p class="start-credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자 · OpenFreeMap · 서울 개통 연도: 서울교통공사 「지하철 개통 정보」(공공누리 제1유형) 외</p>
+      <p class="start-credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자 · OpenFreeMap · 개통 연도: 서울교통공사 「지하철 개통 정보」(공공누리 제1유형) 외</p>
     </div>
   `;
   element.hidden = false;

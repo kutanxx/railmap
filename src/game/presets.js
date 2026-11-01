@@ -13,11 +13,23 @@ const PRESETS = {
     // 1호선만(1974), 1~4호선(1985), 5·7·8호선이 생긴 해(1996), 6호선·분당선 뒤(2005), 9호선 2단계(2015)
     years: [1974, 1985, 1996, 2005, 2015],
   },
-  busan: { label: '1~4호선 · 동해선 · 김해경전철', load: () => import('../data/presets/busan.json') },
-  incheon: { label: '인천 1·2호선 · 공항철도', load: () => import('../data/presets/incheon.json') },
-  daegu: { label: '1~3호선', load: () => import('../data/presets/daegu.json') },
-  daejeon: { label: '1호선', load: () => import('../data/presets/daejeon.json') },
-  gwangju: { label: '1호선', load: () => import('../data/presets/gwangju.json') },
+  busan: {
+    label: '1~4호선 · 동해선 · 김해경전철',
+    load: () => import('../data/presets/busan.json'),
+    years: [1985, 1994, 2005, 2011, 2017], // 1호선 첫 구간, 1호선 신평까지, 3호선, 4호선·김해경전철, 1호선 다대포
+  },
+  incheon: {
+    label: '인천 1·2호선 · 공항철도',
+    load: () => import('../data/presets/incheon.json'),
+    years: [1999, 2007, 2016], // 인천 1호선, 공항철도, 인천 2호선
+  },
+  daegu: {
+    label: '1~3호선',
+    load: () => import('../data/presets/daegu.json'),
+    years: [1997, 2005, 2015], // 1호선, 2호선, 3호선
+  },
+  daejeon: { label: '1호선', load: () => import('../data/presets/daejeon.json'), years: [2006] }, // 판암~정부청사
+  gwangju: { label: '1호선', load: () => import('../data/presets/gwangju.json'), years: [2004] }, // 녹동~상무
   tokyo: { label: '도쿄메트로·도에이 · JR 야마노테선', load: () => import('../data/presets/tokyo.json') },
   osaka: { label: '오사카 메트로 · JR 순환선', load: () => import('../data/presets/osaka.json') },
   newyork: { label: '지하철 21개 계통', load: () => import('../data/presets/newyork.json') },
