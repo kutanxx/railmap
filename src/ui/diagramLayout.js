@@ -181,3 +181,35 @@ export function offsetPolyline(points, offset) {
     return [x + nx * offset * stretch, y + ny * offset * stretch];
   });
 }
+
+// ── 역 이름 자리 고르기에 쓰는 것 (diagramView.js) ──
+
+// 선 토막 p–q가 네모(box)를 지나는지 (리앙–바스키 자르기: 토막을 네모 안으로 잘라 남는 부분이 있으면 지난다)
+export function segmentHitsBox([x1, y1], [x2, y2], box) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  let t0 = 0;
+  let t1 = 1;
+  for (const [p, q] of [
+    [-dx, x1 - box.left],
+    [dx, box.right - x1],
+    [-dy, y1 - box.top],
+    [dy, box.bottom - y1],
+  ]) {
+    if (p === 0) {
+      if (q < 0) return false;
+    } else {
+      const r = q / p;
+      if (p < 0) t0 = Math.max(t0, r);
+      else t1 = Math.min(t1, r);
+      if (t0 > t1) return false;
+    }
+  }
+  return true;
+}
+
+// 두 방향(라디안) 사이 각도 (0 ~ π)
+export const angleGap = (a, b) => {
+  const d = Math.abs(a - b) % (2 * Math.PI);
+  return d > Math.PI ? 2 * Math.PI - d : d;
+};

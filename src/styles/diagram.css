@@ -56,6 +56,15 @@
   white-space: nowrap;
 }
 
+/* 노선도 모양 [서울풍][벡풍][비녤리풍] (ui/diagramSkins.js): 고른 것만 남색으로 채운다 (.hud-button.active) */
+.diagram-skins {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--divider);
+}
+
 /* [그림 저장]·[닫기]는 노선 목록(늘어나는 칸) 오른쪽 끝에 붙는다 */
 .diagram-save,
 .diagram-close {
@@ -128,4 +137,28 @@ body.diagram-open .side,
 body.diagram-open .route-strip,
 body.diagram-open .profile-panel {
   visibility: hidden;
+}
+
+/* 좁은 화면(휴대폰): 노선 목록은 한 줄을 다 쓰고, 모양 단추·[그림 저장]·[닫기]는 그 아래 줄로 (화면 밖으로 밀려나지 않게) */
+@media (max-width: 700px) {
+  .diagram-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .diagram-legend {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .diagram-skins {
+    order: 2;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .diagram-save,
+  .diagram-close {
+    order: 2;
+  }
 }
