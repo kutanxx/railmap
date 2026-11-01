@@ -4,9 +4,15 @@
 // 뉴욕은 역이 447곳이라 승객 계산이 0.5초쯤 걸리지만, 계산은 화면과 따로 도는 일꾼이 해서 화면이 멈추지 않는다 (economyJob.js).
 // 노선 자료: © OpenStreetMap 기여자 (ODbL)
 
-// 지도 id → { label: 카드에 보일 노선 설명, load: 자료 받기 }
+// 지도 id → { label: 카드에 보일 노선 설명, load: 자료 받기,
+//            years: 타임머신으로 시작할 수 있는 해 (개통 연도가 적힌 프리셋만, game/timeMachine.js) }
 const PRESETS = {
-  seoul: { label: '1~9호선 외 4개 노선', load: () => import('../data/presets/seoul.json') },
+  seoul: {
+    label: '1~9호선 외 4개 노선',
+    load: () => import('../data/presets/seoul.json'),
+    // 1호선만(1974), 1~4호선(1985), 5·7·8호선이 생긴 해(1996), 6호선·분당선 뒤(2005), 9호선 2단계(2015)
+    years: [1974, 1985, 1996, 2005, 2015],
+  },
   busan: { label: '1~4호선 · 동해선 · 김해경전철', load: () => import('../data/presets/busan.json') },
   incheon: { label: '인천 1·2호선 · 공항철도', load: () => import('../data/presets/incheon.json') },
   daegu: { label: '1~3호선', load: () => import('../data/presets/daegu.json') },

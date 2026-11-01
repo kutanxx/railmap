@@ -26,6 +26,7 @@ import { CITIES, JOINS, APART, SAME_NAME_DISTANCE } from './presets/cities.mjs';
 import { meters, sleep, overpass, buildingsNear } from './presets/osm.mjs';
 import { SNAP_MAX_M, routePath, snapStops, waypointsBetween } from './presets/trackPath.mjs';
 import { makeStopName, mergeStations } from './presets/stations.mjs';
+import { applyOpenings } from './presets/openings.mjs';
 
 // 이미 고른 계통의 정류 위치에서 이만큼(미터) 안이면 같은 역으로 보고 갈래를 가린다
 const COVERED_M = 250;
@@ -151,6 +152,9 @@ async function makePreset(regionId) {
     if (variant.line.express) route.kind = 'express';
     return route;
   });
+
+  // 개통 연도가 적힌 도시(서울)는 선로·역에 opened를 적는다 (타임머신, presets/openings.mjs)
+  applyOpenings(regionId, { stations, tracks, routes });
 
   // 5. 역 주변 인구 (지도 조각의 건물로, 게임과 같은 계산)
   for (const [i, station] of stations.entries()) {

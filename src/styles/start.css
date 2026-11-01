@@ -362,3 +362,43 @@
     display: none;
   }
 }
+
+/* 카드 맨 아래 타임머신 줄: "그해의 노선망으로 시작" + 해 단추들 (ui/startScreen.js의 timeMachineRow) */
+.start-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--info-border);
+}
+
+.start-history-label {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.start-history-year {
+  padding: 3px 9px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.start-history-year:hover {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+/* 하던 샌드박스를 바꾸기 전 한 번 더 묻는 상태: 위험한 버튼처럼 빨간 테두리·글자 */
+.start-history-year.armed {
+  border-color: var(--danger);
+  background: #ffffff;
+  color: var(--danger);
+}

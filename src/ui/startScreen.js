@@ -57,7 +57,7 @@ function make(tag, className, text) {
 }
 
 // element에 시작 화면을 띄우고, 고르면 { id: 지도 id, sandbox: 샌드박스인지, shared: 받은 노선망 또는 없음,
-// preset: [실제 노선망으로 시작]을 골랐으면 true }으로 끝나는 Promise를 돌려준다. link: 공유 링크로 들어왔을 때 { shared: 받은 노선망, problem: 읽지 못한 이유 } (main.js)
+// preset: [실제 노선망으로 시작]을 골랐으면 true, year: 타임머신으로 고른 해 }으로 끝나는 Promise를 돌려준다. link: 공유 링크로 들어왔을 때 { shared: 받은 노선망, problem: 읽지 못한 이유 } (main.js)
 export function chooseRegion(element, link = {}) {
   element.innerHTML = `
     <div class="start-card">
@@ -79,7 +79,7 @@ export function chooseRegion(element, link = {}) {
       <h2 class="start-section start-new-title">새로 시작할 지도</h2>
       <div class="start-tabs" role="tablist" aria-label="지도 묶음"></div>
       <div class="start-choices" id="start-choices" role="tabpanel"></div>
-      <p class="start-credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자 · OpenFreeMap</p>
+      <p class="start-credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자 · OpenFreeMap · 서울 개통 연도: 서울교통공사 「지하철 개통 정보」(공공누리 제1유형) 외</p>
     </div>
   `;
   element.hidden = false;
@@ -263,7 +263,33 @@ function regionCard(id, region, choose) {
   card.append(main, footer);
   const preset = presetOf(id);
   if (preset) card.append(presetButton(id, preset, sandboxInfo, choose));
+  if (preset?.years) card.append(timeMachineRow(id, preset.years, sandboxInfo, choose));
   return card;
+}
+
+// 카드 맨 아래 타임머신 줄 (개통 연도가 적힌 프리셋만, game/timeMachine.js): "그해의 실제 노선망으로 [1974] [1985] …"
+// 고른 해까지 개통한 노선만 깐 샌드박스를 그해 날짜로 연다. 샌드박스 저장이 있으면 [실제 노선망으로 시작]처럼 한 번 더 묻는다
+function timeMachineRow(id, years, sandboxInfo, choose) {
+  const row = make('div', 'start-history');
+  const label = make('small', 'start-history-label', '그해의 노선망으로 시작');
+  row.append(label);
+  const hasSandbox = sandboxInfo && !sandboxInfo.broken;
+  for (const year of years) {
+    const button = make('button', 'start-history-year', String(year));
+    button.type = 'button';
+    button.title = `${year}년까지 개통한 실제 노선(대략)만 깐 샌드박스. 노선 자료 © OpenStreetMap 기여자, 개통 연도 서울교통공사 외`;
+    button.addEventListener('click', () => {
+      if (hasSandbox && !button.classList.contains('armed')) {
+        for (const other of row.querySelectorAll('.armed')) other.classList.remove('armed');
+        button.classList.add('armed');
+        label.textContent = `하던 샌드박스가 ${year}년 노선망으로 바뀌어요. 한 번 더 누르세요`;
+        return;
+      }
+      choose(id, true, { preset: true, year });
+    });
+    row.append(button);
+  }
+  return row;
 }
 
 // 카드 맨 아래 [실제 노선망으로 시작]: 실제 노선을 미리 깐 게임(game/presets.js)을 그 지도의 샌드박스로 연다.

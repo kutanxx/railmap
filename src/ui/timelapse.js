@@ -20,7 +20,12 @@ import { canRecord, startRecording } from './timelapseRecorder.js';
 
 const EMPTY_FRAME = { stations: new Map(), tracks: new Map(), routes: new Map() };
 
-const dateText = (frame) => (frame.before ? '기록 전부터 있던 노선망' : `${frame.year}년 ${frame.month}월`);
+// 날짜 글: 기록 전부터 있던 노선망, 실제 개통 연도(타임머신이 쓰는 서울 실제 노선망: "1985년 · 실제 개통"), 게임 날짜
+const dateText = (frame) => {
+  if (frame.before) return '기록 전부터 있던 노선망';
+  if (frame.history) return `${frame.year}년 · 실제 개통`;
+  return `${frame.year}년 ${frame.month}월`;
+};
 const countText = (frame) => `역 ${frame.stations.size} · 노선 ${frame.routes.size}`;
 
 // notice: 말풍선 알림, select·render: 고른 것 풀기와 다시 그리기, controlRoom(): 관제실 모드인지 (app.js)
