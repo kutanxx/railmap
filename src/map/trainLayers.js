@@ -2,6 +2,7 @@
 import { TRAIN_LABEL_MIN_ZOOM } from '../config.js';
 import { zoomWidth } from './trackLayers.js';
 import { inkOn } from './ink.js';
+import { hitPad } from './hitPad.js';
 
 // 모든 열차를 GeoJSON source 하나에 담고, 매 프레임 setData로 한 번에 바꾼다.
 // 열차 하나 = 노선을 따라 휘는 짧은 선. 끝이 둥근 선 세 겹(노란 테두리, 남색 몸통, 노선 색 띠)이라
@@ -58,6 +59,19 @@ export function addTrainLayers(map) {
       'text-halo-width': 3,
     },
   });
+}
+
+// 화면의 한 점(px) 근처에 있는 열차의 id ("r3-1"). 없으면 null (열차 따라가기, ui/trainFollow.js)
+export function trainIdAt(map, point) {
+  const pad = hitPad(4);
+  const features = map.queryRenderedFeatures(
+    [
+      [point.x - pad, point.y - pad],
+      [point.x + pad, point.y + pad],
+    ],
+    { layers: ['train-border'] },
+  );
+  return features.length > 0 ? features[0].properties.id : null;
 }
 
 export function updateTrains(map, features) {

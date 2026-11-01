@@ -40,6 +40,7 @@ import { createDiagramView } from './diagramView.js';
 import { createTimelapse } from './timelapse.js';
 import { startLineSweep } from './lineSweep.js';
 import { createReachView } from './reachView.js';
+import { createTrainFollow } from './trainFollow.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -96,9 +97,13 @@ export function startApp(map, loadMessage) {
     renderTracks();
   };
 
+  // 열차 따라가기 카메라 ([선택] 도구로 열차를 누르면, trainFollow.js)
+  const trainFollow = createTrainFollow({ map });
+
   // 도구 바꾸기 (도구 버튼, 숫자키 1~4)
   function chooseTool(toolId) {
     ui.tool = toolId;
+    trainFollow.stop();
     ui.trackPanelOpen = false;
     select(null); // 도구를 바꾸면 선택도 푼다
     // 도구를 바꾸면 그리던 선로·고르던 노선은 취소
@@ -290,7 +295,18 @@ export function startApp(map, loadMessage) {
   const timelapse = createTimelapse({ map, notice, select, render, controlRoom: () => ui.controlRoom });
   // 새 게임 안내는 튜토리얼이 떠 있으면 내지 않는다 (튜토리얼이 같은 것을 안내한다)
   const startMessage = loadMessage?.newGame && !document.getElementById('tutorial').hidden ? null : loadMessage;
-  const { bankruptDialog } = bindSaveControls({ notice, loadMessage: startMessage, clearWork, render, onSearch: search.open, onTimelapse: timelapse.open });
+  const { bankruptDialog } = bindSaveControls({
+    notice,
+    loadMessage: startMessage,
+    clearWork,
+    render,
+    onSearch: search.open,
+    // 다시 보기는 카메라를 따로 움직이므로 열차 따라가기를 먼저 끝낸다
+    onTimelapse: () => {
+      trainFollow.stop();
+      timelapse.open();
+    },
+  });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {
@@ -308,6 +324,7 @@ export function startApp(map, loadMessage) {
     openSearch: search.open,
     diagram,
     isTimelapseOpen: timelapse.isOpen,
+    trainFollow,
     toggleDraftCurve,
     toggleDraftPlan,
     showDraftProfile,

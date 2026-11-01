@@ -2,6 +2,7 @@
 // ctx: app.js가 넘겨주는 화면 상태와 도구들
 import { stationIdAt, updateCatchment } from '../map/stationLayers.js';
 import { trackIdAt } from '../map/trackLayers.js';
+import { trainIdAt } from '../map/trainLayers.js';
 import { estimatePopulation, zoomedInEnough } from '../map/population.js';
 import { nearbyPlaceName } from '../map/placeNames.js';
 import { mapDataLoaded } from '../map/mapFeatures.js';
@@ -45,6 +46,7 @@ export function bindMapInput(ctx) {
     openSearch,
     diagram,
     isTimelapseOpen,
+    trainFollow,
   } = ctx;
   const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile, cancelDrags } = ctx;
 
@@ -187,8 +189,16 @@ ${nextLine}` : first, note?.tone ?? 'info');
       }
       else showCallout(map, coord, shortfall(stationCost()), 'bad');
     } else {
-      const trackId = trackIdAt(map, event.point);
-      select(trackId ? { type: 'track', id: trackId } : null);
+      // 열차를 누르면 그 열차를 따라간다 (trainFollow.js). 아니면 선로를 고른다
+      const trainId = trainIdAt(map, event.point);
+      if (trainId) {
+        select(null);
+        cursorTip.hide();
+        trainFollow.start(trainId);
+      } else {
+        const trackId = trackIdAt(map, event.point);
+        select(trackId ? { type: 'track', id: trackId } : null);
+      }
     }
     render();
     if (ui.selected) keepAboveSheet(stationId ? findStation(stationId).coord : coord);
@@ -235,11 +245,13 @@ ${nextLine}` : first, note?.tone ?? 'info');
     } else if (ui.tool === 'route' || ui.insertingInto) {
       map.getCanvas().style.cursor = stationId ? 'pointer' : 'crosshair';
     } else if (ui.tool === 'select' && !ui.trackPreview) {
-      // 역이나 선로 위에 올리면 손가락 모양으로 바꾼다
-      const onSomething = stationId || trackIdAt(map, event.point);
+      // 역·열차·선로 위에 올리면 손가락 모양으로 바꾼다
+      const trainId = stationId ? null : trainIdAt(map, event.point);
+      const onSomething = stationId || trainId || trackIdAt(map, event.point);
       map.getCanvas().style.cursor = onSomething ? 'pointer' : '';
-      // 역 위에 올리면 마우스 옆에 이름·하루 이용객·지나는 노선 (누르지 않아도 알 수 있게)
-      const hoverText = stationId && !ui.stationPreview ? stationHoverText(stationId) : null;
+      // 역 위에 올리면 마우스 옆에 이름·하루 이용객·지나는 노선 (누르지 않아도 알 수 있게), 열차 위면 따라가기 안내
+      let hoverText = stationId && !ui.stationPreview ? stationHoverText(stationId) : null;
+      if (trainId && !trainFollow.isFollowing()) hoverText = `${trainId.slice(1)} 열차 · 누르면 따라가요`;
       if (hoverText) cursorTip.show(event.point.x, event.point.y, hoverText);
       else cursorTip.hide();
     }

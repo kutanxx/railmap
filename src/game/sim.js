@@ -126,6 +126,28 @@ export function trainMotion() {
   });
 }
 
+// 열차 하나의 지금 자리와 역 (열차 따라가기 카메라, ui/trainFollow.js). 열차가 없어졌으면 null
+// 결과: { coord: [경도, 위도], routeId, stopped: 역에 서 있는지, stationId: 서 있는 역 또는 다음에 설 역 (모르면 null) }
+export function trainInfo(trainId) {
+  const train = getState().trains.find((candidate) => candidate.id === trainId);
+  const path = train && paths.get(train.routeId);
+  if (!path) return null;
+  const standing = train.leg === null ? stopIndexAt(path.stops, train.distance) : -1;
+  // 달리는 구간: 아는 구간, 모르면(막 불러와 아직 안 움직임) 지금 자리에서 찾는다 (resumeLeg와 같은 방법)
+  let leg = train.leg;
+  if (leg === null) {
+    leg = path.stops.findIndex((stop, i) => i < path.stops.length - 1 && train.distance < path.stops[i + 1]);
+    if (leg < 0) leg = path.stops.length - 2;
+  }
+  const stop = standing >= 0 ? standing : train.direction > 0 ? leg + 1 : leg;
+  return {
+    coord: pointAt(path, train.distance),
+    routeId: train.routeId,
+    stopped: standing >= 0,
+    stationId: path.stationIds[stop] ?? null,
+  };
+}
+
 // ── 안쪽에서만 쓰는 계산 ──────────────────
 
 function buildPath(route) {
