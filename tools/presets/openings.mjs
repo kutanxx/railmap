@@ -156,30 +156,40 @@ export const OPENINGS = {
   gwangju: { '1호선': { year: 2004, sections: [['상무', '평동', 2008]] } },
 };
 
-// 프리셋의 선로·역·노선에 개통 연도(opened)를 적는다. 선로는 그 선로를 지나는 노선 구간 중 가장 이른 해, 역은 닿은 선로 중 가장 이른 해,
-// 노선은 이웃한 역 짝마다 그 노선이 다니기 시작한 해 (같은 선로를 여러 노선이 쓰면 노선마다 다르다: 청량리–회기는 1호선 1974, 경의·중앙선 2005).
-// stations·tracks·routes: 프리셋의 게임 저장 모양. 적힌 역 이름을 노선에서 못 찾으면 알린다 (이름이 바뀌었을 때)
-export function applyOpenings(regionId, { stations, tracks, routes }) {
-  const table = OPENINGS[regionId];
-  if (!table) return;
+// 노선 하나의 이웃한 역 짝마다 개통 연도: 처음엔 모두 year, 적힌 구간 [이 역부터, 이 역까지, 연도]는 그 연도로.
+// names: 노선 역 이름 순서. 적힌 역 이름을 노선에서 못 찾으면 알린다 (이름이 바뀌었을 때)
+export function sectionYears(routeName, names, years, sections) {
+  for (const [a, b, year] of sections) {
+    const [i, j] = [names.indexOf(a), names.indexOf(b)];
+    if (i < 0 || j < 0) throw new Error(`${routeName}에서 역을 찾지 못했어요: ${i < 0 ? a : b}`);
+    for (let k = Math.min(i, j); k < Math.max(i, j); k++) years[k] = year;
+  }
+  return years;
+}
+
+// 프리셋의 선로·역·노선에 개통 연도(opened)를 적는다. 노선은 이웃한 역 짝마다 그 노선이 다니기 시작한 해
+// (같은 선로를 여러 노선이 쓰면 노선마다 다르다: 청량리–회기는 1호선 1974, 경의·중앙선 2005),
+// 선로는 그 선로를 지나는 노선 구간 중 가장 이른 해, 역은 닿은 선로 중 가장 이른 해.
+// yearsOf(route, names, pairPoints): 노선 하나의 짝마다 연도 (pairPoints(k): k번째 짝 선로가 지나는 점들 [경도, 위도])
+export function setOpenings({ stations, tracks, routes }, yearsOf) {
   const nameOf = new Map(stations.map((station) => [station.id, station.name]));
+  const coordOf = new Map(stations.map((station) => [station.id, station.coord]));
   const trackOf = new Map(tracks.map((track) => [[track.from, track.to].sort().join('|'), track]));
+  const trackBetween = (a, b) => trackOf.get([a, b].sort().join('|'));
   const earliest = (item, year) => {
     item.opened = Math.min(item.opened ?? Infinity, year);
   };
   for (const route of routes) {
-    const entry = table[route.name];
-    if (!entry) throw new Error(`개통 연도가 없는 노선이에요: ${route.name} (tools/presets/openings.mjs)`);
     const names = route.stations.map((id) => nameOf.get(id));
-    const years = names.slice(1).map(() => entry.year); // 이웃한 역 짝마다 개통 연도
-    for (const [a, b, year] of entry.sections) {
-      const [i, j] = [names.indexOf(a), names.indexOf(b)];
-      if (i < 0 || j < 0) throw new Error(`${route.name}에서 역을 찾지 못했어요: ${i < 0 ? a : b}`);
-      for (let k = Math.min(i, j); k < Math.max(i, j); k++) years[k] = year;
-    }
+    const pairPoints = (k) => {
+      const [a, b] = [route.stations[k], route.stations[k + 1]];
+      const track = trackBetween(a, b);
+      return [coordOf.get(a), ...(track?.waypoints ?? []), coordOf.get(b)];
+    };
+    const years = yearsOf(route, names, pairPoints);
     route.opened = years;
     years.forEach((year, k) => {
-      const track = trackOf.get([route.stations[k], route.stations[k + 1]].sort().join('|'));
+      const track = trackBetween(route.stations[k], route.stations[k + 1]);
       if (track) earliest(track, year);
     });
   }
@@ -189,4 +199,16 @@ export function applyOpenings(regionId, { stations, tracks, routes }) {
       if (track.opened) earliest(station, track.opened);
     }
   }
+}
+
+// 표(OPENINGS)가 있는 도시(한국 여섯 도시)의 개통 연도를 적는다. 표가 없는 도시면 false
+export function applyOpenings(regionId, network) {
+  const table = OPENINGS[regionId];
+  if (!table) return false;
+  setOpenings(network, (route, names) => {
+    const entry = table[route.name];
+    if (!entry) throw new Error(`개통 연도가 없는 노선이에요: ${route.name} (tools/presets/openings.mjs)`);
+    return sectionYears(route.name, names, names.slice(1).map(() => entry.year), entry.sections);
+  });
+  return true;
 }

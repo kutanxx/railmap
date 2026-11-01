@@ -27,6 +27,8 @@ import { meters, sleep, overpass, buildingsNear } from './presets/osm.mjs';
 import { SNAP_MAX_M, routePath, snapStops, waypointsBetween } from './presets/trackPath.mjs';
 import { makeStopName, mergeStations } from './presets/stations.mjs';
 import { applyOpenings } from './presets/openings.mjs';
+import { applyN05Openings } from './presets/n05.mjs';
+import { applyWikidataOpenings } from './presets/wikidataOpenings.mjs';
 
 // 이미 고른 계통의 정류 위치에서 이만큼(미터) 안이면 같은 역으로 보고 갈래를 가린다
 const COVERED_M = 250;
@@ -153,8 +155,12 @@ async function makePreset(regionId) {
     return route;
   });
 
-  // 개통 연도가 적힌 도시(서울)는 선로·역에 opened를 적는다 (타임머신, presets/openings.mjs)
-  applyOpenings(regionId, { stations, tracks, routes });
+  // 개통 연도를 아는 도시는 선로·역·노선에 opened를 적는다 (타임머신): 한국 여섯 도시는 표(presets/openings.mjs),
+  // 도쿄·오사카는 일본 N05 자료(presets/n05.mjs, 환경 변수 N05에 자료 경로), 런던·파리·뉴욕·시카고는 Wikidata 역 개통일(presets/wikidataOpenings.mjs)
+  const network = { stations, tracks, routes };
+  if (!applyOpenings(regionId, network) && !applyN05Openings(regionId, network, process.env.N05)) {
+    await applyWikidataOpenings(regionId, network);
+  }
 
   // 5. 역 주변 인구 (지도 조각의 건물로, 게임과 같은 계산)
   for (const [i, station] of stations.entries()) {

@@ -30,12 +30,33 @@ const PRESETS = {
   },
   daejeon: { label: '1호선', load: () => import('../data/presets/daejeon.json'), years: [2006] }, // 판암~정부청사
   gwangju: { label: '1호선', load: () => import('../data/presets/gwangju.json'), years: [2004] }, // 녹동~상무
-  tokyo: { label: '도쿄메트로·도에이 · JR 야마노테선', load: () => import('../data/presets/tokyo.json') },
-  osaka: { label: '오사카 메트로 · JR 순환선', load: () => import('../data/presets/osaka.json') },
-  newyork: { label: '지하철 21개 계통', load: () => import('../data/presets/newyork.json') },
-  chicago: { label: "'L' 8개 노선", load: () => import('../data/presets/chicago.json') },
-  london: { label: '지하철 · 엘리자베스선 · DLR', load: () => import('../data/presets/london.json') },
-  paris: { label: '메트로 1~14호선 · RER A·B', load: () => import('../data/presets/paris.json') },
+  // 해외 도시의 해: 도쿄·오사카는 일본 N05 자료, 런던·파리·뉴욕·시카고는 Wikidata 역 개통일로 정한 연도 (대략)
+  tokyo: {
+    label: '도쿄메트로·도에이 · JR 야마노테선',
+    load: () => import('../data/presets/tokyo.json'),
+    years: [1939, 1964, 1980, 2000], // 긴자선만, 도쿄 올림픽, 지하철 늘어난 해들
+  },
+  osaka: {
+    label: '오사카 메트로 · JR 순환선',
+    load: () => import('../data/presets/osaka.json'),
+    years: [1942, 1970, 1990], // 미도스지선·요쓰바시선 첫 구간, 오사카 엑스포, 나가호리선
+  },
+  newyork: {
+    label: '지하철 21개 계통',
+    load: () => import('../data/presets/newyork.json'),
+    years: [1910, 1925, 1945], // IRT 첫 지하철, BMT, IND까지
+  },
+  chicago: { label: "'L' 8개 노선", load: () => import('../data/presets/chicago.json'), years: [1900, 1950] },
+  london: {
+    label: '지하철 · 엘리자베스선 · DLR',
+    load: () => import('../data/presets/london.json'),
+    years: [1880, 1910, 1950, 1980], // 첫 지하철 시대, 튜브, 전쟁 뒤, 빅토리아·주빌리선
+  },
+  paris: {
+    label: '메트로 1~14호선 · RER A·B',
+    load: () => import('../data/presets/paris.json'),
+    years: [1905, 1930, 1960, 2000],
+  },
 };
 
 // 그 지도의 프리셋 (없으면 null)
