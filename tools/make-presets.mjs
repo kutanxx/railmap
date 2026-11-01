@@ -13,7 +13,7 @@
 // 지도·노선 자료: © OpenStreetMap 기여자 (ODbL). 시작 화면에 출처를 적는다. 인터넷이 필요하다 (가입·키 없음).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { REGIONS } from '../src/regions.js';
-import { LINE_COLORS } from '../src/lineColors.js';
+import { LINE_COLORS, EXPRESS_LINE_COLORS } from '../src/lineColors.js';
 import { setRegion } from '../src/game/region.js';
 import { populationFromBuildings } from '../src/map/population.js';
 import { packCells } from '../src/game/cellPacking.js';
@@ -81,13 +81,18 @@ async function makePreset(regionId) {
   };
 
   // 2. 노선마다 계통 고르기: 역이 가장 많은 계통 + 아직 안 다닌 역이 있는 갈래
-  const picked = []; // { name, number, stops, path, snaps }
+  // 광역급행(line.express: EXPRESS_LINE_COLORS 번호)은 그 이름·색과 노선 종류 '광역급행'으로 (game/routeKinds.js)
+  const lineStyle = (line) =>
+    line.express ? EXPRESS_LINE_COLORS[regionId][line.express - 1] : LINE_COLORS[regionId][line.number - 1];
+  const picked = []; // { name, line, stops, path, snaps }
   for (const line of lines) {
-    const base = line.name ?? LINE_COLORS[regionId][line.number - 1].name;
+    const base = line.name ?? lineStyle(line).name;
     const candidates = line.relation
       ? [variantOf(line.relation)]
       : relations.get(line.master).members.filter((m) => m.type === 'relation').map((m) => variantOf(m.ref));
     candidates.sort((a, b) => b.stops.length - a.stops.length);
+    // 갈래를 찾지 않고 가장 긴 계통 하나만 (line.single: 역이 아주 긴 엘리자베스선은 방향마다 정류 위치가 멀어 반대 방향을 갈래로 잘못 봤다)
+    if (line.single) candidates.length = Math.min(candidates.length, 1);
     // 이미 고른 계통이 다니는 역인지: 이름이 아니라 자리로 본다 (방향마다 정류 위치·이름 표기가 달라서)
     const covered = [];
     const isCovered = (stop) => covered.some((coord) => meters(coord, stop.coord) < COVERED_M);
@@ -100,7 +105,7 @@ async function makePreset(regionId) {
       const [first, last] = [variant.stops[0], variant.stops.at(-1)];
       const end = !isCovered(last) ? last.name : !isCovered(first) ? first.name : `${fresh[0].name} 경유`;
       const name = chosen.length === 0 ? base : `${base} · ${end}`;
-      chosen.push({ ...variant, name, base, number: line.number });
+      chosen.push({ ...variant, name, base, line });
       for (const stop of variant.stops) covered.push(stop.coord);
     }
     for (const variant of chosen) {
@@ -136,13 +141,15 @@ async function makePreset(regionId) {
       tracks.push({ id, from: a, to: b, waypoints: waypoints ?? [], curve: false });
     }
     const stationIds = ids.filter((id, i) => i === 0 || id !== ids[i - 1]);
-    return {
+    const route = {
       id: `r${index + 1}`,
       name: variant.name,
-      color: LINE_COLORS[regionId][variant.number - 1].color,
+      color: lineStyle(variant.line).color,
       stations: stationIds,
       trainCount: 2, // 아래 7.에서 노선 왕복 시간으로 정한다
     };
+    if (variant.line.express) route.kind = 'express';
+    return route;
   });
 
   // 5. 역 주변 인구 (지도 조각의 건물로, 게임과 같은 계산)

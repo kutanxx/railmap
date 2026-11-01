@@ -1,5 +1,6 @@
 // 실제 노선망 프리셋에 넣을 도시와 노선 (tools/make-presets.mjs가 읽는다)
-// 도시마다 넣을 노선: number = lineColors.js의 그 도시 목록 번호(색과 이름), name = 다른 이름을 쓸 때,
+// 도시마다 넣을 노선: number = lineColors.js의 그 도시 목록 번호(색과 이름), express = 광역급행이면 EXPRESS_LINE_COLORS 번호
+// (number 대신, 노선 종류 '광역급행'으로 들어간다), name = 다른 이름을 쓸 때, single = 갈래를 찾지 않고 가장 긴 계통 하나만,
 // relation = 계통 하나를 직접 고를 때 (OpenStreetMap route 번호), master = 노선 전체(route_master 번호, 계통·갈래는 저절로 고른다)
 export const CITIES = {
   seoul: [
@@ -16,12 +17,18 @@ export const CITIES = {
     { number: 7, relation: 12746493 }, // 장암 → 석남
     { number: 8, relation: 2718901 }, // 별내 → 모란
     { number: 9, relation: 2718888 }, // 개화 → 중앙보훈병원
+    { number: 10, master: 7728256 }, // 신분당선
+    { number: 11, master: 8667957 }, // 경의·중앙선
+    { number: 12, master: 11619514 }, // 수인·분당선
+    { number: 13, master: 7919001 }, // 공항철도 (일반열차)
   ],
   busan: [
     { number: 1, master: 8255698 },
     { number: 2, master: 8258658 },
     { number: 3, master: 8247017 },
     { number: 4, master: 8258702 },
+    { number: 5, master: 7705740 }, // 부산김해경전철
+    { number: 6, master: 8272972 }, // 동해선
   ],
   daegu: [
     { number: 1, master: 7845971 },
@@ -31,6 +38,7 @@ export const CITIES = {
   incheon: [
     { number: 1, master: 7854149 },
     { number: 2, master: 7527498 },
+    { number: 3, master: 7919001 }, // 공항철도 (일반열차, 인천공항 두 공항역과 이어진다)
   ],
   daejeon: [{ number: 1, master: 7792528 }],
   gwangju: [{ number: 1, master: 13538911 }],
@@ -48,6 +56,7 @@ export const CITIES = {
     { number: 11, master: 8019914 }, // 도에이 미타선
     { number: 12, master: 8019866 }, // 도에이 신주쿠선
     { number: 13, master: 8019893 }, // 도에이 오에도선
+    { number: 14, master: 1139468 }, // JR 야마노테선
   ],
   osaka: [
     { number: 1, master: 8028805 }, // 미도스지선
@@ -59,6 +68,7 @@ export const CITIES = {
     { number: 7, master: 8028846 }, // 나가호리쓰루미료쿠치선
     { number: 8, master: 8028826 }, // 이마자토스지선
     { number: 9, master: 9603949 }, // 난코포트타운선
+    { number: 10, master: 10073686 }, // JR 오사카 순환선
   ],
   chicago: [
     { number: 1, master: 2584583 }, // 레드라인
@@ -107,6 +117,15 @@ export const CITIES = {
     { number: 10, master: 7702940 }, // 피카딜리선
     { number: 11, master: 6354922 }, // 빅토리아선
     { number: 12, master: 7672075 }, // 워털루 & 시티선
+    // 엘리자베스선은 광역급행으로. 운행 계통이 여럿이라 두 갈래(셴필드 쪽, 애비 우드 쪽)를 따로 고른다
+    { express: 1, name: '엘리자베스선 · Shenfield', master: 9753125, single: true },
+    { express: 1, name: '엘리자베스선 · Abbey Wood', master: 14773915, single: true },
+    // DLR: 운행 계통마다 노선 하나 (뱅크·타워 게이트웨이·스트랫퍼드에서 루이셤·울위치·벡턴으로)
+    { number: 13, name: 'DLR · Bank–Lewisham', master: 7772561 },
+    { number: 13, name: 'DLR · Bank–Woolwich Arsenal', master: 7772562 },
+    { number: 13, name: 'DLR · Stratford–Lewisham', master: 7772563 },
+    { number: 13, name: 'DLR · Tower Gateway–Beckton', master: 7772565 },
+    { number: 13, name: 'DLR · Stratford International–Woolwich Arsenal', master: 7772566 },
   ],
   paris: [
     { number: 1, master: 3328695 },
@@ -125,6 +144,8 @@ export const CITIES = {
     { number: 12, master: 7420642 },
     { number: 13, master: 7420641 },
     { number: 14, master: 3328694 },
+    { express: 1, master: 2333448 }, // RER A (광역급행)
+    { express: 2, master: 7420701 }, // RER B (광역급행)
   ],
 };
 

@@ -34,8 +34,16 @@ export function makeStopName(stationNodes, country) {
     stationNodes.find(
       (station) => plain(station.tags?.name) === plain(node.tags?.name) && meters([station.lon, station.lat], [node.lon, node.lat]) < 800,
     );
+  // 이름이 없는 정류 위치는 이 거리(미터) 안의 가장 가까운 역(railway=station) 이름을 쓴다 (서울 공항철도의 디지털미디어시티)
+  const UNNAMED_NEAR_M = 400;
+  const nearest = (node) =>
+    stationNodes
+      .map((station) => ({ station, distance: meters([station.lon, station.lat], [node.lon, node.lat]) }))
+      .filter(({ distance }) => distance < UNNAMED_NEAR_M)
+      .sort((a, b) => a.distance - b.distance)[0]?.station;
   const korean = ['kr', 'jp'].includes(country);
-  const stopName = (node) => {
+  const stopName = (stop) => {
+    const node = stop.tags?.name ? stop : (nearest(stop) ?? stop);
     const station = korean ? stationLike(node) : null;
     const name =
       (korean ? (node.tags?.['name:ko'] ?? station?.tags?.['name:ko']) : null) ??
@@ -44,8 +52,13 @@ export function makeStopName(stationNodes, country) {
       node.tags?.name ??
       '?';
     // "아사쿠사 역", "市ヶ谷駅", "오지 역 (도쿄 도)" → "아사쿠사", "市ヶ谷", "오지" (게임 역 이름에는 "역"을 붙이지 않는다,
-    // 괄호 속 지역 이름은 백과사전처럼 같은 이름을 가리려고 붙인 것이라 뺀다)
-    return name.replace(/ 역( \([^)]*\))?$/, '').replace(/駅$/, '').trim();
+    // 괄호 속 지역 이름은 백과사전처럼 같은 이름을 가리려고 붙인 것이라 뺀다).
+    // 런던 DLR처럼 승강장마다 따로 적힌 정류 위치의 "Lewisham Platform 6" → "Lewisham"
+    return name
+      .replace(/ 역( \([^)]*\))?$/, '')
+      .replace(/駅$/, '')
+      .replace(/\s+Platforms?\b.*$/i, '')
+      .trim();
   };
   return stopName;
 }

@@ -6,18 +6,18 @@
 
 // 지도 id → { label: 카드에 보일 노선 설명, load: 자료 받기 }
 const PRESETS = {
-  seoul: { label: '1~9호선', load: () => import('../data/presets/seoul.json') },
-  busan: { label: '1~4호선', load: () => import('../data/presets/busan.json') },
-  incheon: { label: '인천 1·2호선', load: () => import('../data/presets/incheon.json') },
+  seoul: { label: '1~9호선 외 4개 노선', load: () => import('../data/presets/seoul.json') },
+  busan: { label: '1~4호선 · 동해선 · 김해경전철', load: () => import('../data/presets/busan.json') },
+  incheon: { label: '인천 1·2호선 · 공항철도', load: () => import('../data/presets/incheon.json') },
   daegu: { label: '1~3호선', load: () => import('../data/presets/daegu.json') },
   daejeon: { label: '1호선', load: () => import('../data/presets/daejeon.json') },
   gwangju: { label: '1호선', load: () => import('../data/presets/gwangju.json') },
-  tokyo: { label: '도쿄메트로·도에이 13개 노선', load: () => import('../data/presets/tokyo.json') },
-  osaka: { label: '오사카 메트로 9개 노선', load: () => import('../data/presets/osaka.json') },
+  tokyo: { label: '도쿄메트로·도에이 · JR 야마노테선', load: () => import('../data/presets/tokyo.json') },
+  osaka: { label: '오사카 메트로 · JR 순환선', load: () => import('../data/presets/osaka.json') },
   newyork: { label: '지하철 21개 계통', load: () => import('../data/presets/newyork.json') },
   chicago: { label: "'L' 8개 노선", load: () => import('../data/presets/chicago.json') },
-  london: { label: '지하철 11개 노선', load: () => import('../data/presets/london.json') },
-  paris: { label: '메트로 1~14호선', load: () => import('../data/presets/paris.json') },
+  london: { label: '지하철 · 엘리자베스선 · DLR', load: () => import('../data/presets/london.json') },
+  paris: { label: '메트로 1~14호선 · RER A·B', load: () => import('../data/presets/paris.json') },
 };
 
 // 그 지도의 프리셋 (없으면 null)

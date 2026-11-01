@@ -12,6 +12,7 @@
 // - 파리: 일드프랑스 모빌리테(IDFM) 공개 자료의 공식 웹 색 (1~14호선. 3bis·7bis는 13·6호선과 같은 색이라 뺐다)
 // - 오사카: 오사카 메트로 9개 노선 (번호 순). 영어 위키백과 Module:Adjacent stations/Osaka Metro의 색 (2026-10-29 확인)
 // - 시카고: CTA 'L' 8개 노선. 영어 위키백과 Module:Adjacent stations/CTA의 색 (2026-10-29 확인)
+// - 실제 노선망에 더한 JR 야마노테선·JR 오사카 순환선·DLR, 인천의 공항철도: OpenStreetMap 노선 자료의 colour 값 (2026-11-01 확인)
 // 순서: 번호가 있는 노선은 번호 순, 그 뒤에 그 도시의 이름 있는 노선을 덧붙였다
 export const LINE_COLORS = {
   seoul: [
@@ -42,6 +43,7 @@ export const LINE_COLORS = {
   incheon: [
     { name: '인천 1호선', color: '#7CA8D5' },
     { name: '인천 2호선', color: '#ED8B00' },
+    { name: '공항철도', color: '#0090D2' }, // 서울 목록의 공항철도와 같은 색
   ],
   daegu: [
     { name: '1호선', color: '#D93F5C' },
@@ -67,6 +69,7 @@ export const LINE_COLORS = {
     { name: '도에이 미타선', color: '#006AB8' },
     { name: '도에이 신주쿠선', color: '#B0BF1E' },
     { name: '도에이 오에도선', color: '#CE045B' },
+    { name: 'JR 야마노테선', color: '#B1CB39' },
   ],
   osaka: [
     { name: '미도스지선', color: '#E5171F' },
@@ -78,6 +81,7 @@ export const LINE_COLORS = {
     { name: '나가호리쓰루미료쿠치선', color: '#A9CC51' },
     { name: '이마자토스지선', color: '#EE7B1A' },
     { name: '난코포트타운선', color: '#00A0DE' },
+    { name: 'JR 오사카 순환선', color: '#E80000' },
   ],
   chicago: [
     { name: '레드라인', color: '#C60C30' },
@@ -113,6 +117,7 @@ export const LINE_COLORS = {
     { name: '피카딜리선', color: '#003688' },
     { name: '빅토리아선', color: '#0098D4' },
     { name: '워털루 & 시티선', color: '#95CDBA' },
+    { name: 'DLR', color: '#00AFAD' },
   ],
   paris: [
     { name: '1호선', color: '#FFBE00' },
