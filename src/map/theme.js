@@ -31,6 +31,10 @@ const LAYER_COLORS = [
   ['intercity-circles', 'circle-stroke-color', '#A69C8B', '#73828F'],
   ['intercity-labels', 'text-color', '#6F6656', '#9AA7B4'],
   ['intercity-labels', 'text-halo-color', '#EFE7D6', '#1E2630'],
+  // 실제 노선망 겹쳐 보기 (map/realLayers.js): 짙은 회갈색, 관제실은 바탕보다 밝은 회색
+  ['real-line', 'line-color', '#857B6B', '#73828F'],
+  ['real-station', 'circle-color', '#FFFFFF', '#2E3946'],
+  ['real-station', 'circle-stroke-color', '#857B6B', '#73828F'],
   // 30분 지도 (map/reachLayers.js): 10·20·30분, 짧을수록 진하게 (관제실은 바탕보다 밝은 남색 단계)
   ['reach-0', 'fill-color', '#A3BDD6', '#33506B'],
   ['reach-1', 'fill-color', '#BDCFDF', '#2C4258'],

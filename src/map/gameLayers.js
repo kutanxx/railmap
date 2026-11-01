@@ -1,10 +1,11 @@
 // 게임이 지도에 그리는 레이어를 정한 순서대로 올린다 (나중에 올린 것이 위에 보인다).
-// 순서: (30분 지도는 바탕 지도의 물·도로·건물 밑) 등고선 → 역세권 원 → 선로 → 개통 연출 → 출구 통로 → 고속철도역 → 역 → 열차 → 출구 배지 → 그리는 중 미리보기 → 선로 손잡이
+// 순서: (30분 지도는 바탕 지도의 물·도로·건물 밑) 등고선 → 역세권 원 → 실제 노선망(회색) → 선로 → 개통 연출 → 출구 통로 → 고속철도역 → 역 → 열차 → 출구 배지 → 그리는 중 미리보기 → 선로 손잡이
 import { addContourLayers } from './contours.js';
 import { addStationLayers, addCatchmentLayer } from './stationLayers.js';
 import { addTrackLayers, addDraftLayers, addHandleLayers } from './trackLayers.js';
 import { addSweepLayers } from './sweepLayers.js';
 import { addReachLayers } from './reachLayers.js';
+import { addRealLayers } from './realLayers.js';
 import { addTrainLayers } from './trainLayers.js';
 import { addPassageLayers, addExitLayers } from './exitLayers.js';
 import { addIntercityLayers } from './intercityLayers.js';
@@ -27,6 +28,7 @@ function addAll(map, contourGrid) {
   addReachLayers(map);
   if (contourGrid) addContourLayers(map, contourGrid);
   addCatchmentLayer(map);
+  addRealLayers(map);
   addTrackLayers(map);
   addSweepLayers(map);
   addPassageLayers(map);

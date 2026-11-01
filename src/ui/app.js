@@ -41,6 +41,7 @@ import { createTimelapse } from './timelapse.js';
 import { startLineSweep } from './lineSweep.js';
 import { createReachView } from './reachView.js';
 import { createTrainFollow } from './trainFollow.js';
+import { createRealOverlay } from './realOverlay.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -69,6 +70,7 @@ export function startApp(map, loadMessage) {
     panelFolded: false, // 오른쪽 노선 목록을 접어 번호 띠만 남겼는지 (sidePanels.js가 브라우저에 기억한 값으로 정한다)
     trackPanelOpen: false, // 선로 도구를 쓰는 중에 [◂]로 노선 목록을 다시 펼쳤는지 (도구를 바꾸면 잊는다)
     newRouteKind: 'subway', // 새로 만들 노선의 종류: 'subway' 지하철 | 'express' 광역급행 (노선 패널에서 고른다)
+    real: false, // 실제와 비교: 켜면 그 도시의 실제 지하철을 회색으로 겹친다 ([실제 노선], R 키)
     reach: false, // 30분 지도: 켜면 고른 역에서 10·20·30분 안에 갈 수 있는 곳을 칠한다 (역 카드의 [30분 지도])
   };
 
@@ -151,6 +153,8 @@ export function startApp(map, loadMessage) {
   // [혼잡도 보기]·[지형]·[소리] 버튼 (viewToggles.js)
   const toggles = createViewToggles({ map, ui, render });
   const status = createStatus(document.getElementById('status'));
+  // [실제 노선]: 실제 지하철 노선망을 회색으로 겹쳐 보기 (realOverlay.js). 게임 해가 바뀌면 그해 노선망으로 (renderHud)
+  const realOverlay = createRealOverlay({ map, ui, notice });
   // 단계적 공개: 쓸 일이 생기면 버튼이 하나씩 나타난다 (reveal.js)
   const reveal = createReveal({ notice });
   // 위쪽 [통계]: 최근 달들의 자금·월 수지·하루 승객 그래프 (statsPanel.js)
@@ -256,6 +260,7 @@ export function startApp(map, loadMessage) {
     shownMonth = monthKey;
     stats.update();
     speedControl.setActive(speed);
+    realOverlay.update();
   }
 
   // 상태를 읽어서 화면 전체를 다시 그린다 (열차는 아래 애니메이션에서 따로 그린다)
@@ -320,6 +325,7 @@ export function startApp(map, loadMessage) {
     toggleTerrain: toggles.toggleTerrain,
     toggleSound: toggles.toggleSound,
     toggleControlRoom: toggles.toggleControlRoom,
+    toggleReal: realOverlay.toggle,
     toggleHideUi: toggles.toggleHideUi,
     openSearch: search.open,
     diagram,

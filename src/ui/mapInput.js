@@ -40,6 +40,7 @@ export function bindMapInput(ctx) {
     toggleTerrain,
     toggleSound,
     toggleControlRoom,
+    toggleReal,
     toggleDraftCurve,
     toggleDraftPlan,
     toggleHideUi,
@@ -293,7 +294,7 @@ ${nextLine}` : first, note?.tone ?? 'info');
     cancelWork();
   });
 
-  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리, N: 관제실 모드,
+  // 1~4: 도구 바꾸기, Space: 멈춤·다시 가기, Delete: 고른 것 지우기, C: 혼잡도 보기, T: 지형 보기, M: 소리, N: 관제실 모드, R: 실제 노선 겹쳐 보기,
   // V: 새로 그릴 선로를 직선 ↔ 곡선, P: 새로 그릴 선로를 계획 선로로 ([선로] 도구일 때), H: 버튼·패널 숨기기, /: 역·노선 찾기, D: 노선도 보기
   // Esc: 그리던 것 취소, Backspace: 마지막 경유점·역 빼기, Enter: 노선 완성
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
@@ -355,6 +356,8 @@ ${nextLine}` : first, note?.tone ?? 'info');
       toggleSound();
     } else if (letter === 'n') {
       toggleControlRoom();
+    } else if (letter === 'r') {
+      toggleReal();
     } else if (letter === 'v') {
       toggleDraftCurve();
     } else if (letter === 'p') {
