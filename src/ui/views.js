@@ -87,7 +87,12 @@ export function infoPanelView(selected, shapes) {
 
 // 역·선로를 지우면 함께 사라지는 것을 패널 삭제 버튼 아래에 적을 글
 function removalText(selected) {
-  const { trackIds, routes } = removalPreview(selected);
+  const { trackIds, routes, rejoin } = removalPreview(selected);
+  // 사이 역: 양옆 선로를 하나로 이어서 노선이 끊기지 않는다 (역이 둘보다 적어지는 짧은 노선만 사라진다)
+  if (rejoin) {
+    const gone = routes.length > 0 ? ` 역이 하나만 남는 노선 ${routes.map((r) => r.name).join(', ')}은(는) 사라져요.` : '';
+    return `지우면 양옆 선로가 하나로 이어지고, 지나던 노선은 이 역만 빼고 그대로예요.${gone}`;
+  }
   const lost = [];
   if (selected.type === 'station' && trackIds.length > 0) lost.push(`선로 ${trackIds.length}개`);
   if (routes.length > 0) lost.push(`노선 ${routes.length}개(${routes.map((r) => r.name).join(', ')})`);

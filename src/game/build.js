@@ -15,6 +15,7 @@ import {
   findRoute,
   findTrackBetween,
   trackCoords,
+  trackControlPoints,
   routeTracks,
 } from './state.js';
 
@@ -180,13 +181,55 @@ export function rotateStation(id, angle) {
 }
 
 // 역을 지우면 그 역에 이어진 선로도 함께 지운다 (끊긴 노선도 지운다)
+// 사이 역(선로가 꼭 둘, 양옆이 서로 다른 역)이면 양옆 선로를 하나로 잇고, 지나던 노선은 이 역만 빼고 그대로 둔다
+// (이 역에서 끝나던 노선은 한 역 짧아진다). 그 밖에는 이어진 선로와, 그 역·선로를 쓰는 노선이 함께 사라진다
 export function removeStation(id) {
   change(null, () => {
+    // 잇는 일은 역을 지우기 전에 (선로 모양을 역 자리로 읽는다)
+    const rejoin = rejoinPlan(id);
+    if (rejoin) rejoinTracks(id, rejoin);
+    else state.tracks = state.tracks.filter((track) => track.from !== id && track.to !== id);
     state.stations = state.stations.filter((station) => station.id !== id);
-    state.tracks = state.tracks.filter((track) => track.from !== id && track.to !== id);
     removeBrokenRoutes();
     return true;
   });
+}
+
+// 역을 지울 때 양옆 선로를 하나로 이을 수 있으면 그 두 선로와 양옆 역 { first, second, a, b }, 아니면 null.
+// 선로가 꼭 둘이고, 서로 다른 두 역으로 가고, 둘 다 지은 선로이거나 둘 다 계획 선로이고, 그 두 역 사이에 선로가 아직 없어야 한다
+function rejoinPlan(id) {
+  const touching = state.tracks.filter((track) => track.from === id || track.to === id);
+  if (touching.length !== 2) return null;
+  const [first, second] = touching;
+  const a = first.from === id ? first.to : first.from;
+  const b = second.from === id ? second.to : second.from;
+  if (a === b || Boolean(first.planned) !== Boolean(second.planned)) return null;
+  if (findTrackBetween(a, b, { planned: true })) return null;
+  return { first, second, a, b };
+}
+
+// 두 선로를 역 id 자리를 지나는 선로 하나로 잇는다 (앞 선로의 id와 모양을 이어 쓴다, 선로 공사비는 그대로).
+// 둘 다 곡선이면 곡선, 둘 다 직선이면 직선으로 역 자리를 경유점으로 남기고, 섞여 있으면 실제 모양 그대로 직선 경유점으로
+function rejoinTracks(id, { first, second, a, b }) {
+  const at = findStation(id).coord;
+  // a → 지운 역 → b 방향으로 정하는 점(또는 실제 모양의 점)들
+  const toward = (track, from, points) => (track.from === from ? points : [...points].reverse());
+  const sameShape = Boolean(first.curve) === Boolean(second.curve);
+  const pointsOf = (track) => (sameShape ? trackControlPoints(track) : trackCoords(track));
+  const before = toward(first, a, pointsOf(first)).slice(1, -1);
+  const after = toward(second, id, pointsOf(second)).slice(1, -1);
+  first.from = a;
+  first.to = b;
+  first.waypoints = [...before, at, ...after];
+  first.curve = sameShape && Boolean(first.curve);
+  state.tracks = state.tracks.filter((track) => track.id !== second.id);
+  // 노선에서 지운 역을 뺀다 (a–역–b를 지나던 노선은 a–b로, 이 역에서 끝나던 노선은 한 역 짧게).
+  // 이 역에서 시작해 이 역으로 돌아오던 순환선은 남은 첫 역으로 다시 돌아오게 한다 (이은 선로가 고리를 닫는다)
+  for (const route of state.routes) {
+    const loop = route.stations.length > 2 && route.stations[0] === id && route.stations.at(-1) === id;
+    const rest = route.stations.filter((stop) => stop !== id);
+    route.stations = loop ? [...rest, rest[0]] : rest;
+  }
 }
 
 // ── 선로 ─────────────────────────────
@@ -302,12 +345,19 @@ export function removeTrack(id) {
 
 // 고른 것을 지우면 함께 사라지는 것. 상태는 고치지 않는다 (지우기 전에 미리 보여줄 때 쓴다)
 // selected: { type: 'station' | 'track' | 'route', id }
-// 결과: { trackIds: 함께 지워지는 선로 id들, routes: 함께 지워지는 노선들 }
+// 결과: { trackIds: 함께 지워지는 선로 id들, routes: 함께 지워지는 노선들, rejoin: 사이 역이라 양옆 선로를 하나로 잇는지 }
 // 역을 지우면 이어진 선로와 그 역·선로를 쓰는 노선이, 선로를 지우면 그 선로를 쓰는 노선이 사라진다
 export function removalPreview(selected) {
   if (selected.type === 'route') {
     const route = findRoute(selected.id);
     return { trackIds: [], routes: route ? [route] : [] };
+  }
+  // 사이 역은 양옆 선로를 하나로 이으므로 선로는 사라지지 않고, 노선은 역이 둘보다 적어지는 것만 사라진다 (rejoin: true)
+  if (selected.type === 'station' && rejoinPlan(selected.id)) {
+    const routes = state.routes.filter(
+      (route) => route.stations.filter((stop) => stop !== selected.id).length < 2,
+    );
+    return { trackIds: [], routes, rejoin: true };
   }
   const trackIds =
     selected.type === 'station'
@@ -324,10 +374,11 @@ export function removalPreview(selected) {
 
 // ── 안쪽에서만 쓰는 것 ─────────────────
 
-// 역이나 선로가 지워져서 끊긴 노선을 지운다
+// 역이나 선로가 지워져서 끊긴 노선(역이 둘보다 적어진 노선도)을 지운다
 function removeBrokenRoutes() {
   state.routes = state.routes.filter(
     (route) =>
+      route.stations.length >= 2 &&
       route.stations.every((id) => findStation(id)) &&
       routeTracks(route).every((track) => track),
   );
