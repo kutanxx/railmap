@@ -196,3 +196,60 @@
   color: #ffffff;
 }
 
+
+/* "만약에" 노선 카드 (ui/whatIfCard.js): 노선마다 한 줄 — 이름, 상태, 역 수·공사비, [계획으로 깔기] */
+.dialog.whatif-card {
+  max-width: 480px;
+}
+
+.whatif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.whatif-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-button);
+  font-size: var(--text-body);
+}
+
+.whatif-item small,
+.whatif-item span {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.whatif-apply {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  padding: 6px 10px;
+  border: 2px solid var(--orange);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--warn-text);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.whatif-apply:hover:not(:disabled) {
+  background: var(--orange);
+  color: #ffffff;
+}
+
+.whatif-apply:disabled {
+  border-color: var(--info-border);
+  color: var(--muted);
+  cursor: default;
+}

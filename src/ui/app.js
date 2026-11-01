@@ -42,6 +42,7 @@ import { startLineSweep } from './lineSweep.js';
 import { createReachView } from './reachView.js';
 import { createTrainFollow } from './trainFollow.js';
 import { createRealOverlay } from './realOverlay.js';
+import { createWhatIfCard } from './whatIfCard.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -296,6 +297,8 @@ export function startApp(map, loadMessage) {
   };
   // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
   const search = createSearch({ map, select, render });
+  // "만약에" 노선 ([메뉴] → [만약에 노선], whatIfCard.js): 짓고 있거나 계획만 된 실제 노선을 계획 선로로
+  const whatIf = createWhatIfCard({ map, notice, render });
   // 노선망이 자란 모습 다시 보기 ([메뉴], timelapse.js)
   const timelapse = createTimelapse({ map, notice, select, render, controlRoom: () => ui.controlRoom });
   // 새 게임 안내는 튜토리얼이 떠 있으면 내지 않는다 (튜토리얼이 같은 것을 안내한다)
@@ -311,6 +314,7 @@ export function startApp(map, loadMessage) {
       trainFollow.stop();
       timelapse.open();
     },
+    onWhatIf: whatIf.available ? whatIf.open : null,
   });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
