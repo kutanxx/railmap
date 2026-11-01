@@ -14,6 +14,7 @@ import { prefetchMap } from '../map/prefetch.js';
 import { renderSharedCard } from './shareLink.js';
 import { clearSharedLink } from '../game/share.js';
 import { presetOf } from '../game/presets.js';
+import { NARROW_SCREEN_PX } from '../config.js';
 
 // 마지막으로 고른 묶음 탭을 기억하는 브라우저 저장 이름
 const TAB_KEY = 'railmap-start-tab';
@@ -43,8 +44,6 @@ function groupRegions() {
   ].filter((group) => group.regions.length > 0);
 }
 
-// 이만큼보다 좁은 창이면 휴대폰 안내를 보여준다 (px)
-const NARROW_SCREEN_PX = 700;
 
 // 저장 상태를 글로: "2032년 5월 · 노선 8개"
 const saveSummary = (info) => `${info.year}년 ${info.month}월 · 노선 ${info.routeCount}개`;
@@ -96,6 +95,9 @@ export function chooseRegion(element, link = {}) {
 
   return new Promise((resolve) => {
     const choose = (id, sandbox, extra = {}) => {
+      // 공유 링크로 들어왔는데 다른 지도를 골랐으면 주소에서 공유 자료를 지운다
+      // ([지도 바꾸기]로 시작 화면에 돌아왔을 때 "공유받은 노선망" 칸이 또 뜨지 않게)
+      if (link.shared || link.problem) clearSharedLink();
       element.hidden = true;
       resolve({ id, sandbox, ...extra });
     };

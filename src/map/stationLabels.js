@@ -14,6 +14,8 @@ import {
   LABEL_NAME_ZOOM,
   LABEL_DETAIL_ZOOM,
   PLATFORM_REAL_SIZE_ZOOM,
+  EXIT_BADGE_RADIUS_PX,
+  EXIT_DOT_RADIUS_PX,
 } from '../config.js';
 import { formatPeopleShort } from '../ui/format.js';
 import { inkOn } from './ink.js';
@@ -137,7 +139,7 @@ function showForZoom(map) {
 export function arrangeStationLabels(map, exitCoords, area = null) {
   const zoom = map.getZoom();
   // 출구가 보이는 크기 (px): 줌 16부터 번호 배지, 15부터 작은 점, 그보다 멀면 안 보인다
-  const exitRadius = zoom >= EXIT_LABEL_ZOOM ? 11 : zoom >= EXIT_DOT_ZOOM ? 5 : 0;
+  const exitRadius = zoom >= EXIT_LABEL_ZOOM ? EXIT_BADGE_RADIUS_PX : zoom >= EXIT_DOT_ZOOM ? EXIT_DOT_RADIUS_PX : 0;
   const exits = exitRadius > 0 ? exitCoords.map((coord) => map.project(coord)) : [];
   const { clientWidth, clientHeight } = map.getContainer();
   const right = area?.right ?? clientWidth;

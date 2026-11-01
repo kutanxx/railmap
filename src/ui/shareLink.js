@@ -45,7 +45,18 @@ function showLinkBox(link) {
   const long = box.querySelector('.share-link-long');
   long.hidden = link.length <= SHARE_LONG_LINK_CHARS;
   long.textContent = longLinkText(link);
-  box.querySelector('button').addEventListener('click', () => box.remove());
+  // [닫기]나 Esc로 닫는다 (창이 떠 있는 동안 뒤의 게임은 키를 받지 않는다, mapInput.js의 dialogOpen)
+  const close = () => {
+    box.remove();
+    document.removeEventListener('keydown', onKey, true);
+  };
+  const onKey = (event) => {
+    if (event.key !== 'Escape') return;
+    event.stopImmediatePropagation();
+    close();
+  };
+  box.querySelector('button').addEventListener('click', close);
+  document.addEventListener('keydown', onKey, true);
   document.body.append(box);
   input.select();
 }

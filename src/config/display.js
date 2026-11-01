@@ -80,6 +80,15 @@ export const LABEL_NAME_ZOOM = 13.5;
 export const LABEL_DETAIL_ZOOM = 15;
 
 
+// 역 이름 말풍선이 피하는 출구 크기 (반지름, 화면 px): 이름 배지가 보이는 줌, 작은 점만 보이는 줌 (map/stationLabels.js)
+export const EXIT_BADGE_RADIUS_PX = 11;
+export const EXIT_DOT_RADIUS_PX = 5;
+
+// ── 고속철도역 (map/intercityLayers.js) ──────
+// 이보다 멀리 보면 고속철도역을 그리지 않는다 (도시 전체를 볼 때 붐비지 않게). 이름은 조금 더 가까이서부터
+export const INTERCITY_MIN_ZOOM = 10;
+export const INTERCITY_LABEL_MIN_ZOOM = 12;
+
 // ── 노선 색 ────────────────────────────
 // 새 노선은 그 도시의 실제 노선 색을 1호선부터 차례로 받는다 (src/lineColors.js, game/routeColors.js).
 // 실제 노선보다 더 만들거나 가상 지도면 아래 추천 10색으로 이어 간다 (도시 색과 거의 같은 색은 건너뛴다).
@@ -106,6 +115,24 @@ export const SAME_ROUTE_COLOR_DISTANCE = 15;
 export const STATS_KEEP_MONTHS = 240;
 // 그래프에 보여주는 최근 달 수
 export const STATS_SHOWN_MONTHS = 36;
+
+// ── 화면 배치 ────────────────────────────
+// 이보다 좁은 창은 휴대폰 배치: 오른쪽 패널이 아래에서 올라오는 판이 된다 (styles/mobile.css의 700px와 같은 값)
+export const NARROW_SCREEN_PX = 700;
+// 역을 찾아가거나 알림·역 카드에서 그 역으로 갈 때 적어도 이만큼 확대한다 (역 모양이 실제 크기로 보이는 줌)
+export const FOCUS_ZOOM = 15;
+// 노선을 찾아갈 때 노선 둘레 여백 (화면 px)
+export const FOCUS_PADDING_PX = 120;
+
+// ── 처음 쓸 때 안내 (ui/tips.js) ─────────────
+// 안내 하나를 낸 뒤 다음 안내까지 적어도 이만큼 (실제 밀리초). 한꺼번에 쏟아지지 않게
+export const TIP_GAP_MS = 20000;
+// 안내하는 버튼을 노란 테두리로 강조해 두는 시간 (실제 밀리초)
+export const TIP_HIGHLIGHT_MS = 6000;
+// [역·노선 찾기] 안내는 역이 이만큼 되면, [통계] 안내는 이만큼 달을 정산하면, [광역급행] 안내는 노선이 이만큼 되면
+export const SEARCH_TIP_STATIONS = 15;
+export const STATS_TIP_MONTHS = 3;
+export const EXPRESS_TIP_ROUTES = 3;
 
 // ── 지도 위 누르기 ─────────────────────────
 // 역·선로·흰 점을 누를 때 조금 빗나가도 잡히는 여유 (화면 px, 누른 자리에서 위아래·양옆으로)

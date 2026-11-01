@@ -109,7 +109,7 @@
 }
 
 .start-continue-item:hover small {
-  color: #d3dce5;
+  color: var(--on-navy-soft);
 }
 
 .start-continue-item:hover .start-continue-go {
@@ -244,7 +244,7 @@
 
 .start-region:has(.start-choice:hover) .start-kind,
 .start-region:has(.start-choice:hover) .start-description {
-  color: #d3dce5;
+  color: var(--on-navy-soft);
 }
 
 .start-region-foot {
@@ -300,7 +300,7 @@
 }
 
 .start-sandbox:hover small {
-  color: #d3dce5;
+  color: var(--on-navy-soft);
 }
 
 /* [실제 노선망으로 시작 / 1~9호선 · 샌드박스]: 카드 맨 아래 한 줄 전체 (실제 노선망이 있는 지도만) */
@@ -339,7 +339,7 @@
 }
 
 .start-preset:hover small {
-  color: #d3dce5;
+  color: var(--on-navy-soft);
 }
 
 /* 하던 샌드박스를 바꾸기 전 한 번 더 묻는 상태: 위험한 버튼처럼 빨간 글자 */

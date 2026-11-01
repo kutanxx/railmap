@@ -7,6 +7,7 @@
 // 3) 그래도 남는 비스듬함은 그릴 때 "곧게 → 45도 → 곧게" 세 토막으로 꺾어서 늘 8방향만 쓴다 (edgePoints)
 // 역 50개면 되풀이 한 번에 역 쌍 1,200여 개를 보므로, 노선도를 열 때나 노선망이 바뀔 때만 계산한다.
 import { DIAGRAM_ITERATIONS } from '../config.js';
+import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from '../game/earth.js';
 
 // 이웃 역 사이 길이를 이 범위로 맞춘다 (1 = 보통 역 간격). 아주 먼 역은 조금만 길게, 아주 가까운 역은 조금만 짧게
 const MIN_EDGE = 1;
@@ -23,8 +24,8 @@ const OCTANT = Math.PI / 4;
 // 미터 좌표로 바꾼다 (지도 가운데 근처에서는 경도·위도를 이렇게 펴도 충분하다)
 function toMeters(coords) {
   const lat0 = coords.reduce((sum, [, lat]) => sum + lat, 0) / coords.length;
-  const kx = 111320 * Math.cos((lat0 * Math.PI) / 180);
-  const ky = 110540;
+  const kx = metersPerDegreeLng(lat0);
+  const ky = METERS_PER_DEGREE_LAT;
   // 화면은 아래로 갈수록 y가 크므로 위도를 뒤집는다
   return coords.map(([lng, lat]) => [lng * kx, -lat * ky]);
 }

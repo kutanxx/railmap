@@ -73,12 +73,26 @@ export function trainPurchaseCost(route, count) {
   return Math.max(0, count - route.trainCount) * trainSpec(route).trainCost;
 }
 
-// 노선 종류를 바꿀 때 내는 돈: 지금 열차들을 새 종류로 바꾸는 값 차이 (더 싼 종류로 바꾸면 0, 돌려받지 않는다)
-export function kindChangeCost(route, kind) {
-  return Math.max(0, route.trainCount * (trainSpec(kind).trainCost - trainSpec(route).trainCost));
+// 노선을 kind 종류로 바꾼 모습 (바꾸기 전에 최대 열차 수·값을 미리 재 볼 때)
+function asKind(route, kind) {
+  const copy = { ...route };
+  if (kindOf(kind) === 'express') copy.kind = 'express';
+  else delete copy.kind;
+  return copy;
 }
 
-// 노선 종류를 바꾼다 (지하철 ↔ 광역급행). 이름·색은 그대로 둔다. 돈이 모자라면 바꾸지 않고 null
+// 노선 종류를 바꾸면 남는 열차 수: 광역급행은 빨라서 왕복 시간이 짧아지므로, 열차 사이 최소 간격을 넘는 열차는 뺀다
+export function kindChangeTrains(route, kind) {
+  return Math.min(route.trainCount, maxTrainCount(asKind(route, kind)));
+}
+
+// 노선 종류를 바꿀 때 내는 돈: 남는 열차들을 새 종류로 바꾸는 값 차이 (더 싼 종류로 바꾸면 0, 돌려받지 않는다)
+export function kindChangeCost(route, kind) {
+  return Math.max(0, kindChangeTrains(route, kind) * (trainSpec(kind).trainCost - trainSpec(route).trainCost));
+}
+
+// 노선 종류를 바꾼다 (지하철 ↔ 광역급행). 이름·색은 그대로 둔다. 열차 사이가 너무 좁아지면 열차를 줄인다 (kindChangeTrains).
+// 돈이 모자라면 바꾸지 않고 null
 export function setRouteKind(id, kind) {
   return change(null, () => {
     const route = findRoute(id);
@@ -86,6 +100,7 @@ export function setRouteKind(id, kind) {
     const cost = kindChangeCost(route, kind);
     if (!canAfford(cost)) return null;
     getState().money -= cost;
+    route.trainCount = kindChangeTrains(route, kind);
     if (kindOf(kind) === 'express') route.kind = 'express';
     else delete route.kind;
     return route;

@@ -3,6 +3,7 @@
 import { NOTICE_LOG_SIZE } from '../config.js';
 import { getState } from '../game/state.js';
 import { createPopover, closePopovers } from './popovers.js';
+import { FOCUS_ZOOM } from '../config.js';
 
 const log = []; // 최근 것이 앞: [{ text, tone, coord, date }]
 let unread = 0;
@@ -53,7 +54,7 @@ export function createNoticeLog(button, panel, map) {
           item.title = '눌러서 그 자리로 가기';
           item.addEventListener('click', () => {
             closePopovers();
-            map.flyTo({ center: entry.coord, zoom: Math.max(map.getZoom(), 15) });
+            map.flyTo({ center: entry.coord, zoom: Math.max(map.getZoom(), FOCUS_ZOOM) });
           });
         } else {
           item.disabled = true;

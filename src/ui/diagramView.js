@@ -344,6 +344,11 @@ export function createDiagramView({ onPickStation }) {
   const release = (event) => {
     pointers.delete(event.pointerId);
     if (pointers.size < 2) pinch = null;
+    // 두 손가락 중 하나를 떼면 남은 손가락으로 바로 이어서 끈다
+    if (pointers.size === 1) {
+      const [[x, y]] = [...pointers.values()];
+      drag = { x: x - view.x, y: y - view.y };
+    }
     if (pointers.size === 0) {
       drag = null;
       svg.classList.remove('dragging');

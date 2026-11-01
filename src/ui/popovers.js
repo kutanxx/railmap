@@ -39,6 +39,10 @@ document.addEventListener('pointerdown', (event) => {
     if (event.target.closest('#map')) swallowMapClick = true;
   }
 });
+// 다른 떠 있는 칸(역·노선 찾기)도 지도를 눌러 닫을 때 그 클릭을 지도에 넘기지 않게 한다 (search.js)
+export function swallowMapClickAfterClose(event) {
+  if (event.target.closest('#map')) swallowMapClick = true;
+}
 document.addEventListener(
   'click',
   (event) => {

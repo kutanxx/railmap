@@ -17,6 +17,10 @@
   --positive: #3f7d3f; /* 흑자 초록: 월 수지 +, 정산 숫자 ▲, 여유 있는 혼잡도 글자 */
   --orange: #c9772f; /* 공사 중·주의 주황: 그리는 중인 선로, 계획 선로, 주의 말풍선 */
   --warn-text: #8a4f17; /* 주의(주황) 말풍선의 글자: 주황보다 진해서 흰 바탕에서 읽힌다 */
+  --navy-hover: #2c4a68; /* 남색 버튼(날짜 배지)에 마우스를 올렸을 때 조금 밝은 남색 */
+  --on-navy-soft: #d3dce5; /* 남색 바탕 위의 흐린 보조 글자, 관제실 모드의 밝은 선 */
+  --platform: #a7bed4; /* 승강장·역 색 (지도의 역 동그라미와 같은 색) */
+  --control-room-land: #1e2630; /* 관제실 모드 바탕 (map/style.js의 CONTROL_ROOM_PALETTE 땅색과 같다) */
   --radius-panel: 10px; /* 화면 판 모서리 (지도 위 말풍선은 6px라서 구별된다) */
   --radius-button: 6px; /* 판 안 버튼 모서리 */
   /* 화면 판 바깥 땅색 띠: 흐림 없는 단색 선이라 그림자가 아니다. 선로 위에 겹쳐도 판과 붙어 보이지 않게 */
@@ -97,7 +101,7 @@ body.side-panel-open .top-left {
 }
 
 .badge:hover {
-  background: #2c4a68;
+  background: var(--navy-hover);
 }
 
 /* 멈춰 있을 때 배지 끝의 노란 "❚❚ 멈춤" */

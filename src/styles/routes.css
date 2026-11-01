@@ -274,6 +274,19 @@
   color: var(--navy);
 }
 
+/* 손가락 화면의 역 순서 [↑][↓] (ui/routePanel.js): 손가락으로 누르기 쉽게 조금 넓게 */
+.route-stop-move {
+  min-width: 30px;
+  min-height: 28px;
+  margin-right: 4px;
+}
+
+.route-stop-move:disabled {
+  border-color: var(--divider);
+  color: var(--divider);
+  cursor: default;
+}
+
 .route-insert {
   margin-top: 6px;
   padding: 5px;

@@ -232,7 +232,7 @@
   margin: 0 5px;
   border: 2px solid var(--navy);
   border-radius: 50%;
-  background: #a7bed4;
+  background: var(--platform);
 }
 
 .search-empty {

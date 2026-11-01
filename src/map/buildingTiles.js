@@ -7,6 +7,7 @@ import { BASE_STYLE_URL, POPULATION_RADIUS_M } from '../config.js';
 import { readMapFeatures, isVirtualMap } from './mapFeatures.js';
 import { populationFromBuildings } from './population.js';
 import { packCells } from '../game/cellPacking.js';
+import { METERS_PER_DEGREE } from '../game/earth.js';
 
 const TILE_ZOOM = 14;
 // 지도 조각을 한꺼번에 몇 개까지 받을지 (서울 실제 노선망 역 320곳은 조각 약 150개. 기다리는 시간이 대부분이다)
@@ -48,7 +49,7 @@ export async function measureStations(stations, onProgress = () => {}) {
 
 // 역 둘레(반경을 덮는 네모)에 걸치는 지도 조각들 ["x/y", …]
 function tilesAround([lng, lat]) {
-  const reach = (POPULATION_RADIUS_M * 1.2) / 111320; // 원을 덮는 네모 (도)
+  const reach = (POPULATION_RADIUS_M * 1.2) / METERS_PER_DEGREE; // 원을 덮는 네모 (도)
   const [x0, y0] = tileXY([lng - reach, lat + reach]);
   const [x1, y1] = tileXY([lng + reach, lat - reach]);
   const keys = [];

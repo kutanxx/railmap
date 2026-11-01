@@ -13,9 +13,12 @@ import { formatMoney } from './format.js';
 
 // 손가락으로 두 번 누르기로 치는 간격 (밀리초)
 const DOUBLE_TAP_MS = 400;
+// 이만큼(px) 넘게 움직여야 끌기로 친다 (누르기만 했는데 손 떨림으로 경유점이 생기거나 옮겨지지 않게)
+const MIN_MOVE_PX = 3;
 
 export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, shortfall, costNote }) {
-  // 끄는 중이면 { trackId, original: 원래 경유점, waypoints: 바뀐 경유점, index }
+  // 끄는 중이면 { trackId, original: 원래 경유점, waypoints: 바뀐 경유점, index, kind,
+  //            insert: 아직 끼워 넣지 않은 새 경유점인지(가운데 손잡이), from: 누른 자리, lastCoord: 마지막으로 끈 자리 }
   let drag = null;
 
   // 지금 고른 선로 (선택 도구일 때만 다듬을 수 있다)
@@ -52,14 +55,33 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
     // 지도가 끌려 움직이지 않게 막는다
     event.preventDefault();
     const waypoints = track.waypoints.map((point) => [...point]);
-    if (handle.kind === 'midpoint') waypoints.splice(handle.index, 0, event.lngLat.toArray());
-    drag = { trackId: track.id, original: track.waypoints, waypoints, index: handle.index, kind: handle.kind, lastCoord: null };
+    // 가운데 손잡이는 실제로 끌기 시작할 때 새 경유점을 끼워 넣는다 (누르기만 하면 아무것도 바뀌지 않게)
+    drag = {
+      trackId: track.id,
+      original: track.waypoints,
+      waypoints,
+      index: handle.index,
+      kind: handle.kind,
+      insert: handle.kind === 'midpoint',
+      from: event.point,
+      lastCoord: null,
+    };
     map.getCanvas().style.cursor = 'grabbing';
   }
 
   function move(event) {
     if (!drag) return;
+    // 끄는 동안 되돌리기·지우기로 선로가 없어졌으면 끌기를 그만둔다
+    if (!findTrack(drag.trackId)) {
+      cancel();
+      return;
+    }
+    if (!drag.lastCoord && event.point.dist(drag.from) < MIN_MOVE_PX) return;
     drag.lastCoord = event.lngLat.toArray();
+    if (drag.insert) {
+      drag.waypoints.splice(drag.index, 0, drag.lastCoord);
+      drag.insert = false;
+    }
     drag.waypoints[drag.index] = drag.lastCoord;
     ui.trackPreview = { id: drag.trackId, waypoints: drag.waypoints };
     renderTracks();
@@ -77,13 +99,13 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
   // 놓기. coord: 놓은 자리 (지도 밖에서 놓았으면 null: 바꾸지 않고 끝낸다)
   function finish(coord) {
     if (!drag) return;
-    const { trackId, original, waypoints } = drag;
+    const { trackId, original, waypoints, lastCoord } = drag;
     drag = null;
     ui.trackPreview = null;
     cursorTip.hide();
-    // 손잡이를 누르기만 하고 움직이지 않았으면 아무것도 바꾸지 않는다
-    const moved = JSON.stringify(original) !== JSON.stringify(waypoints);
-    if (coord && moved && !setTrackWaypoints(trackId, waypoints)) {
+    // 손잡이를 누르기만 하고 움직이지 않았거나, 그사이 선로가 없어졌으면 아무것도 바꾸지 않는다
+    const moved = lastCoord !== null && JSON.stringify(original) !== JSON.stringify(waypoints);
+    if (coord && moved && findTrack(trackId) && !setTrackWaypoints(trackId, waypoints)) {
       const { cost } = rerouteCost(findTrack(trackId), waypoints);
       showCallout(map, coord, shortfall(cost), 'bad');
     }
@@ -94,6 +116,15 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
   document.addEventListener('mouseup', (event) => {
     if (drag && !event.target.closest?.('#map')) finish(null);
   });
+
+  // 끌던 것을 바꾸지 않고 그만둔다 (끄는 중에 되돌리기·지우기를 누르면 mapInput.js가 부른다)
+  function cancel() {
+    if (!drag) return;
+    drag = null;
+    ui.trackPreview = null;
+    cursorTip.hide();
+    render();
+  }
 
   // 경유점 하나를 지운다
   function removeWaypoint(track, index) {
@@ -138,5 +169,5 @@ export function createTrackEditor({ map, ui, render, renderTracks, cursorTip, sh
     finish(lastCoord);
   });
 
-  return { showHandles };
+  return { showHandles, cancel };
 }

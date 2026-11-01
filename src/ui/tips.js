@@ -6,18 +6,21 @@ import { getState } from '../game/state.js';
 import { getEconomy } from '../game/demand.js';
 import { intercityStations } from '../game/intercity.js';
 import { isExpress } from '../game/routeKinds.js';
-import { INTERCITY_LINK_M } from '../config.js';
+import {
+  INTERCITY_LINK_M,
+  TIP_GAP_MS,
+  TIP_HIGHLIGHT_MS as HIGHLIGHT_MS,
+  SEARCH_TIP_STATIONS,
+  STATS_TIP_MONTHS,
+  EXPRESS_TIP_ROUTES,
+} from '../config.js';
+import { FINGER } from '../map/hitPad.js';
+
+// 단축키 안내 "(P)": 손가락 화면에서는 키보드가 없으니 뺀다
+const keyHint = (text) => (FINGER ? '' : text);
 
 // 본 안내 id들을 기억하는 브라우저 저장 이름
 const SEEN_KEY = 'railmap-tips-seen';
-// 안내 하나를 낸 뒤 다음 안내까지 적어도 이만큼 (실제 밀리초). 한꺼번에 쏟아지지 않게
-const TIP_GAP_MS = 20000;
-// 버튼을 노란 테두리로 강조해 두는 시간 (실제 밀리초)
-const HIGHLIGHT_MS = 6000;
-// 안내가 나오는 때 (역 수·정산한 달 수)
-const SEARCH_TIP_STATIONS = 15;
-const STATS_TIP_MONTHS = 3;
-const EXPRESS_TIP_ROUTES = 3;
 
 // 안내: id, 나올 때(when), 글(지도마다 달라지면 글을 만드는 함수), 강조할 버튼 찾기
 const TIPS = [
@@ -25,7 +28,7 @@ const TIPS = [
     id: 'plan',
     // 선로를 한 번 지어 본 뒤 다시 [선로] 도구를 골랐을 때
     when: (state, ui) => ui.tool === 'track' && state.tracks.some((track) => !track.planned),
-    text: '[계획](P)을 켜고 그리면 돈 없이 주황 점선으로 선로를 그려 둘 수 있어요. 나중에 선로를 눌러 [짓기]로 지어요.',
+    text: `[계획]${keyHint('(P)')}을 켜고 그리면 돈 없이 주황 점선으로 선로를 그려 둘 수 있어요. 나중에 선로를 눌러 [짓기]로 지어요.`,
     button: () => [...document.querySelectorAll('#toolbar .tool-button')].find((b) => b.textContent.startsWith('계획')),
   },
   {
@@ -41,7 +44,7 @@ const TIPS = [
   {
     id: 'diagram',
     when: (state) => state.routes.length >= 2,
-    text: '왼쪽 아래 [노선도](D)로 내 노선망을 지하철 노선도처럼 볼 수 있어요. 그림 파일로 저장도 돼요.',
+    text: `왼쪽 아래 [노선도]${keyHint('(D)')}로 내 노선망을 지하철 노선도처럼 볼 수 있어요. 그림 파일로 저장도 돼요.`,
     button: () => document.getElementById('diagram-button'),
   },
   {
@@ -60,7 +63,9 @@ const TIPS = [
   {
     id: 'search',
     when: (state) => state.stations.length >= SEARCH_TIP_STATIONS,
-    text: '역이 많아졌어요. / 키(또는 [메뉴]의 [역·노선 찾기])로 이름을 쳐서 역·노선을 찾을 수 있어요.',
+    text: FINGER
+      ? '역이 많아졌어요. [메뉴]의 [역·노선 찾기]로 이름을 쳐서 역·노선을 찾을 수 있어요.'
+      : '역이 많아졌어요. / 키(또는 [메뉴]의 [역·노선 찾기])로 이름을 쳐서 역·노선을 찾을 수 있어요.',
     button: () => document.getElementById('menu-button'),
   },
 ];

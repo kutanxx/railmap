@@ -18,11 +18,10 @@ import { createRouteStrip } from './routeStrip.js';
 import { createRouteControls } from './routeControls.js';
 import { infoPanelView, routePanelView } from './views.js';
 import { shortfall } from './costText.js';
+import { NARROW_SCREEN_PX } from '../config.js';
 
 // 오른쪽 패널을 접었는지 기억하는 브라우저 저장 이름
 const PANEL_FOLDED_KEY = 'railmap-panel-folded';
-// 이보다 좁은 창은 휴대폰 배치 (styles/mobile.css와 같은 값)
-const NARROW_SCREEN_PX = 700;
 
 // 지금 창이 휴대폰 배치인지 (오른쪽 패널이 아래에서 올라오는 판이 된다)
 export const isNarrowScreen = () => window.innerWidth < NARROW_SCREEN_PX;

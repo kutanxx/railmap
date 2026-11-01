@@ -187,7 +187,8 @@ async function makePreset(regionId) {
   loadData(save);
   for (const route of getState().routes) {
     const count = Math.round(roundTripMinutes(route) / PRESET_HEADWAY_MINUTES);
-    save.network.routes.find((r) => r.id === route.id).trainCount = Math.max(2, Math.min(maxTrainCount(route), count));
+    // 적어도 2대, 그래도 게임의 최대 열차 수는 넘지 않게 (역 2곳짜리 짧은 노선은 2대도 못 넣을 수 있다)
+    save.network.routes.find((r) => r.id === route.id).trainCount = Math.min(maxTrainCount(route), Math.max(2, count));
   }
   const trains = save.network.routes.reduce((sum, r) => sum + r.trainCount, 0);
 

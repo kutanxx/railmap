@@ -35,7 +35,7 @@ export function createPanel(
   element.innerHTML = `
     <section class="panel-station">
       ${head}
-      <div class="panel-station-name">
+      <div class="panel-station-name" role="heading" aria-level="2">
         <input class="panel-name panel-name-title" type="text" maxlength="20" title="눌러서 이름 바꾸기" aria-label="역 이름" />
         <span class="panel-station-tag"></span>
       </div>

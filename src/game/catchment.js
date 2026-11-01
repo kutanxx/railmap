@@ -3,6 +3,7 @@
 // 그래서 역을 짓거나 지우거나 되돌리거나 불러와도 언제나 같은 결과가 나온다.
 import { MIN_STATION_POPULATION, POPULATION_RADIUS_M } from '../config.js';
 import { peoplePerBuiltM2 } from './region.js';
+import { METERS_PER_DEGREE } from './earth.js';
 
 // 결과: Map(역 id → 이웃 역과 나눈 뒤의 인구)
 export function sharedPopulations(stations) {
@@ -29,7 +30,7 @@ export function sharedPopulations(stations) {
 
 // 반경 두 배(=두 원이 겹칠 수 있는 거리) 안의 다른 역들
 function neighbors(station, stations) {
-  const reach = ((2 * POPULATION_RADIUS_M) / 111320) ** 2 * 1.2; // 위도 1도 ≈ 111km, 여유 20%
+  const reach = ((2 * POPULATION_RADIUS_M) / METERS_PER_DEGREE) ** 2 * 1.2; // 1도 ≈ 111km, 여유 20%
   const scale = lngScale(station.coord[1]);
   return stations.filter((other) => other !== station && distanceSq(station.coord, ...other.coord, scale) < reach);
 }

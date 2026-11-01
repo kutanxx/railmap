@@ -6,6 +6,8 @@ import { getState, routeCoords } from '../game/state.js';
 import { routeNumber } from '../game/routes.js';
 import { isExpress } from '../game/routeKinds.js';
 import { routeBadge } from './routeBadge.js';
+import { swallowMapClickAfterClose } from './popovers.js';
+import { FOCUS_ZOOM, FOCUS_PADDING_PX } from '../config.js';
 
 // 한 번에 보여줄 결과 수
 const MAX_RESULTS = 8;
@@ -16,8 +18,9 @@ export function createSearch({ map, select, render }) {
   box.className = 'search-box';
   box.hidden = true;
   box.innerHTML = `
-    <input class="search-input" type="search" placeholder="역·노선 이름" aria-label="역·노선 이름으로 찾기" />
-    <div class="search-results" role="listbox"></div>
+    <input class="search-input" type="search" placeholder="역·노선 이름" aria-label="역·노선 이름으로 찾기"
+      role="combobox" aria-controls="search-results" aria-expanded="true" />
+    <div class="search-results" id="search-results" role="listbox"></div>
   `;
   document.body.append(box);
   const input = box.querySelector('.search-input');
@@ -41,6 +44,9 @@ export function createSearch({ map, select, render }) {
   function show() {
     results = find(input.value);
     active = Math.min(active, Math.max(0, results.length - 1));
+    // 찾기 칸이 고른 줄을 가리킨다 (aria-activedescendant: 초점은 칸에 둔 채 고른 줄을 읽게)
+    if (results.length > 0) input.setAttribute('aria-activedescendant', `search-item-${active}`);
+    else input.removeAttribute('aria-activedescendant');
     if (input.value.trim() && results.length === 0) {
       const empty = document.createElement('p');
       empty.className = 'search-empty';
@@ -54,6 +60,9 @@ export function createSearch({ map, select, render }) {
         row.type = 'button';
         row.className = `search-item${index === active ? ' active' : ''}`;
         row.setAttribute('role', 'option');
+        // ↑↓로 고른 줄을 화면 읽기 프로그램도 읽게 한다 (찾기 칸이 가리키는 줄)
+        row.id = `search-item-${index}`;
+        row.setAttribute('aria-selected', String(index === active));
         if (item.type === 'route') {
           row.append(routeBadge(item.color, item.number, 'span', item.express));
         } else {
@@ -78,11 +87,11 @@ export function createSearch({ map, select, render }) {
     select({ type: item.type, id: item.id });
     if (item.type === 'station') {
       const station = getState().stations.find((s) => s.id === item.id);
-      map.flyTo({ center: station.coord, zoom: Math.max(map.getZoom(), 15) });
+      map.flyTo({ center: station.coord, zoom: Math.max(map.getZoom(), FOCUS_ZOOM) });
     } else {
       const route = getState().routes.find((r) => r.id === item.id);
       const [west, south, east, north] = bbox({ type: 'LineString', coordinates: routeCoords(route) });
-      map.fitBounds([[west, south], [east, north]], { padding: 120, maxZoom: 15 });
+      map.fitBounds([[west, south], [east, north]], { padding: FOCUS_PADDING_PX, maxZoom: FOCUS_ZOOM });
     }
     render();
   }
@@ -103,9 +112,11 @@ export function createSearch({ map, select, render }) {
       go(results[active]);
     }
   });
-  // 찾기 칸 밖을 누르면 닫는다
+  // 찾기 칸 밖을 누르면 닫는다. 지도를 눌러 닫았으면 그 클릭은 지도에 넘기지 않는다 (닫으려던 것이 역 놓기가 되지 않게)
   document.addEventListener('pointerdown', (event) => {
-    if (!box.hidden && !box.contains(event.target)) close();
+    if (box.hidden || box.contains(event.target)) return;
+    close();
+    swallowMapClickAfterClose(event);
   });
 
   function open() {

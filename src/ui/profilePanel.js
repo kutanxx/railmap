@@ -2,18 +2,30 @@
 // 선로를 그리는 중이거나, 선로·노선을 골랐을 때 나온다 (땅 높이가 있는 가상 지도만).
 // 그림은 canvas에 그린다. 상태를 고치지 않고 받은 분석 결과(game/trackProfile.js)를 그리기만 한다.
 import { isNarrowScreen } from './sidePanels.js';
+import { cssColor } from './svg.js';
 
+// 색: 화면 색 변수와 같은 색은 styles/base.css에서 읽고(cssColor), 단면도에만 쓰는 색은 여기 적는다
 const COLORS = {
   groundFill: '#E6D9BE', // 땅 (옆에서 본 단면)
   groundLine: '#B9A47E',
-  rail: '#1F3A55', // 선로 (남색)
-  tunnelBack: '#E9E0CC', // 터널 구간 바탕
-  tunnelText: '#6F6656',
+  get rail() {
+    return cssColor('navy'); // 선로 (남색)
+  },
+  tunnelBack: '#E9E0CC', // 터널 구간 바탕 (시가지 블록 색)
+  get tunnelText() {
+    return cssColor('muted');
+  },
   water: '#B8CBDA', // 강·물
   pier: '#8FA6BB', // 교량 기둥
-  grid: '#EFE7D6', // 높이 눈금선
-  axis: '#6F6656', // 눈금 글자 (흰 바탕에서 읽기 충분히 진하게)
+  get grid() {
+    return cssColor('land'); // 높이 눈금선
+  },
+  get axis() {
+    return cssColor('muted'); // 눈금 글자 (흰 바탕에서 읽기 충분히 진하게)
+  },
 };
+// 눈금 글자 글꼴: 화면 글꼴(Pretendard)과 같게
+const fontFamily = () => getComputedStyle(document.body).fontFamily;
 const PAD = { left: 44, right: 12, top: 10, bottom: 20 };
 // 왼쪽 아래 버튼 줄·오른쪽 패널과 띄우는 간격 (px)
 const GAP_PX = 12;
@@ -116,7 +128,7 @@ function draw(canvas, parts, totalKm) {
   const bottom = Y(low);
 
   // 눈금: 높이(왼쪽), 거리(아래)
-  g.font = '12px sans-serif';
+  g.font = `12px ${fontFamily()}`;
   g.fillStyle = COLORS.axis;
   g.textAlign = 'right';
   const yStep = high - low > 400 ? 100 : 50;
@@ -141,7 +153,7 @@ function draw(canvas, parts, totalKm) {
     g.fillRect(x0, PAD.top, x1 - x0, bottom - PAD.top);
     if (x1 - x0 > 70) {
       g.fillStyle = COLORS.tunnelText;
-      g.font = 'bold 12px sans-serif';
+      g.font = `bold 12px ${fontFamily()}`;
       g.fillText(`터널 ${(samples[run[1]].km - samples[run[0]].km).toFixed(1)}km`, (x0 + x1) / 2, PAD.top + 12);
     }
   }

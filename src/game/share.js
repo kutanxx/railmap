@@ -1,7 +1,8 @@
 // 링크로 공유하기: 지금 노선망을 주소 뒤 # 에 압축해 넣고, 받은 주소에서 다시 꺼낸다 (서버 없이, 주소 안에 다 들어 있다).
 // # 뒤는 서버로 보내지지 않아서 웹 데모(GitHub Pages)에서도 그대로 쓸 수 있다.
 // 짧게 하려고 역 주변 건물 칸(cells)과 통계 기록은 빼고, 역·선로·노선을 이름 없는 배열로 적는다 (compactShare).
-// 받는 쪽은 저장된 역 인구를 그대로 쓴다 (catchment.js). 예전 링크(저장 모양 그대로의 JSON)도 읽는다.
+// 받는 쪽은 여는 동안 지도 조각으로 역 주변 건물을 다시 잰다 (map/buildingTiles.js, main.js). 재지 못하면 링크에 적힌
+// 역 인구를 그대로 쓴다 (catchment.js). 예전 링크(저장 모양 그대로의 JSON)도 읽는다.
 // 압축은 브라우저에 들어 있는 CompressionStream('deflate-raw')을 쓴다 (라이브러리 없음).
 // 받은 노선망은 그 지도의 샌드박스로 연다 (main.js, ui/shareLink.js).
 import { REGIONS } from '../regions.js';
@@ -55,8 +56,16 @@ export function compactShare() {
   ];
 }
 
+// 짧은 공유 모양에서 역을 가리키는 순서 번호가 모두 있는 역인지 (일부러 고친 링크로 없는 역을 가리키면
+// 불러온 뒤 게임이 멈추고, 그 샌드박스를 열 때마다 또 멈췄다)
+function validOrders(stations, tracks, routes) {
+  const ok = (i) => Number.isInteger(i) && i >= 0 && i < stations.length;
+  return tracks.every(([from, to]) => ok(from) && ok(to) && from !== to) && routes.every((route) => route[5].every(ok));
+}
+
 // 짧은 공유 모양을 게임 저장 모양으로 되돌린다 (역·선로 id는 s1·t1부터 차례로 새로 붙인다)
 function expandShare([, region, [year, month], [nextStation, nextTrack, nextRoute], stations, tracks, routes]) {
+  if (!validOrders(stations, tracks, routes)) throw new Error('없는 역을 가리키는 링크');
   let last = [0, 0];
   const point = (dx, dy) => {
     last = [last[0] + dx, last[1] + dy];

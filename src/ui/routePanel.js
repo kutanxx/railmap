@@ -86,7 +86,7 @@ export function createRoutePanel(
         <dt>길이</dt><dd class="route-length"></dd>
       </dl>
       <div class="panel-field">
-        <span>역 순서 <small class="route-stops-hint">끌어서 순서를 바꿔요</small></span>
+        <span>역 순서 <small class="route-stops-hint">${FINGER ? '↑ ↓로 순서를 바꿔요' : '끌어서 순서를 바꿔요'}</small></span>
         <ol class="route-stops"></ol>
         <button type="button" class="route-insert">역 끼워넣기</button>
         <p class="route-message route-edit-message"></p>
@@ -205,7 +205,7 @@ export function createRoutePanel(
   //   draft: { stationNames: [...], message } 또는 null (노선 고르는 중이 아님),
   //   draftKind: 새로 만들 노선의 종류 ('subway' | 'express'),
   //   routes: [{ id, name, color, lengthKm, revenue, riders, load }],
-  //   selected: { id, name, color, kind, kindChangeCost: 다른 종류로 바꾸는 값, lengthKm, stops: [{ id, name }], trainCount,
+  //   selected: { id, name, color, kind, kindChangeCost: 다른 종류로 바꾸는 값, kindChangeTrains: 바꾼 뒤 남는 열차 수, lengthKm, stops: [{ id, name }], trainCount,
   //               revenue, riders, avgKm, load, lost, headwayMinutes } 또는 null,
   //   (load: 혼잡도, 1 = 100%. lost: 자리가 없어 놓친 하루 승객)
   //   inserting: 역을 끼워넣는 중인지, message: 노선 편집 안내 글
@@ -236,9 +236,12 @@ export function createRoutePanel(
       trainCount = selected.trainCount;
       pressKind(detailKindButtons, selected.kind);
       const other = selected.kind === 'express' ? 'subway' : 'express';
+      const otherName = other === 'express' ? '광역급행으로' : '지하철로';
+      const fewer = selected.kindChangeTrains < trainCount;
       detailKindNote.textContent =
         selected.kindChangeCost > 0
-          ? `${other === 'express' ? '광역급행으로' : '지하철로'} 바꾸면 열차 ${trainCount}대 값 차이 ${formatMoney(selected.kindChangeCost)}`
+          ? `${otherName} 바꾸면 열차 ${selected.kindChangeTrains}대 값 차이 ${formatMoney(selected.kindChangeCost)}` +
+            (fewer ? ` (빨라져서 열차 사이가 너무 좁아지니 ${trainCount}대 → ${selected.kindChangeTrains}대로 줄어요)` : '')
           : kindNote(selected.kind);
       // 최대 열차 수는 노선이 길수록 많고, 지도 전체 열차 수에도 한도가 있다 (game/routes.js의 trainLimit)
       const limit = selected.trainLimit;
@@ -303,7 +306,8 @@ export function createRoutePanel(
     loadText.replaceChildren(`${Math.round(load * 100)}%`, small);
   }
 
-  // 역 순서: 역 이름 + [빼기] 버튼. 줄을 끌어다 다른 줄 위에 놓으면 그 자리로 옮긴다
+  // 역 순서: 역 이름 + [빼기] 버튼. 줄을 끌어다 다른 줄 위에 놓으면 그 자리로 옮긴다.
+  // 손가락 화면은 끌어 놓기가 안 되는 브라우저가 많아서 [↑][↓] 버튼으로 한 칸씩 옮긴다
   let draggedIndex = null;
   function renderStops(stops) {
     stopList.replaceChildren(
@@ -336,7 +340,23 @@ export function createRoutePanel(
         remove.className = 'route-stop-remove';
         remove.textContent = '빼기';
         remove.addEventListener('click', () => onRemoveStation(routeId, stop.id));
-        item.append(name, remove);
+        item.append(name);
+        if (FINGER) {
+          for (const [text, label, to] of [
+            ['↑', '위로', index - 1],
+            ['↓', '아래로', index + 1],
+          ]) {
+            const move = document.createElement('button');
+            move.type = 'button';
+            move.className = 'route-stop-remove route-stop-move';
+            move.textContent = text;
+            move.setAttribute('aria-label', `${stop.name} ${label}`);
+            move.disabled = to < 0 || to >= stops.length;
+            move.addEventListener('click', () => onMoveStop(routeId, index, to));
+            item.append(move);
+          }
+        }
+        item.append(remove);
         return item;
       }),
     );

@@ -94,7 +94,7 @@
 
 .start-first-card:hover .start-first-label,
 .start-first-card:hover .start-first-description {
-  color: #d3dce5;
+  color: var(--on-navy-soft);
 }
 
 .start-first-card:hover .start-first-go {

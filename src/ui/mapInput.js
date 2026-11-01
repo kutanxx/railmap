@@ -45,7 +45,7 @@ export function bindMapInput(ctx) {
     openSearch,
     diagram,
   } = ctx;
-  const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile } = ctx;
+  const { trackTool, routeTool, cursorTip, shortfall, costNote, notice, showDraftProfile, cancelDrags } = ctx;
 
   // 화면의 한 점에 있는 역 id. 방금 지운 역이 지도에 잠깐 남아 보일 수 있어서, 상태에 있는 역만 인정한다
   const stationAt = (point) => {
@@ -133,7 +133,8 @@ export function bindMapInput(ctx) {
     // 노선에 역을 끼워넣는 중이면, 누른 역을 그 노선에 넣는다
     if (ui.insertingInto && stationId) {
       const problem = insertStationIntoRoute(ui.insertingInto, stationId);
-      ui.routeMessage = problem ?? `${findStation(stationId).name}을(를) 넣었어요. 더 넣거나 Esc로 끝내세요.`;
+      const howToEnd = FINGER ? '[역 끼워넣기]를 다시 눌러 끝내세요' : 'Esc로 끝내세요';
+      ui.routeMessage = problem ?? `${findStation(stationId).name}을(를) 넣었어요. 더 넣거나 ${howToEnd}.`;
       render();
       return;
     }
@@ -240,14 +241,17 @@ export function bindMapInput(ctx) {
       render();
     }
   }
-  // 오른쪽 클릭. 오른쪽 버튼으로 끌어서 지도를 돌린 것은 클릭으로 치지 않는다
+  // 오른쪽 클릭. 오른쪽 버튼으로 끌어서 지도를 돌린 것은 클릭으로 치지 않는다.
+  // 진짜 오른쪽 버튼을 누른 뒤에 온 것만 받는다: 지도는 손가락으로 0.5초 꾹 눌러도 contextmenu를 보내서
+  // (MapLibre), 휴대폰에서 지도를 잠깐 누르고 있으면 그리던 선로가 사라졌다
   let rightDown = null;
   map.on('mousedown', (event) => {
     if (event.originalEvent.button === 2) rightDown = event.point;
   });
   map.on('contextmenu', (event) => {
     event.preventDefault();
-    const dragged = rightDown && rightDown.dist(event.point) > 5;
+    if (!rightDown) return;
+    const dragged = rightDown.dist(event.point) > 5;
     rightDown = null;
     if (dragged) return;
     cursorTip.hide();
@@ -260,9 +264,10 @@ export function bindMapInput(ctx) {
   // Ctrl+Z (맥은 Cmd+Z): 되돌리기, Ctrl+Shift+Z 또는 Ctrl+Y: 다시 하기
   // 되돌리기·다시 하기 (Ctrl+Z·Ctrl+Y, 왼쪽 아래 [↶][↷] 버튼)
   function undoOrRedo(redoing) {
-    // 그리던 선로·노선은 먼저 취소한다 (되돌린 뒤 없어진 역을 붙잡고 있지 않게)
+    // 그리던 선로·노선, 끌던 역·경유점은 먼저 취소한다 (되돌린 뒤 없어진 역·선로를 붙잡고 있지 않게)
     trackTool.cancel();
     routeTool.cancel();
+    cancelDrags();
     const result = redoing ? redo() : undo();
     if (result === false) notice(redoing ? '다시 할 것이 없어요' : '되돌릴 것이 없어요', 'bad');
     else if (result === null) notice('다시 하기에 필요한 돈이 모자라요', 'bad');
@@ -276,8 +281,8 @@ export function bindMapInput(ctx) {
     target instanceof HTMLTextAreaElement ||
     target?.isContentEditable ||
     (target instanceof HTMLInputElement && ['text', 'search'].includes(target.type));
-  // 화면을 가리는 창(조작 안내, 파산)이 떠 있으면 뒤의 게임은 키를 받지 않는다
-  const dialogOpen = () => !document.getElementById('help').hidden || !document.getElementById('bankrupt').hidden;
+  // 화면을 가리는 창(조작 안내, 파산, 공유 링크 칸)이 떠 있으면 뒤의 게임은 키를 받지 않는다
+  const dialogOpen = () => [...document.querySelectorAll('.dialog-backdrop')].some((element) => !element.hidden);
 
   document.addEventListener('keydown', (event) => {
     // 이름 칸에 글자를 치는 중이면 건드리지 않는다 (이름 칸은 자기 되돌리기를 쓴다)
@@ -338,7 +343,8 @@ export function bindMapInput(ctx) {
       else if (routeTool.isDrawing()) routeTool.undoStation();
       else return;
       event.preventDefault();
-    } else if (event.key === 'Enter' && routeTool.isDrawing()) {
+    } else if (event.key === 'Enter' && routeTool.isDrawing() && !(event.target instanceof HTMLButtonElement)) {
+      // 버튼에 초점이 있으면 Enter는 그 버튼을 누른 것이다 (예: [취소]에서 Enter가 노선을 완성하지 않게)
       routeTool.finish();
     }
   });

@@ -17,6 +17,7 @@ import {
 } from '../config.js';
 import { readMapFeatures, isVirtualMap } from './mapFeatures.js';
 import { peoplePerBuiltM2 } from '../game/region.js';
+import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from '../game/earth.js';
 
 // 원을 몇 각형으로 근사할지
 const CIRCLE_STEPS = 32;
@@ -119,15 +120,15 @@ const round = (value, digits) => Math.round(value * 10 ** digits) / 10 ** digits
 
 // [경도, 위도] → 기준점에서 동쪽 x, 북쪽 y 미터
 export function localProjection([lng0, lat0]) {
-  const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
-  const metersPerLat = 110540;
+  const metersPerLng = metersPerDegreeLng(lat0);
+  const metersPerLat = METERS_PER_DEGREE_LAT;
   return ([lng, lat]) => [(lng - lng0) * metersPerLng, (lat - lat0) * metersPerLat];
 }
 
 // 기준점에서 동쪽 x, 북쪽 y 미터 → [경도, 위도] (localProjection의 반대)
 export function inverseProjection([lng0, lat0]) {
-  const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
-  const metersPerLat = 110540;
+  const metersPerLng = metersPerDegreeLng(lat0);
+  const metersPerLat = METERS_PER_DEGREE_LAT;
   return ([x, y]) => [lng0 + x / metersPerLng, lat0 + y / metersPerLat];
 }
 

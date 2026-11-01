@@ -3,7 +3,7 @@
 // 공사비 안내 costText.js, 저장 버튼·파산 창 saveControls.js, 매 프레임 애니메이션 animation.js, 경고 warnings.js,
 // 선로 그리기 trackView.js, 역·이름표·출구 그리기 mapView.js, 오른쪽 패널 sidePanels.js, [선로]·[노선] 도구 drawingTools.js,
 // 혼잡도·지형·소리 버튼 viewToggles.js, 튜토리얼 tutorial.js, 종단면도 profilePanel.js, 지도 레이어 순서 map/gameLayers.js
-import { BANKRUPT_GRACE_MONTHS } from '../config.js';
+import { BANKRUPT_GRACE_MONTHS, FOCUS_ZOOM } from '../config.js';
 import { getRegion, isSandbox } from '../game/region.js';
 import { addGameLayers } from '../map/gameLayers.js';
 import { getState, subscribe, setSpeed, findStation, findTrack, findRoute, monthlyInterest } from '../game/state.js';
@@ -14,6 +14,7 @@ import { setWaterTest, trackProfile } from '../game/trackProfile.js';
 import { waterAt, waterVersion } from '../map/water.js';
 import { updateEconomy, getEconomy } from '../game/demand.js';
 import { startEconomyWorker, requestEconomy } from '../game/economyJob.js';
+import { clearTrackMemory } from '../game/tripFinder.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
@@ -111,8 +112,12 @@ export function startApp(map, loadMessage) {
     () => toggleDraftPlan(),
   );
 
+  // 역·경유점을 끄는 중이면 그만둔다 (끄는 사이 되돌리기·지우기로 붙잡은 것이 없어지지 않게). 아래에서 끌기 도구를 만든 뒤 채운다
+  let cancelDrags = () => {};
+
   // 고른 역·선로·노선 지우기 (패널의 삭제 버튼, Delete 키)
   function deleteSelected() {
+    cancelDrags();
     dropMissing();
     const selected = ui.selected;
     if (!selected) return;
@@ -143,7 +148,7 @@ export function startApp(map, loadMessage) {
   const diagram = createDiagramView({
     onPickStation: (id) => {
       select({ type: 'station', id });
-      map.flyTo({ center: findStation(id).coord, zoom: Math.max(map.getZoom(), 15) });
+      map.flyTo({ center: findStation(id).coord, zoom: Math.max(map.getZoom(), FOCUS_ZOOM) });
       render();
     },
   });
@@ -295,7 +300,12 @@ export function startApp(map, loadMessage) {
     notice,
   };
   const trackEditor = createTrackEditor(ctx);
-  createStationMover(ctx);
+  const stationMover = createStationMover(ctx);
+  cancelDrags = () => {
+    trackEditor.cancel();
+    stationMover.cancel();
+  };
+  ctx.cancelDrags = cancelDrags;
 
   // 지도 레이어를 정한 순서대로 올린다 (map/gameLayers.js)
   addGameLayers(map, hasTerrain() ? terrainGrid() : null);
@@ -312,6 +322,9 @@ export function startApp(map, loadMessage) {
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   subscribe((state, kind) => {
     if (kind !== 'network') return;
+    // 기억해 둔 선로 길이·달리는 시간을 비운다 (선로 모양이 바뀌면 노선의 최대 열차 수도 바뀌어야 한다.
+    // 승객 계산은 일꾼이 해서 이 화면 쪽 기억은 여기서 비운다)
+    clearTrackMemory();
     syncTrains();
     animation.markTrainsChanged();
     requestEconomy(() => {

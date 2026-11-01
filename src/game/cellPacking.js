@@ -3,10 +3,11 @@
 // 그래서 경도·위도 대신 "역에서 동쪽·북쪽으로 몇 번째 칸인지"(정수)로 적으면 저장 크기가 절반 아래로 준다.
 // 다시 펼친 좌표가 원래와 하나라도 다르면 그 역은 예전처럼 경도·위도로 적는다 (숫자가 조금도 바뀌지 않게).
 import { CATCHMENT_CELL_M } from '../config.js';
+import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from './earth.js';
 
-// map/population.js의 localProjection·inverseProjection과 같은 값·같은 계산 (그래야 펼친 좌표가 똑같다)
-const METERS_PER_LAT = 110540;
-const metersPerLng = (lat) => 111320 * Math.cos((lat * Math.PI) / 180);
+// map/population.js의 localProjection·inverseProjection과 같은 값·같은 계산 (그래야 펼친 좌표가 똑같다, game/earth.js)
+const METERS_PER_LAT = METERS_PER_DEGREE_LAT;
+const metersPerLng = metersPerDegreeLng;
 const round5 = (value) => Math.round(value * 10 ** 5) / 10 ** 5;
 
 // 역 자리 coord에서 (gx, gy)번째 칸 가운데의 [경도, 위도]

@@ -47,9 +47,10 @@ export function createHistory() {
     redoStack = [];
   }
 
-  // 매달 정산할 때: 지금까지의 기록을 모두 정산됨으로 (되돌려도 돈은 그대로)
+  // 매달 정산할 때: 지금까지 한 공사를 모두 정산됨으로 (되돌려도 돈은 그대로).
+  // 다시 하기 줄(redoStack)은 건드리지 않는다: 이미 되돌려 돈을 돌려받은 공사라, 다시 하면 공사비를 다시 내야 한다
   function settle() {
-    for (const entry of [...undoStack, ...redoStack]) entry.settled = true;
+    for (const entry of undoStack) entry.settled = true;
   }
 
   return { record, undo, redo, peekRedo, clear, settle };

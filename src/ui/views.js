@@ -14,7 +14,7 @@ import { getEconomy } from '../game/demand.js';
 import { removalPreview, plannedTrackCost, allPlannedCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
-import { routeNumber, kindChangeCost, trainLimit } from '../game/routes.js';
+import { routeNumber, kindChangeCost, kindChangeTrains, trainLimit } from '../game/routes.js';
 import { kindOf, isExpress } from '../game/routeKinds.js';
 import { routeHeadway } from '../game/sim.js';
 import { formatPopulation } from './format.js';
@@ -144,8 +144,9 @@ export function routePanelView({ mode, selected, draft, draftKind, routes, inser
       color: route.color,
       number: routeNumber(route),
       kind: kindOf(route),
-      // 다른 종류로 바꾸는 값 (광역급행 → 지하철은 0)
+      // 다른 종류로 바꾸는 값 (광역급행 → 지하철은 0)과 바꾼 뒤 남는 열차 수 (광역급행은 빨라서 줄 수 있다)
       kindChangeCost: kindChangeCost(route, isExpress(route) ? 'subway' : 'express'),
+      kindChangeTrains: kindChangeTrains(route, isExpress(route) ? 'subway' : 'express'),
       lengthKm: routeLengthKm(route),
       stops: route.stations.map((id) => ({ id, name: findStation(id).name })),
       trainCount: route.trainCount,

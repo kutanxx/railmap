@@ -77,7 +77,7 @@ export function goalList() {
 let checkedAt = null;
 
 // 새로 이룬 목표를 찾아 기록하고 보상을 준다. 결과: 이번에 이룬 목표들 (goalList의 항목)
-// 상태가 바뀔 때마다 (수요를 다시 계산한 뒤에) 부르지만, 새 정산이 있었을 때만 확인한다
+// 상태가 바뀔 때마다 부르고 (철도망이 바뀌면 일꾼이 수요를 다시 계산한 뒤에도 한 번 더), 새 정산이 있었을 때만 확인한다
 export function checkGoals() {
   const state = getState();
   if (checkedAt === state.settledMonths) return [];

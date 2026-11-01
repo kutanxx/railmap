@@ -3,6 +3,7 @@
 // 팽팽함(config.js의 CURVE_TENSION)만큼 경유점에서의 휘는 기세를 줄여서, 곡선이 바깥으로 덜 부풀게 한다.
 // 선로를 그리는 곳, 길이·공사비, 열차 달리기, 승강장 방향이 모두 이 모양을 쓴다.
 import { CURVE_SAMPLE_M, CURVE_TENSION } from '../config.js';
+import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from './earth.js';
 
 // 같은 모양을 여러 번 계산하지 않게 기억해 둔다 (그리기·수요 계산이 같은 선로를 자주 묻는다)
 const remembered = new Map();
@@ -28,8 +29,8 @@ export function shapeCoords(points, curve) {
 export function curveSegments(points) {
   // 경도·위도를 첫 점 기준 미터 평면으로 바꿔서 계산한다 (도시 하나 크기면 지구가 둥근 건 무시해도 된다)
   const [lng0, lat0] = points[0];
-  const metersPerLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
-  const metersPerLat = 110540;
+  const metersPerLng = metersPerDegreeLng(lat0);
+  const metersPerLat = METERS_PER_DEGREE_LAT;
   const p = points.map(([lng, lat]) => [(lng - lng0) * metersPerLng, (lat - lat0) * metersPerLat]);
   const back = ([x, y]) => [lng0 + x / metersPerLng, lat0 + y / metersPerLat];
   // 양 끝 바깥에 가상의 점을 하나씩 둔다 (끝 조각도 곡선 공식을 쓸 수 있게, 역에서는 곧게 나가도록)

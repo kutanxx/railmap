@@ -7,7 +7,7 @@ import { setRegion, getRegion, setSandbox, isSandbox } from './game/region.js';
 import { createMap } from './map/createMap.js';
 import { useVirtualMap } from './map/mapFeatures.js';
 import { setTerrain } from './game/terrain.js';
-import { loadFromBrowser, resetGame, writeSandboxSave } from './game/save.js';
+import { loadFromBrowser, loadData, resetGame, writeSandboxSave } from './game/save.js';
 import { readSharedLink } from './game/share.js';
 import { measureStations } from './map/buildingTiles.js';
 import { loadPreset, presetOf } from './game/presets.js';
@@ -38,15 +38,30 @@ renderBadge(document.getElementById('badge'), {
 // 지도가 뜰 때까지 "불러오는 중" 표시 (실제 노선망·가상 지도 자료를 받는 동안에도)
 const loading = showMapLoading(region.name);
 
-// [실제 노선망으로 시작]을 골랐으면 실제 노선을 깐 저장(game/presets.js)을 받아 그 지도의 샌드박스 저장 칸에 넣는다
+// 받은 게임(실제 노선망·공유받은 노선망)을 그 지도의 샌드박스 저장 칸에 넣는다. 아래에서 그 저장을 불러온다.
+// 브라우저 저장 공간이 꽉 차 넣지 못하면 (실제 노선망 여러 개, 뉴욕 하나가 1MB 넘는다) 저장하지 않고 바로 불러오고
+// 지도가 뜬 뒤에 이유를 알려준다. 다른 까닭의 실패는 그대로 던진다
+let unsaved = null; // 저장 칸에 넣지 못해 바로 불러올 게임
+function putInSandbox(data) {
+  try {
+    writeSandboxSave(data);
+  } catch (error) {
+    if (!['QuotaExceededError', 'NS_ERROR_DOM_QUOTA_REACHED'].includes(error?.name)) throw error;
+    unsaved = data;
+  }
+}
+
+// [실제 노선망으로 시작]을 골랐으면 실제 노선을 깐 저장(game/presets.js)을 받아 샌드박스 저장 칸에 넣는다
 // 받지 못하면 (인터넷이 끊김) 하던 샌드박스나 새 게임으로 열고, 지도가 뜬 뒤에 이유를 알려준다
 let presetProblem = null;
 if (choice.preset) {
+  let preset = null;
   try {
-    writeSandboxSave(await loadPreset(region.id));
+    preset = await loadPreset(region.id);
   } catch (error) {
     presetProblem = error.message;
   }
+  if (preset) putInSandbox(preset);
 }
 
 // 가상 지도는 GeoJSON 자료와 땅 높이 격자를 읽어 둔다 (실제 지도를 고르면 받지 않는다)
@@ -71,7 +86,7 @@ if (choice.shared) {
   } catch (error) {
     sharedProblem = error.message;
   }
-  writeSandboxSave(shared);
+  putInSandbox(shared);
 }
 
 // 브라우저에 저장해 둔 이 지도의 게임이 있으면 이어서 한다
@@ -79,7 +94,13 @@ if (choice.shared) {
 // 이어 할 게임이 없으면 이 지도의 시작 자금으로 새 게임을 차린다
 let loadMessage = null;
 try {
-  if (loadFromBrowser()) {
+  if (unsaved) {
+    loadData(unsaved);
+    loadMessage = {
+      text: '브라우저 저장 공간이 모자라 이 게임은 저장되지 않아요. 쓰지 않는 지도의 게임을 [메뉴]의 [새로 시작]으로 비우면 자리가 생겨요',
+      tone: 'warn',
+    };
+  } else if (loadFromBrowser()) {
     loadMessage = { text: '저장된 게임을 이어서 해요', tone: 'info' };
     if (choice.shared) loadMessage.text = '공유받은 노선망을 샌드박스로 열었어요';
     if (choice.preset && !presetProblem) {

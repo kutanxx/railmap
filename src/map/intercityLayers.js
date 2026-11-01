@@ -1,6 +1,8 @@
 // 고속철도역(처음부터 있는 고정 역, game/intercity.js)을 지도에 그린다.
 // 플레이어가 지은 것이 아니므로 색 없이 기존 철도 회색으로: 흰 동그라미 + 회색 테두리, 이름 아래 작게 종류 ("고속철도" 또는 "공항").
 // 이어진 지하철역이 있으면 둘 사이를 남색 점선(갈아타는 통로)으로 잇는다. 플레이어가 역을 지어 생긴 것이라 출구 통로처럼 남색.
+import { INTERCITY_MIN_ZOOM, INTERCITY_LABEL_MIN_ZOOM } from '../config.js';
+
 const POINT_SOURCE = 'intercity';
 const LINK_SOURCE = 'intercity-links';
 
@@ -13,9 +15,9 @@ const COLORS = {
 };
 // 동그라미 반지름 (px): 큰 역 / 중간 역
 const RADIUS = { large: 7, medium: 5.5 };
-// 이보다 멀리 보면 그리지 않는다 (도시 전체를 볼 때 붐비지 않게). 이름은 조금 더 가까이서부터
-const MIN_ZOOM = 10;
-const LABEL_MIN_ZOOM = 12;
+// 이보다 멀리 보면 그리지 않는다 (config.js의 INTERCITY_MIN_ZOOM, 이름은 INTERCITY_LABEL_MIN_ZOOM부터)
+const MIN_ZOOM = INTERCITY_MIN_ZOOM;
+const LABEL_MIN_ZOOM = INTERCITY_LABEL_MIN_ZOOM;
 
 export function addIntercityLayers(map) {
   const empty = { type: 'FeatureCollection', features: [] };

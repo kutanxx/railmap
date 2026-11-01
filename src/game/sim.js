@@ -28,9 +28,10 @@ export function syncTrains() {
 
   for (const route of state.routes) {
     const path = buildPath(route);
-    // 종점에서 마지막으로 떠난 시각은 이어 간다 (매달 정산·배속 바꾸기마다 간격 맞추기가 풀려 열차가 몰리지 않게)
+    // 종점에서 마지막으로 떠난 시각은 이어 간다 (매달 정산·배속 바꾸기마다 간격 맞추기가 풀려 열차가 몰리지 않게).
+    // 지금보다 뒤의 시각은 버린다: 게임 중에 다른 파일을 불러오면 시계가 앞으로 돌아가서, 예전 게임의 시각까지 종점에서 기다렸다
     const before = previous.get(route.id);
-    if (before) path.departures = before.departures;
+    if (before) path.departures = before.departures.map((time) => (time <= state.elapsedSeconds ? time : -Infinity));
     paths.set(route.id, path);
 
     const existing = state.trains.filter((train) => train.routeId === route.id);
@@ -40,6 +41,7 @@ export function syncTrains() {
       for (const train of existing) {
         train.distance = Math.min(train.distance, path.length);
         train.leg = null;
+        train.stop = null;
       }
       trains.push(...existing);
     } else {
@@ -169,6 +171,7 @@ function placeTrains(route, path) {
       dwell: position === 0 ? STATION_DWELL_SECONDS : 0,
       leg: null, // 달리는 중인 구간 번호 (역에 서 있으면 null)
       legTime: 0, // 그 구간에서 출발한 뒤 흐른 게임 초
+      stop: null, // 마지막으로 도착한 역 번호 (path.stops의 번호. 모르면 null)
     });
   }
   return trains;
@@ -191,7 +194,10 @@ function moveTrain(train, path, seconds, startTime) {
     }
 
     if (train.leg === null) {
-      const stop = stopIndexAt(path.stops, train.distance);
+      // 방금 도착한 역 번호를 먼저 쓴다: 두 역이 같은 자리에 있으면 거리만으로는 앞 역으로 잘못 찾아서
+      // 열차가 그 두 역 사이만 끝없이 오갔다
+      const known = train.stop != null && Math.abs(path.stops[train.stop] - train.distance) < EPSILON;
+      const stop = known ? train.stop : stopIndexAt(path.stops, train.distance);
       if (stop < 0) {
         // 역 사이에 있는데 구간을 모른다 (막 배치했거나 노선이 바뀜): 지금 자리에서 이어 달린다
         resumeLeg(train, path);
@@ -228,6 +234,7 @@ function moveTrain(train, path, seconds, startTime) {
     remaining -= left;
     const stop = train.direction > 0 ? train.leg + 1 : train.leg;
     train.distance = path.stops[stop];
+    train.stop = stop;
     train.leg = null;
     train.legTime = 0;
     train.dwell = STATION_DWELL_SECONDS;
