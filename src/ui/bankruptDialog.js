@@ -1,6 +1,7 @@
 // 파산 창: 빚이 한도를 넘은 채 몇 달이 지나 파산하면 화면 가운데에 띄운다.
 // 브라우저 alert 대신 화면 안의 창으로 만든다. [새로 시작] 또는 [저장 파일 불러오기]로만 닫힌다.
 import { formatMoney } from './format.js';
+import { dialogFocus } from './dialogFocus.js';
 
 export function createBankruptDialog(element, { onReset, onImport }) {
   element.innerHTML = `
@@ -15,6 +16,8 @@ export function createBankruptDialog(element, { onReset, onImport }) {
     </div>
   `;
   const text = element.querySelector('.dialog-text');
+  // 키보드 초점: 뜰 때 [새로 시작]으로, Tab은 창 안에서만 (dialogFocus.js)
+  const focus = dialogFocus(element);
   const input = element.querySelector('.bankrupt-file');
 
   element.querySelector('.bankrupt-reset').addEventListener('click', onReset);
@@ -27,8 +30,10 @@ export function createBankruptDialog(element, { onReset, onImport }) {
 
   // state를 보고 파산했으면 창을 띄우고, 아니면 숨긴다
   function show({ bankrupt, year, month, money }) {
+    const appearing = bankrupt && element.hidden;
     element.hidden = !bankrupt;
     if (!bankrupt) return;
+    if (appearing) focus.opened(element.querySelector('.bankrupt-reset'));
     text.textContent =
       `${year}년 ${month}월, 빚이 한도를 넘은 채 몇 달이 지나 철도 회사가 문을 닫았어요. ` +
       `마지막 자금은 ${formatMoney(money)}이에요. 적자 노선을 줄이고 승객이 많은 곳을 이어보세요.`;

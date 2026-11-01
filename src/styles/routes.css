@@ -162,15 +162,17 @@
   border-radius: var(--radius-button);
 }
 
-/* 이름 칸: 이름은 다 보이게, "혼잡"은 한 덩어리로 (한 글자씩 꺾이지 않게) */
+/* 이름 칸: 이름은 다 보이게, "혼잡"은 한 덩어리로 (한 글자씩 꺾이지 않게).
+   아주 긴 이름("센트럴선 · Roding Valley 경유")은 목록 폭을 넘어 옆으로 밀리지 않게 띄어쓰기에서 줄을 바꾼다 */
 .route-item-name {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   align-items: center;
+  min-width: 0;
 }
 
 .route-item-label {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 /* 하루 승객 · 월 수입: 작은 글자로 한 줄에, 늘 오른쪽 끝에 */

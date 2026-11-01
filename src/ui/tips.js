@@ -90,6 +90,9 @@ export function createTips({ ui, notice }) {
     // 튜토리얼이 떠 있으면 그것부터 (안내가 겹치지 않게)
     if (!tutorial.hidden) return;
     if (Date.now() - lastShown < TIP_GAP_MS) return;
+    // 지도 위에 다른 말풍선(불러옴·개통 알림 등)이 떠 있으면 사라진 뒤에 (같은 가운데 자리에 겹치지 않게.
+    // 누를 때까지 남는 위험 알림은 기다리지 않는다)
+    if (document.querySelector('.callout.maplibregl-marker:not(.callout-sticky)')) return;
     const state = getState();
     const tip = TIPS.find((item) => !seen.has(item.id) && item.when(state, ui));
     if (!tip) return;

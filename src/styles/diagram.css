@@ -88,6 +88,14 @@
   bottom: 16px;
 }
 
+/* 아래 안내와 출처는 노선도 위에 겹쳐도 읽히게 땅색 바탕을 깐다 (단색이라 플랫 규칙 그대로) */
+.diagram-hint,
+.diagram-credit {
+  padding: 2px 8px;
+  border-radius: var(--radius-button);
+  background: var(--land);
+}
+
 .diagram-empty {
   top: 50%;
   font-size: var(--text-strong);

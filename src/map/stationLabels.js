@@ -168,6 +168,7 @@ export function arrangeStationLabels(map, exitCoords, area = null) {
     let best = 0;
     let bestScore = Infinity;
     let bestCrowd = 0;
+    let bestOff = false;
     PLACES.forEach((place, order) => {
       const box = shift(bubbleBox(place, width, height), at);
       // 화면 가장자리·패널·화면 판 밑으로 들어가는 자리도 출구 하나를 덮는 것만큼 나쁘게 친다 (이름이 잘리거나 가려지지 않게)
@@ -185,10 +186,12 @@ export function arrangeStationLabels(map, exitCoords, area = null) {
         bestScore = score;
         best = order;
         bestCrowd = crowd;
+        bestOff = offScreen;
       }
     });
-    // 어느 자리든 다른 말풍선과 겹치면 숨긴다 (고른 역은 빼고). 숨긴 말풍선은 자리를 차지하지 않는다
-    const crowded = bestCrowd > 0 && !label.selected;
+    // 어느 자리든 다른 말풍선과 겹치거나, 화면 가장자리·패널·화면 판에 잘리면 숨긴다 (고른 역은 빼고).
+    // 숨긴 말풍선은 자리를 차지하지 않는다 (지도를 옮기거나 확대하면 다시 나타난다)
+    const crowded = (bestCrowd > 0 || bestOff) && !label.selected;
     if (label.crowded !== crowded) {
       label.crowded = crowded;
       label.element.classList.toggle('station-label-crowded', crowded);

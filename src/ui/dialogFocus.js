@@ -25,9 +25,11 @@ export function dialogFocus(backdrop, fallback = null) {
 
   return {
     // first: 처음 초점을 줄 것 (없으면 창 안 첫 칸·버튼)
+    // 창은 맨 위부터 보여준다 (초점 줄 버튼이 긴 창 맨 아래에 있어도 그쪽으로 굴리지 않는다)
     opened(first = null) {
       returnTo = document.activeElement;
-      (first ?? [...backdrop.querySelectorAll(FOCUSABLE)].find(visible))?.focus();
+      (first ?? [...backdrop.querySelectorAll(FOCUSABLE)].find(visible))?.focus({ preventScroll: true });
+      for (const box of backdrop.querySelectorAll('.dialog')) box.scrollTop = 0;
     },
     closed() {
       const target = visible(returnTo) ? returnTo : fallback;

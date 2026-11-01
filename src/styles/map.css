@@ -120,6 +120,11 @@
   pointer-events: none;
 }
 
+/* 지도 위 알림 말풍선은 역 이름 말풍선보다 위에 (둘 다 지도 표시물이라 늦게 만든 역 이름이 알림을 덮을 수 있었다) */
+.callout.maplibregl-marker {
+  z-index: 2;
+}
+
 .callout-bubble {
   position: relative;
   padding: 6px 12px;

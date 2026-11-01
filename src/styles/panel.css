@@ -19,6 +19,14 @@
   pointer-events: none;
 }
 
+/* 창 폭이 950px보다 좁으면 왼쪽 아래 버튼 줄(약 600px)이 패널 아래쪽까지 닿는다. 패널을 그 줄 위에서 끝낸다
+   (버튼 줄은 이 폭에서 아래에서 40px 위, 높이 약 40px. 700px 아래 휴대폰 배치는 mobile.css) */
+@media (max-width: 949px) {
+  .side {
+    bottom: 92px;
+  }
+}
+
 .panel {
   box-sizing: border-box;
   width: 100%;
@@ -108,10 +116,11 @@
   gap: 6px;
 }
 
+/* 판 안 버튼 공통 모양: 흰 바탕 + 남색 2px (고른 것만 남색으로 채운다, [30분 지도]·노선 종류와 같다) */
 .panel-angle-presets button {
   flex: 1;
   padding: 4px;
-  border: 2px solid var(--muted);
+  border: 2px solid var(--navy);
   border-radius: var(--radius-button);
   background: #ffffff;
   color: var(--navy);
@@ -121,8 +130,8 @@
   cursor: pointer;
 }
 
-.panel-angle-presets button:hover {
-  border-color: var(--navy);
+.panel-angle-presets button:hover:not(.active) {
+  background: var(--land);
 }
 
 /* 선로가 이어진 역은 방향을 돌리지 않으므로 조절을 숨긴다 */
