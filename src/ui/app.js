@@ -43,6 +43,7 @@ import { createReachView } from './reachView.js';
 import { createTrainFollow } from './trainFollow.js';
 import { createRealOverlay } from './realOverlay.js';
 import { createWhatIfCard } from './whatIfCard.js';
+import { createDrawerCard } from './drawerCard.js';
 import { shortfall, costNote } from './costText.js';
 import { bindSaveControls } from './saveControls.js';
 import { startAnimation } from './animation.js';
@@ -297,6 +298,8 @@ export function startApp(map, loadMessage) {
   };
   // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
   const search = createSearch({ map, select, render });
+  // 내 노선망 서랍 ([메뉴] → [서랍], drawerCard.js): 이름 붙인 노선망을 여러 개 넣어 두고 꺼낸다
+  const drawer = createDrawerCard({ notice, render, clearWork });
   // "만약에" 노선 ([메뉴] → [만약에 노선], whatIfCard.js): 짓고 있거나 계획만 된 실제 노선을 계획 선로로
   const whatIf = createWhatIfCard({ map, notice, render });
   // 노선망이 자란 모습 다시 보기 ([메뉴], timelapse.js)
@@ -309,6 +312,7 @@ export function startApp(map, loadMessage) {
     clearWork,
     render,
     onSearch: search.open,
+    onDrawer: drawer.open,
     // 다시 보기는 카메라를 따로 움직이므로 열차 따라가기를 먼저 끝낸다
     onTimelapse: () => {
       trainFollow.stop();
@@ -371,6 +375,8 @@ export function startApp(map, loadMessage) {
   // 개통 연출: 노선을 만들면 줄이 그려지고, 지우거나 되돌리면 거둬진다 (lineSweep.js, 짓기 기록을 읽으므로 그 뒤에)
   startLineSweep(map, () => ui.controlRoom);
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
+  // 노선망을 통째로 바꿨는지(불러오기·서랍에서 꺼내기·새로 시작): 짓기 기록이 새 것으로 바뀐다 (game/buildLog.js)
+  let seenBuildLog = getState().buildLog;
   subscribe((state, kind) => {
     if (kind !== 'network') return;
     // 기억해 둔 선로 길이·달리는 시간을 비운다 (선로 모양이 바뀌면 노선의 최대 열차 수도 바뀌어야 한다.
@@ -378,9 +384,12 @@ export function startApp(map, loadMessage) {
     clearTrackMemory();
     syncTrains();
     animation.markTrainsChanged();
+    // 통째로 바꾼 노선망은 이미 붐비던 노선마다 혼잡 경고를 한꺼번에 띄우지 않는다 (처음 불러올 때처럼 조용히)
+    const replaced = state.buildLog !== seenBuildLog;
+    seenBuildLog = state.buildLog;
     requestEconomy(() => {
       goals.update();
-      warnings.crowding();
+      warnings.crowding({ silent: replaced });
       render();
     });
   });

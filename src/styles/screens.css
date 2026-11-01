@@ -253,3 +253,121 @@
   color: var(--muted);
   cursor: default;
 }
+
+/* 내 노선망 서랍 (ui/drawerCard.js): 위쪽 이름 칸 + [지금 노선망 넣기], 카드마다 작은 그림·이름·날짜와 단추들 */
+.dialog.drawer-card {
+  max-width: 600px;
+}
+
+.drawer-put {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.drawer-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 2px solid var(--info-border);
+  border-radius: var(--radius-button);
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-body);
+}
+
+.drawer-put-button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: var(--navy);
+  color: #ffffff;
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.drawer-item {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--info-border);
+  border-radius: var(--radius-button);
+}
+
+.drawer-picture {
+  grid-row: 1 / span 2;
+  width: 112px;
+  height: 70px;
+  border: 1px solid var(--info-border);
+  border-radius: 4px;
+}
+
+.drawer-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--text-body);
+}
+
+.drawer-info small {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.drawer-actions button {
+  padding: 3px 9px;
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-button);
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-actions .drawer-take {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+/* 지우기: 위험한 버튼 (빨간 테두리·글자), 한 번 누르면 "정말 지울까요?" */
+.drawer-actions .drawer-remove {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.drawer-actions .drawer-remove.armed {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.drawer-empty {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: var(--text-body);
+}
+
+.drawer-empty[hidden] {
+  display: none;
+}
