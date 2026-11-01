@@ -13,8 +13,9 @@ import { stationBands } from './stationBands.js';
 import { createStationExits } from './stationExits.js';
 import { isNarrowScreen } from './sidePanels.js';
 
-// 역 말풍선이 밑으로 들어가지 않게 피하는 화면 판들 (labelArea). #route-strip은 오른쪽 패널을 접었을 때의 노선 번호 띠
-const LABEL_COVERS = '.top-left .top-row, .bottom-left, #tutorial, #profile, #route-strip';
+// 역 말풍선이 밑으로 들어가지 않게 피하는 화면 판들 (labelArea). #route-strip은 오른쪽 패널을 접었을 때의 노선 번호 띠,
+// .draw-bar는 선로 그리기·열차 따라가기 막대
+const LABEL_COVERS = '.top-left .top-row, .bottom-left, #tutorial, #profile, #route-strip, .draw-bar';
 
 // ui: 화면 상태 (app.js)
 // 결과: { shownCoord, drawStations, updateStationExits, start }

@@ -164,13 +164,18 @@
 .start-choices {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
+  gap: 0 12px; /* 위아래 틈은 카드 아래 여백으로 (카드 안 빈 줄에 틈이 생기지 않게) */
   margin-top: 12px;
 }
 
+/* 카드 하나는 위쪽 그리드의 네 줄(그림·글 / 상태·샌드박스 / 실제 노선망 / 타임머신)을 나눠 쓴다 (subgrid).
+   그래서 해 단추가 두 줄로 꺾이는 카드가 있어도 옆 카드들의 아랫줄 버튼이 같은 높이에 선다 */
 .start-region {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: 0;
+  margin-bottom: 12px;
   overflow: hidden;
   border: 2px solid var(--navy);
   border-radius: var(--radius-panel);
@@ -367,6 +372,7 @@
 .start-history {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   align-items: center;
   gap: 6px;
   padding: 8px 12px 10px;
@@ -389,6 +395,13 @@
   font-size: var(--text-small);
   font-weight: 700;
   cursor: pointer;
+}
+
+/* 손가락 화면: 옆 [샌드박스]·[실제 노선망으로 시작]처럼 누르기 쉬운 높이 */
+@media (pointer: coarse) {
+  .start-history-year {
+    min-height: 44px;
+  }
 }
 
 .start-history-year:hover {

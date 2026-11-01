@@ -85,7 +85,8 @@ export function buildGraph(routes) {
     return index.get(key);
   };
   // segment: 노선의 구간 번호 (갈아타기는 -1)
-  const connect = (a, b, minutes, km, segment = -1) => edges.get(a).push({ to: b, minutes, km, segment });
+  // fare: minutes 안에 든 광역급행 요금 몫 (분). 30분 지도는 이것을 빼고 진짜 걸리는 시간만 센다
+  const connect = (a, b, minutes, km, segment = -1, fare = 0) => edges.get(a).push({ to: b, minutes, km, segment, fare });
 
   // 구간과 짝(두 역)에 번호를 붙인다
   const segments = [];
@@ -123,8 +124,8 @@ export function buildGraph(routes) {
       const b = nodeOf(route.stations[i + 1], r);
       const segment = segmentOf(route, r, route.stations[i], route.stations[i + 1]);
       segments[segment].km = km;
-      connect(a, b, minutes, km, segment);
-      connect(b, a, minutes, km, segment);
+      connect(a, b, minutes, km, segment, fareMinutes);
+      connect(b, a, minutes, km, segment, fareMinutes);
     });
   });
   // 짝마다 함께 다니는 노선들의 몫 (열차 수 비례)
@@ -224,7 +225,7 @@ export function shortestTrips(graph, origin) {
 }
 
 // 출발역에서 다른 모든 역까지 가장 빨리 닿는 시간 (분, 처음 기다리는 시간·갈아타기 포함): Map(역 id → 분).
-// 갈 수 없는 역은 넣지 않는다. 30분 지도(game/reach.js)가 쓴다
+// 광역급행 요금은 시간으로 치지 않는다 (진짜 걸리는 시간만). 갈 수 없는 역은 넣지 않는다. 30분 지도(game/reach.js)가 쓴다
 export function minutesFrom(graph, origin) {
   const { nodes, edges, boarding, byStation } = graph;
   const minutes = new Array(nodes.length).fill(Infinity);
@@ -238,7 +239,8 @@ export function minutesFrom(graph, origin) {
     const current = queue.pop();
     if (done[current]) continue;
     done[current] = true;
-    for (const { to, minutes: cost } of edges.get(current)) {
+    for (const { to, minutes: withFare, fare } of edges.get(current)) {
+      const cost = withFare - fare;
       if (minutes[current] + cost < minutes[to]) {
         minutes[to] = minutes[current] + cost;
         queue.push(minutes[to], to);

@@ -2,7 +2,7 @@
 // 계획 선로 그려 두기·짓기. 선로 위에 역을 놓으면 그 선로를 둘로 나누고 지나는 노선이 새 역에 선다 (사이 역).
 // 모든 바뀜은 state.js의 change()를 거쳐 되돌리기 기록에 남는다.
 // 공사비는 빚 한도 안에서만 낼 수 있다 (canAfford). 계획 선로는 그리고 고칠 때 돈이 들지 않고, 지을 때 한꺼번에 낸다.
-import { STATION_ON_TRACK_MIN_M } from '../config.js';
+import { STATION_ON_TRACK_MIN_M, SPLIT_WAYPOINT_DROP_M } from '../config.js';
 import { stationCost, stationMoveFee, trackCostForCoords } from './economy.js';
 import { METERS_PER_DEGREE_LAT, metersPerDegreeLng } from './earth.js';
 import { shapeCoords } from './trackShape.js';
@@ -107,8 +107,11 @@ export function trackSplitPoint(trackId, coord) {
   // 경유점마다 선로 위 어디쯤인지 (선로가 지나는 가장 가까운 점) 보고 앞뒤로 나눈다
   const before = [];
   const after = [];
+  const [sx, sy] = toMeters(best.coord);
   for (const waypoint of track.waypoints) {
     const [wx, wy] = toMeters(waypoint);
+    // 역 바로 옆 경유점은 뺀다 (남기면 역에서 길이 0인 토막·급히 꺾인 곳이 생겨 승강장 방향·제한 속도가 틀어진다)
+    if (Math.hypot(wx - sx, wy - sy) < SPLIT_WAYPOINT_DROP_M) continue;
     let nearest = 0;
     points.forEach(([x, y], i) => {
       if (Math.hypot(x - wx, y - wy) < Math.hypot(points[nearest][0] - wx, points[nearest][1] - wy)) nearest = i;

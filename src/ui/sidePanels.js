@@ -26,6 +26,22 @@ const PANEL_FOLDED_KEY = 'railmap-panel-folded';
 // 지금 창이 휴대폰 배치인지 (오른쪽 패널이 아래에서 올라오는 판이 된다)
 export const isNarrowScreen = () => window.innerWidth < NARROW_SCREEN_PX;
 
+// 오른쪽 패널에 가리지 않는 지도 화면의 가운데 [x, y] (px, 지도 기준): 펼친 패널(좁은 화면은 아래 판)이나
+// 접힌 노선 번호 띠가 덮은 곳을 뺀다. 가운데 알림 말풍선 자리 (app.js의 notice)
+export function openMapCenter(map) {
+  const container = map.getContainer();
+  const origin = container.getBoundingClientRect();
+  let right = container.clientWidth;
+  let bottom = container.clientHeight;
+  const open = document.body.classList.contains('side-panel-open');
+  const cover = document.querySelector(open ? '.side' : '.route-strip')?.getBoundingClientRect();
+  if (cover && cover.width > 0 && cover.height > 0) {
+    if (open && isNarrowScreen()) bottom = Math.min(bottom, cover.top - origin.top);
+    else right = Math.min(right, cover.left - origin.left);
+  }
+  return [right / 2, bottom / 2];
+}
+
 // app.js가 넘겨주는 것: ui(화면 상태), select·render·notice, routeTool([노선] 도구),
 // deleteSelected(고른 것 지우기), previewDelete(지울 것 미리 보기), toggleReach(역 카드의 [30분 지도], reachView.js)
 // 결과: { show({ routes, shapes }) } — 다시 그릴 때마다 부른다

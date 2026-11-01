@@ -52,7 +52,7 @@
 .panel-name {
   padding: 6px 8px;
   border: 2px solid var(--muted);
-  border-radius: 5px;
+  border-radius: var(--radius-button);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -112,7 +112,7 @@
   flex: 1;
   padding: 4px;
   border: 2px solid var(--muted);
-  border-radius: 5px;
+  border-radius: var(--radius-button);
   background: #ffffff;
   color: var(--navy);
   font: inherit;

@@ -1,4 +1,4 @@
-// [메뉴] 펼침 안: 맨 위 [역·노선 찾기]·[서랍]·[노선망 자란 모습 보기]·[만약에 노선](그 지도에 있을 때만)과 화면 크기 [작게][보통][크게], 줄 아래 [링크로 공유]와 파일 버튼 [내보내기] [불러오기] [지도 바꾸기],
+// [메뉴] 펼침 안: 맨 위 [역·노선 찾기]·[내 노선망 서랍]·[노선망 자란 모습 보기]·[만약에 노선](그 지도에 있을 때만)과 화면 크기 [작게][보통][크게], 줄 아래 [링크로 공유]와 파일 버튼 [내보내기] [불러오기] [지도 바꾸기],
 // 줄 아래 빨간 [새로 시작]
 // [새로 시작]은 실수로 누르지 않게 한 번 더 눌러야 실행된다 (브라우저 confirm 창 대신)
 // 항목을 누르면 할 일을 하고 펼침을 닫는다 ([새로 시작]의 첫 누름은 "한 번 더"를 묻느라 열어 둔다)
@@ -10,7 +10,7 @@ const CONFIRM_MS = 4000; // "정말요?" 상태로 기다리는 시간
 export function createFileMenu(element, { onSearch, onDrawer, onTimelapse, onWhatIf, onShare, onExport, onImport, onReset, onChangeMap }) {
   element.innerHTML = `
     <button type="button" class="file-button file-search" aria-keyshortcuts="/">역·노선 찾기<span class="tool-key" aria-hidden="true">/</span></button>
-    <button type="button" class="file-button file-drawer">서랍 (노선망 여러 개)</button>
+    <button type="button" class="file-button file-drawer">내 노선망 서랍</button>
     <button type="button" class="file-button file-timelapse">노선망 자란 모습 보기</button>
     <button type="button" class="file-button file-whatif">만약에 노선</button>
     <hr class="popover-divider" />

@@ -83,10 +83,14 @@ export function chooseRegion(element, link = {}) {
     </div>
   `;
   element.hidden = false;
-  // 손가락으로 쓰는 기기이거나 창이 좁으면 안내 한 줄 (막지는 않는다)
-  element.querySelector('.start-device').hidden = !(
-    window.matchMedia('(pointer: coarse)').matches || window.innerWidth < NARROW_SCREEN_PX
-  );
+  // 손가락으로 쓰는 기기이거나 창이 좁으면 안내 한 줄 (막지는 않는다). 창 크기가 바뀌면 다시 본다
+  const deviceNote = element.querySelector('.start-device');
+  const smallDevice = window.matchMedia(`(pointer: coarse), (max-width: ${NARROW_SCREEN_PX - 1}px)`);
+  const showDeviceNote = () => {
+    deviceNote.hidden = !smallDevice.matches;
+  };
+  showDeviceNote();
+  smallDevice.addEventListener('change', showDeviceNote);
   const continueSection = element.querySelector('.start-continue');
   const continueList = element.querySelector('.start-continue-list');
   const tabs = element.querySelector('.start-tabs');
@@ -98,6 +102,7 @@ export function chooseRegion(element, link = {}) {
       // 공유 링크로 들어왔는데 다른 지도를 골랐으면 주소에서 공유 자료를 지운다
       // ([지도 바꾸기]로 시작 화면에 돌아왔을 때 "공유받은 노선망" 칸이 또 뜨지 않게)
       if (link.shared || link.problem) clearSharedLink();
+      smallDevice.removeEventListener('change', showDeviceNote);
       element.hidden = true;
       resolve({ id, sandbox, ...extra });
     };
@@ -108,6 +113,7 @@ export function chooseRegion(element, link = {}) {
       problem: link.problem,
       onOpen: () => {
         clearSharedLink();
+        smallDevice.removeEventListener('change', showDeviceNote);
         element.hidden = true;
         resolve({ id: link.shared.region, sandbox: true, shared: link.shared });
       },
@@ -277,7 +283,7 @@ function timeMachineRow(id, years, sandboxInfo, choose) {
   for (const year of years) {
     const button = make('button', 'start-history-year', String(year));
     button.type = 'button';
-    button.title = `${year}년까지 개통한 실제 노선(대략)만 깐 샌드박스. 노선 자료 © OpenStreetMap 기여자, 개통 연도 서울교통공사 외`;
+    button.title = `${year}년까지 개통한 실제 노선(대략)만 깐 샌드박스. 노선 자료 © OpenStreetMap 기여자, 개통 연도 자료는 화면 맨 아래 출처`;
     button.addEventListener('click', () => {
       if (hasSandbox && !button.classList.contains('armed')) {
         for (const other of row.querySelectorAll('.armed')) other.classList.remove('armed');

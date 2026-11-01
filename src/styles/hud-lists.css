@@ -249,7 +249,8 @@ body.ui-hidden .route-strip,
 body.ui-hidden .profile-panel,
 body.ui-hidden .tutorial,
 body.ui-hidden .cursor-tip,
-body.ui-hidden .search-box {
+body.ui-hidden .search-box,
+body.ui-hidden .draw-bar {
   display: none !important;
 }
 

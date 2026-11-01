@@ -1,5 +1,5 @@
-// 내 노선망 서랍 창 ([메뉴] → [서랍], game/drawer.js): 이 지도(일반 게임·샌드박스 따로)에 넣어 둔 노선망 카드들.
-// 맨 위 이름 칸 + [지금 노선망 넣기], 카드마다 작은 그림(노선망 모양) · 이름 · 날짜·역·노선 수와 [꺼내기][이름][복사][지우기].
+// 내 노선망 서랍 창 ([메뉴] → [내 노선망 서랍], game/drawer.js): 이 지도(일반 게임·샌드박스 따로)에 넣어 둔 노선망 카드들.
+// 맨 위 이름 칸 + [지금 노선망 넣기], 카드마다 작은 그림(노선망 모양) · 이름 · 날짜·역·노선 수와 [꺼내기][이름 바꾸기][복사][지우기].
 // [꺼내기]는 지금 노선망을 먼저 "자동 보관"으로 넣어 두고(서랍에서 꺼낸 그대로면 넣지 않는다) 고른 노선망을 불러온다.
 // [지우기]는 실수로 누르지 않게 한 번 더 눌러야 지운다. 화면 가운데 창(.dialog)이고, [닫기]·바깥 누르기·Esc로 닫힌다
 import { saveData, loadData } from '../game/save.js';
@@ -14,10 +14,13 @@ import {
   removeFromDrawer,
 } from '../game/drawer.js';
 import { cssColor } from './svg.js';
+import { dialogFocus } from './dialogFocus.js';
 
 // 작은 그림 크기 (px)
 const PICTURE_W = 160;
 const PICTURE_H = 100;
+// [지우기]를 한 번 누른 뒤 "정말 지울까요?"로 기다리는 시간 (ms)
+const CONFIRM_MS = 4000;
 
 // 노선망 모양 그림 (SVG 글): 땅색 바탕에 역과 역 사이를 곧은 선으로, 노선이 지나면 노선 색, 아니면 선로 색, 계획 선로는 주황
 export function networkPicture(network) {
@@ -97,8 +100,11 @@ export function createDrawerCard({ notice, render, clearWork }) {
   let keptNetwork = null;
   const networkText = () => JSON.stringify(saveData().network);
 
+  const focus = dialogFocus(element, document.getElementById('menu-button'));
   const close = () => {
+    if (element.hidden) return;
     element.hidden = true;
+    focus.closed();
   };
   element.querySelector('.drawer-close').addEventListener('click', close);
   element.addEventListener('click', (event) => {
@@ -109,7 +115,7 @@ export function createDrawerCard({ notice, render, clearWork }) {
     (event) => {
       if (element.hidden || event.key !== 'Escape') return;
       // 이름 바꾸는 칸의 Esc는 이름 바꾸기만 그만둔다 (창은 그대로)
-      if (event.target.closest?.('.drawer-item')) return;
+      if (event.target.matches?.('.drawer-item input')) return;
       event.stopImmediatePropagation();
       close();
     },
@@ -138,7 +144,19 @@ export function createDrawerCard({ notice, render, clearWork }) {
       .catch(failed);
   });
 
+  // 꺼내는 중이면 다시 누른 것은 무시한다 (두 번 누르면 자동 보관이 둘 생기고 불러오기가 엇갈린다)
+  let takingOut = false;
   async function takeOut(id) {
+    if (takingOut) return;
+    takingOut = true;
+    try {
+      await takeOutNow(id);
+    } finally {
+      takingOut = false;
+    }
+  }
+
+  async function takeOutNow(id) {
     const entry = await getFromDrawer(id);
     const { stations } = saveData().network;
     // 지금 노선망을 먼저 넣어 둔다 (비었거나 서랍에서 꺼낸 그대로면 넣지 않는다)
@@ -184,7 +202,7 @@ export function createDrawerCard({ notice, render, clearWork }) {
       return element;
     };
     button('꺼내기', 'drawer-take', () => takeOut(entry.id).catch(failed));
-    button('이름', 'drawer-rename', () => rename(entry, name));
+    button('이름 바꾸기', 'drawer-rename', () => rename(entry, name));
     button('복사', 'drawer-copy', () =>
       copyInDrawer(entry.id)
         .then(refresh)
@@ -194,6 +212,11 @@ export function createDrawerCard({ notice, render, clearWork }) {
       if (!element.classList.contains('armed')) {
         element.classList.add('armed');
         element.textContent = '정말 지울까요?';
+        // 잠시 뒤 다시 누르지 않으면 원래대로 ([메뉴]의 [새로 시작]과 같다)
+        setTimeout(() => {
+          element.classList.remove('armed');
+          element.textContent = '지우기';
+        }, CONFIRM_MS);
         return;
       }
       removeFromDrawer(entry.id).then(refresh).catch(failed);
@@ -236,9 +259,9 @@ export function createDrawerCard({ notice, render, clearWork }) {
   }
 
   function open() {
-    title.textContent = `서랍 · ${getRegion().name}${isSandbox() ? ' 샌드박스' : ''}`;
+    title.textContent = `내 노선망 서랍 · ${getRegion().name}${isSandbox() ? ' 샌드박스' : ''}`;
     element.hidden = false;
-    nameInput.focus();
+    focus.opened(nameInput);
     refresh().catch(failed);
   }
 

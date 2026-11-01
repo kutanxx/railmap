@@ -20,7 +20,7 @@ import { startBuildLog } from '../game/buildLog.js';
 import { renderBadge } from './badge.js';
 import { createToolbar } from './toolbar.js';
 import { createSpeedControl, togglePause } from './speedControl.js';
-import { createSidePanels } from './sidePanels.js';
+import { createSidePanels, openMapCenter } from './sidePanels.js';
 import { createMapView } from './mapView.js';
 import { drawTracks } from './trackView.js';
 import { profilePanelView, routeColors } from './views.js';
@@ -35,17 +35,13 @@ import { createNoticeLog } from './noticeLog.js';
 import { createGoalsPanel } from './goalsPanel.js';
 import { createStatsPanel } from './statsPanel.js';
 import { createReveal } from './reveal.js';
-import { createSearch } from './search.js';
 import { createDiagramView } from './diagramView.js';
-import { createTimelapse } from './timelapse.js';
 import { startLineSweep } from './lineSweep.js';
 import { createReachView } from './reachView.js';
 import { createTrainFollow } from './trainFollow.js';
 import { createRealOverlay } from './realOverlay.js';
-import { createWhatIfCard } from './whatIfCard.js';
-import { createDrawerCard } from './drawerCard.js';
 import { shortfall, costNote } from './costText.js';
-import { bindSaveControls } from './saveControls.js';
+import { createMenuActions } from './menuActions.js';
 import { startAnimation } from './animation.js';
 import { createStationMover } from './stationMover.js';
 import { createTrackEditor } from './trackEditor.js';
@@ -82,8 +78,8 @@ export function startApp(map, loadMessage) {
     () => waterVersion(map),
   );
 
-  // 화면 가운데 말풍선 알림
-  const notice = (text, tone = 'info') => showCallout(map, map.getCenter().toArray(), text, tone);
+  // 화면 가운데 말풍선 알림 (오른쪽 패널·노선 번호 띠에 가리지 않는 곳의 가운데)
+  const notice = (text, tone = 'info') => showCallout(map, map.unproject(openMapCenter(map)).toArray(), text, tone);
 
   // 고른 것을 바꾼다. 노선 편집 상태는 다른 것을 고르면 끝난다
   function select(next) {
@@ -296,30 +292,8 @@ export function startApp(map, loadMessage) {
     trackTool.cancel();
     routeTool.cancel();
   };
-  // 역·노선 찾기 (/ 키, [메뉴]의 [역·노선 찾기], search.js)
-  const search = createSearch({ map, select, render });
-  // 내 노선망 서랍 ([메뉴] → [서랍], drawerCard.js): 이름 붙인 노선망을 여러 개 넣어 두고 꺼낸다
-  const drawer = createDrawerCard({ notice, render, clearWork });
-  // "만약에" 노선 ([메뉴] → [만약에 노선], whatIfCard.js): 짓고 있거나 계획만 된 실제 노선을 계획 선로로
-  const whatIf = createWhatIfCard({ map, notice, render });
-  // 노선망이 자란 모습 다시 보기 ([메뉴], timelapse.js)
-  const timelapse = createTimelapse({ map, notice, select, render, controlRoom: () => ui.controlRoom });
-  // 새 게임 안내는 튜토리얼이 떠 있으면 내지 않는다 (튜토리얼이 같은 것을 안내한다)
-  const startMessage = loadMessage?.newGame && !document.getElementById('tutorial').hidden ? null : loadMessage;
-  const { bankruptDialog } = bindSaveControls({
-    notice,
-    loadMessage: startMessage,
-    clearWork,
-    render,
-    onSearch: search.open,
-    onDrawer: drawer.open,
-    // 다시 보기는 카메라를 따로 움직이므로 열차 따라가기를 먼저 끝낸다
-    onTimelapse: () => {
-      trainFollow.stop();
-      timelapse.open();
-    },
-    onWhatIf: whatIf.available ? whatIf.open : null,
-  });
+  // [메뉴] 안의 창과 저장 버튼들: 찾기, 서랍, 만약에 노선, 다시 보기, 내보내기·불러오기·새로 시작, 파산 창 (menuActions.js)
+  const { search, timelapse, bankruptDialog } = createMenuActions({ map, ui, notice, select, render, clearWork, trainFollow, loadMessage });
 
   // 지도 입력과 선로·역 끌기가 함께 쓰는 것들
   const ctx = {
@@ -377,6 +351,8 @@ export function startApp(map, loadMessage) {
   const goals = createGoalsPanel(document.getElementById('goals-button'), document.getElementById('goals-list'));
   // 노선망을 통째로 바꿨는지(불러오기·서랍에서 꺼내기·새로 시작): 짓기 기록이 새 것으로 바뀐다 (game/buildLog.js)
   let seenBuildLog = getState().buildLog;
+  // 통째로 바꾼 뒤 아직 승객 계산이 안 끝났는지 (계산 중에 또 바뀌면 앞 요청의 onDone은 버려지므로 따로 기억한다)
+  let quietCrowding = false;
   subscribe((state, kind) => {
     if (kind !== 'network') return;
     // 기억해 둔 선로 길이·달리는 시간을 비운다 (선로 모양이 바뀌면 노선의 최대 열차 수도 바뀌어야 한다.
@@ -385,11 +361,16 @@ export function startApp(map, loadMessage) {
     syncTrains();
     animation.markTrainsChanged();
     // 통째로 바꾼 노선망은 이미 붐비던 노선마다 혼잡 경고를 한꺼번에 띄우지 않는다 (처음 불러올 때처럼 조용히)
-    const replaced = state.buildLog !== seenBuildLog;
+    if (state.buildLog !== seenBuildLog) {
+      quietCrowding = true;
+      // 따라가던 열차 번호가 새 노선망에서는 다른 열차일 수 있다
+      trainFollow.stop();
+    }
     seenBuildLog = state.buildLog;
     requestEconomy(() => {
       goals.update();
-      warnings.crowding({ silent: replaced });
+      warnings.crowding({ silent: quietCrowding });
+      quietCrowding = false;
       render();
     });
   });

@@ -161,4 +161,12 @@ body.diagram-open .profile-panel {
   .diagram-close {
     order: 2;
   }
+
+  /* 아래 안내는 여러 줄로 꺾어 출처 글(오른쪽 아래) 위에 둔다 */
+  .diagram-hint {
+    bottom: 32px;
+    width: calc(100vw - 32px);
+    text-align: center;
+    white-space: normal;
+  }
 }

@@ -42,11 +42,18 @@ export function createUiSizeControl() {
       current = id;
       localStorage.setItem(UI_SIZE_KEY, id);
       apply(id);
-      for (const [i, other] of buttons.entries()) other.classList.toggle('active', SIZES[i].id === current);
+      press();
     });
     row.append(button);
     return button;
   });
-  for (const [i, button] of buttons.entries()) button.classList.toggle('active', SIZES[i].id === current);
+  // 고른 크기만 남색으로 채운다 (화면 읽기 프로그램에는 "눌림")
+  function press() {
+    for (const [i, button] of buttons.entries()) {
+      button.classList.toggle('active', SIZES[i].id === current);
+      button.setAttribute('aria-pressed', String(SIZES[i].id === current));
+    }
+  }
+  press();
   return row;
 }

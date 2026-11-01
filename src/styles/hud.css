@@ -40,9 +40,15 @@
 
 .tool-button:hover,
 .speed-button:hover,
-.hud-button:hover,
+.hud-button:hover:not(:disabled),
 .file-button:hover {
   background: var(--land);
+}
+
+/* 지금 누를 수 없는 버튼: 흐린 글자, 마우스를 올려도 그대로 */
+.hud-button:disabled {
+  color: var(--muted);
+  cursor: default;
 }
 
 /* 고른 것·켜진 것·열어 둔 펼침의 버튼: 남색으로 꽉 채운다 */

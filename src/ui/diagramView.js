@@ -16,6 +16,7 @@ import { isExpress } from '../game/routeKinds.js';
 import { routeBadge } from './routeBadge.js';
 import { diagramPositions, edgePoints, offsetPolyline, segmentHitsBox, angleGap } from './diagramLayout.js';
 import { SKINS, loadSkin, saveSkin, stationMark } from './diagramSkins.js';
+import { FINGER } from '../map/hitPad.js';
 
 // 그림 크기 (px, 확대 1배일 때). 선 굵기·나란한 간격·역 크기는 고른 모양마다 (diagramSkins.js의 SKINS)
 const MAX_UNIT = 110; // 역 간격 1이 화면에서 가장 클 때 (역이 몇 개 없을 때 너무 커지지 않게)
@@ -39,7 +40,7 @@ export function createDiagramView({ onPickStation }) {
       <button class="hud-button diagram-save" type="button" title="노선도를 PNG 그림 파일로 받기">그림 저장</button>
       <button class="hud-button diagram-close" type="button" title="노선도 닫기 (D 키 · Esc)">닫기 ✕</button>
     </div>
-    <p class="diagram-hint">끌어서 옮기기 · 휠·두 손가락으로 확대 · 역을 누르면 지도에서 보기</p>
+    <p class="diagram-hint">${FINGER ? '끌어서 옮기기 · 두 손가락으로 확대 · 역을 누르면 지도에서 보기' : '끌어서 옮기기 · 휠로 확대 · 역을 누르면 지도에서 보기'}</p>
     <p class="diagram-empty" hidden>노선을 만들면 노선도가 생겨요</p>
     <p class="diagram-credit">지도 자료 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>
   `;

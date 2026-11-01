@@ -9,6 +9,7 @@ import { measureStations } from '../map/buildingTiles.js';
 import { unpackCells } from '../game/cellPacking.js';
 import { formatMoney } from './format.js';
 import { shortfall } from './costText.js';
+import { dialogFocus } from './dialogFocus.js';
 
 // notice: 말풍선 알림, render: 다시 그리기 (app.js)
 // 결과: { open, available: 이 지도에 "만약에" 노선이 있는지 }
@@ -29,8 +30,13 @@ export function createWhatIfCard({ map, notice, render }) {
   document.body.append(element);
   const list = element.querySelector('.whatif-list');
 
+  const focus = dialogFocus(element, document.getElementById('menu-button'));
+  // 역 주변을 재는 동안은 닫지 않는다 (그사이 노선망이 바뀌면 잰 역과 깔 역이 어긋난다)
+  let measuring = false;
   const close = () => {
+    if (element.hidden || measuring) return;
     element.hidden = true;
+    focus.closed();
   };
   element.querySelector('.whatif-close').addEventListener('click', close);
   element.addEventListener('click', (event) => {
@@ -79,6 +85,7 @@ export function createWhatIfCard({ map, notice, render }) {
     }
     button.disabled = true;
     button.textContent = '역 주변 재는 중…';
+    measuring = true;
     let measured;
     try {
       const fresh = plan.stops.map((stop, i) => ({ id: String(i), coord: stop.coord, existing: stop.existing }));
@@ -98,6 +105,8 @@ export function createWhatIfCard({ map, notice, render }) {
       button.textContent = '계획으로 깔기';
       notice(`역 주변 건물을 재지 못했어요: ${error.message}`, 'bad');
       return;
+    } finally {
+      measuring = false;
     }
     const result = applyWhatIf(line, measured);
     close();
@@ -122,7 +131,7 @@ export function createWhatIfCard({ map, notice, render }) {
   function open() {
     list.replaceChildren(...lines.map(card));
     element.hidden = false;
-    element.querySelector('.whatif-apply:not(:disabled)')?.focus();
+    focus.opened(element.querySelector('.whatif-apply:not(:disabled)'));
   }
 
   return { open, available: lines.length > 0 };

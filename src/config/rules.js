@@ -99,6 +99,8 @@ export const STATION_MOVE_COST_RATIO = 0.25;
 // 선로 위에 역을 놓으면 그 선로를 둘로 나누고 지나는 노선이 새 역에 서게 한다 (사이 역).
 // 다만 선로 끝 역에서 이 거리(미터)보다 가까우면 나누지 않고 그냥 역만 놓는다 (역이 겹쳐 붙지 않게)
 export const STATION_ON_TRACK_MIN_M = 60;
+// 사이 역으로 선로를 나눌 때 역에서 이 거리(미터) 안의 경유점은 뺀다 (역 바로 옆에서 급히 꺾이지 않게)
+export const SPLIT_WAYPOINT_DROP_M = 20;
 // "만약에" 노선을 깔 때 역 자리에서 이 거리(미터) 안에 내 역이 있으면 새로 짓지 않고 그 역을 쓴다 (game/whatIf.js)
 export const WHAT_IF_REUSE_M = 250;
 

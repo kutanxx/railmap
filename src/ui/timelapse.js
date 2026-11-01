@@ -77,6 +77,8 @@ export function createTimelapse({ map, notice, select, render, controlRoom }) {
     recordButton.disabled = Boolean(recorder) || !canRecord();
     recordButton.textContent = recorder ? '녹화 중…' : '영상 저장';
     recordButton.title = canRecord() ? '처음부터 다시 틀며 영상 파일로 저장해요' : '이 브라우저는 영상 저장을 못 해요';
+    // 틀고 있는 동안은 날짜가 아주 자주 바뀌어서 화면 읽기 프로그램이 읽지 않게, 멈추거나 끝나면 읽게
+    dateLabel.setAttribute('aria-live', playing ? 'off' : 'polite');
   }
 
   // 기록이 많든 적든 TIMELAPSE_SECONDS쯤에 끝나게

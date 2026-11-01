@@ -23,11 +23,14 @@
   --reach-10: #a3bdd6; /* 30분 지도 10분 안 (map/reachLayers.js의 REACH_COLORS와 같다) */
   --reach-20: #bdcfdf; /* 30분 지도 20분 안 */
   --reach-30: #d5dfe4; /* 30분 지도 30분 안 */
+  --reach-10-dark: #33506b; /* 관제실 모드의 30분 지도 10·20·30분 (map/theme.js와 같다) */
+  --reach-20-dark: #2c4258;
+  --reach-30-dark: #263646;
   --control-room-land: #1e2630; /* 관제실 모드 바탕 (map/style.js의 CONTROL_ROOM_PALETTE 땅색과 같다) */
   --radius-panel: 10px; /* 화면 판 모서리 (지도 위 말풍선은 6px라서 구별된다) */
   --radius-button: 6px; /* 판 안 버튼 모서리 */
   /* 화면 판 바깥 땅색 띠: 흐림 없는 단색 선이라 그림자가 아니다. 선로 위에 겹쳐도 판과 붙어 보이지 않게 */
-  --panel-ring: 0 0 0 2px #efe7d6;
+  --panel-ring: 0 0 0 2px var(--land);
 }
 
 html,

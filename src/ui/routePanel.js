@@ -231,7 +231,9 @@ export function createRoutePanel(
     if (routeId) {
       routeName.show(selected.id, selected.name);
       for (const button of swatchButtons) {
-        button.classList.toggle('active', button.dataset.color === selected.color);
+        const on = button.dataset.color === selected.color;
+        button.classList.toggle('active', on);
+        button.setAttribute('aria-pressed', String(on));
       }
       trainCount = selected.trainCount;
       pressKind(detailKindButtons, selected.kind);

@@ -257,7 +257,11 @@ export function createPanel(
     curveText.hidden = !info.sharpest;
     curveText.textContent = info.sharpest;
     // 지금 모양은 남색으로 채운다. 곡선은 경유점이 있어야 휜다
-    for (const button of shapeButtons) button.classList.toggle('active', (button.dataset.curve === '1') === info.curve);
+    for (const button of shapeButtons) {
+      const on = (button.dataset.curve === '1') === info.curve;
+      button.classList.toggle('active', on);
+      button.setAttribute('aria-pressed', String(on));
+    }
     shapeHint.textContent =
       info.curve && info.waypointCount === 0
         ? '경유점이 없으면 곡선도 곧게 이어져요. 선 가운데 작은 점을 끌어 경유점을 만들어 보세요.'

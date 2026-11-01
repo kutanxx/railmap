@@ -7,6 +7,13 @@ import { formatMoney, formatSharpestCurve } from './format.js';
 
 // onUndoPoint: [마지막 점 빼기], onCancel: [취소]
 // 결과: { show(coords, plan, curve), hide } — coords: 지금까지 그린 선로 모양 (점이 하나뿐이면 길이 0), curve: 곡선으로 그리는지
+// 화면 아래 막대(그리기 막대, 열차 따라가기 막대)의 bottom 값: 왼쪽 아래 버튼 줄 바로 위
+// (좁은 화면에서는 그 줄이 두 줄로 꺾인다. 아래 판이 열렸거나 H 키로 숨어 있으면 화면 아래 가장자리에)
+export function barBottom() {
+  const buttons = document.querySelector('.bottom-left').getBoundingClientRect();
+  return buttons.height > 0 ? `${window.innerHeight - buttons.top + 8}px` : '16px';
+}
+
 export function createDrawBar({ onUndoPoint, onCancel }) {
   const bar = document.createElement('div');
   bar.className = 'draw-bar';
@@ -24,9 +31,7 @@ export function createDrawBar({ onUndoPoint, onCancel }) {
 
   function show(coords, plan, curve) {
     bar.hidden = false;
-    // 왼쪽 아래 버튼 줄 바로 위에 (좁은 화면에서는 그 줄이 두 줄로 꺾인다. 숨어 있으면 화면 아래 가장자리에)
-    const buttons = document.querySelector('.bottom-left').getBoundingClientRect();
-    bar.style.bottom = buttons.height > 0 ? `${window.innerHeight - buttons.top + 8}px` : '16px';
+    bar.style.bottom = barBottom();
     if (coords.length < 2) {
       text.textContent = '선로 그리는 중 · 빈 땅을 누르면 꺾이는 점, 역을 누르면 완성';
       curveText.textContent = '';
