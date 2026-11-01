@@ -85,6 +85,7 @@ export function createPanel(
         <dt>구간</dt><dd class="panel-track-ends"></dd>
         <dt>경유점</dt><dd class="panel-track-waypoints"></dd>
       </dl>
+      <p class="panel-hint panel-track-curve"></p>
       <div class="panel-angle-presets panel-track-shape">
         <button type="button" data-curve="0">직선</button>
         <button type="button" data-curve="1">곡선</button>
@@ -154,6 +155,7 @@ export function createPanel(
   const waypointsText = element.querySelector('.panel-track-waypoints');
   const shapeButtons = [...element.querySelectorAll('.panel-track-shape button')];
   const shapeHint = element.querySelector('.panel-track-shape-hint');
+  const curveText = element.querySelector('.panel-track-curve');
   for (const button of shapeButtons) {
     button.addEventListener('click', () => {
       if (track) onSetCurve(track.id, button.dataset.curve === '1');
@@ -233,7 +235,7 @@ export function createPanel(
   }
 
   // info = { id, lengthKm, bridgeKm·tunnelKm: 교량·터널 길이, fromName, toName, waypointCount, curve: 곡선인지,
-  //          planned: 계획 선로인지, buildCost: 지을 때 공사비, allPlanned: 계획 선로 전체 { count, cost } }, removal: 지우면 사라지는 것
+  //          sharpest: 가장 급하게 휘는 곳 글 (곧으면 ''), planned: 계획 선로인지, buildCost: 지을 때 공사비, allPlanned: 계획 선로 전체 { count, cost } }, removal: 지우면 사라지는 것
   function showTrack(info, removal) {
     track = { id: info.id };
     trackRemoval.textContent = removal;
@@ -252,6 +254,8 @@ export function createPanel(
     lengthText.textContent = `${info.lengthKm.toFixed(2)} km${detail}`;
     endsText.textContent = `${info.fromName} ↔ ${info.toName}`;
     waypointsText.textContent = `${info.waypointCount}개`;
+    curveText.hidden = !info.sharpest;
+    curveText.textContent = info.sharpest;
     // 지금 모양은 남색으로 채운다. 곡선은 경유점이 있어야 휜다
     for (const button of shapeButtons) button.classList.toggle('active', (button.dataset.curve === '1') === info.curve);
     shapeHint.textContent =

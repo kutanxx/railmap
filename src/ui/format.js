@@ -1,6 +1,16 @@
 // 숫자를 화면에 보여줄 글로 바꾼다
 
 // 돈 (억 원): 612.3 → "612.3억", 1234 → "1,234억", -239 → "−239억", 12345 → "1조 2,345억"
+// 선로에서 가장 급하게 휘는 곳을 글로 (game/running.js의 sharpestCurve 결과, 없으면 '').
+// 곡선 선로는 반지름, 꺾인 직선은 꺾인 각도. 느려지면 그곳 제한 속도를 함께
+export function formatSharpestCurve(sharp, curve) {
+  if (!sharp) return '';
+  const where = curve
+    ? `가장 좁은 곳 반지름 약 ${Math.round(sharp.radiusM / 10) * 10}m`
+    : `가장 크게 꺾인 곳 ${Math.round(sharp.turn)}°`;
+  return sharp.speedKmh === null ? `${where} · 느려지지 않아요` : `${where} · 시속 ${Math.round(sharp.speedKmh)}km로 느려져요`;
+}
+
 export function formatMoney(amount) {
   const size = Math.abs(amount);
   const rounded = size >= 100 ? Math.round(size) : Math.round(size * 10) / 10;

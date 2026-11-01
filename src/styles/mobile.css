@@ -36,6 +36,17 @@
   min-width: 0;
 }
 
+/* 아랫줄: 가장 급하게 휘는 곳 (곧은 선로면 비어서 줄이 생기지 않는다) */
+.draw-bar-curve {
+  display: block;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.draw-bar-curve:empty {
+  display: none;
+}
+
 .draw-bar button {
   flex: none;
   min-height: 36px;

@@ -28,25 +28,11 @@ export function buildRun(coords, spec = trainSpec('subway')) {
   const cruise = spec.speedKmh / 3.6; // m/s
   const acceleration = spec.acceleration;
   // 점마다 출발역에서의 거리(m)와, 그 점에서 꺾이는 각도에 따른 제한 속도
-  const along = [0];
-  for (let i = 1; i < coords.length; i++) {
-    along.push(along[i - 1] + distance(coords[i - 1], coords[i], { units: 'meters' }));
-  }
+  const along = alongOf(coords);
   const total = along[along.length - 1];
-  // 점마다 꺾인 각도. 그 점 앞뒤 CURVE_WINDOW_M 안에서 꺾인 각도를 모두 더한 값으로 제한 속도를 정한다
-  // (꺾인 직선은 한 점에서 크게, 곡선은 여러 점에서 조금씩 꺾이므로 더해야 비교할 수 있다)
-  const turns = coords.map((_, i) =>
-    i === 0 || i === coords.length - 1 ? 0 : turnAngle(coords[i - 1], coords[i], coords[i + 1]),
-  );
-  const limits = [];
-  let first = 0;
-  let last = 0;
-  let windowTurn = 0; // turns[first..last]의 합
-  for (let i = 1; i < coords.length - 1; i++) {
-    while (last + 1 < coords.length && along[last + 1] - along[i] <= CURVE_WINDOW_M / 2) windowTurn += turns[++last];
-    while (along[i] - along[first] > CURVE_WINDOW_M / 2) windowTurn -= turns[first++];
-    if (turns[i] > 0 && windowTurn > GENTLE_CURVE_ANGLE) limits.push({ at: along[i], speed: curveSpeed(windowTurn) });
-  }
+  const limits = windowTurns(coords, along)
+    .filter(({ turn }) => turn > GENTLE_CURVE_ANGLE)
+    .map(({ at, turn }) => ({ at, speed: curveSpeed(turn) }));
 
   const steps = Math.max(1, Math.ceil(total / RUN_STEP_M));
   const step = total / steps;
@@ -99,6 +85,53 @@ export function buildRun(coords, spec = trainSpec('subway')) {
       const high = Math.min(steps, low + 1);
       return time[low] + (time[high] - time[low]) * (index - low);
     },
+  };
+}
+
+// 출발역에서 각 점까지 거리 (m)
+function alongOf(coords) {
+  const along = [0];
+  for (let i = 1; i < coords.length; i++) {
+    along.push(along[i - 1] + distance(coords[i - 1], coords[i], { units: 'meters' }));
+  }
+  return along;
+}
+
+// 꺾이는 점마다 그 점 앞뒤 CURVE_WINDOW_M 안에서 꺾인 각도의 합: [{ at: 그 점까지 거리(m), turn: 각도 합,
+//   span: 그 각도만큼 꺾이는 데 쓴 선로 길이(m, 점마다 앞뒤 선분의 반씩) }]
+// (꺾인 직선은 한 점에서 크게, 곡선은 여러 점에서 조금씩 꺾이므로 더해야 비교할 수 있다)
+function windowTurns(coords, along) {
+  const turns = coords.map((_, i) =>
+    i === 0 || i === coords.length - 1 ? 0 : turnAngle(coords[i - 1], coords[i], coords[i + 1]),
+  );
+  const result = [];
+  let first = 0;
+  let last = 0;
+  let windowTurn = 0; // turns[first..last]의 합
+  for (let i = 1; i < coords.length - 1; i++) {
+    while (last + 1 < coords.length && along[last + 1] - along[i] <= CURVE_WINDOW_M / 2) windowTurn += turns[++last];
+    while (along[i] - along[first] > CURVE_WINDOW_M / 2) windowTurn -= turns[first++];
+    const span =
+      (along[Math.min(last + 1, coords.length - 1)] + along[last] - along[first] - along[Math.max(first - 1, 0)]) / 2;
+    if (turns[i] > 0) result.push({ at: along[i], turn: windowTurn, span });
+  }
+  return result;
+}
+
+// 선로에서 가장 급하게 휘는 곳 (선로를 그리는 동안의 막대와 선로 카드가 보여준다).
+// 결과: { turn: CURVE_WINDOW_M 안에서 꺾인 각도(도), radiusM: 그곳 곡선의 반지름(m, 꺾인 길이 ÷ 꺾인 각도),
+//         speedKmh: 그곳의 제한 속도 (느려지지 않으면 null) }. 거의 곧으면(1도 미만) null
+export function sharpestCurve(coords) {
+  let sharpest = null;
+  for (const point of windowTurns(coords, alongOf(coords))) {
+    if (point.turn > (sharpest?.turn ?? 0)) sharpest = point;
+  }
+  if (!sharpest || sharpest.turn < 1) return null;
+  const { turn, span } = sharpest;
+  return {
+    turn,
+    radiusM: span / ((turn * Math.PI) / 180),
+    speedKmh: turn > GENTLE_CURVE_ANGLE ? curveSpeed(turn) * 3.6 : null,
   };
 }
 

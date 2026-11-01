@@ -30,7 +30,7 @@ export function createDrawingTools({ map, select, render, notice, chooseTool, ro
     curve: localStorage.getItem(CURVE_KEY) === '1',
     onChange: (draft) => {
       updateDraft(map, draft);
-      if (draft) drawBar.show(draft.coords, trackTool.isPlan());
+      if (draft) drawBar.show(draft.coords, trackTool.isPlan(), trackTool.isCurve());
       else drawBar.hide();
     },
     onComplete: (from, to, waypoints, curve, plan) => {

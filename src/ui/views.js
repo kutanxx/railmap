@@ -14,10 +14,11 @@ import { getEconomy } from '../game/demand.js';
 import { removalPreview, plannedTrackCost, allPlannedCost } from '../game/build.js';
 import { trackCostForCoords } from '../game/economy.js';
 import { trackProfile } from '../game/trackProfile.js';
+import { sharpestCurve } from '../game/running.js';
 import { routeNumber, kindChangeCost, kindChangeTrains, trainLimit } from '../game/routes.js';
 import { kindOf, isExpress } from '../game/routeKinds.js';
 import { routeHeadway } from '../game/sim.js';
-import { formatPopulation } from './format.js';
+import { formatPopulation, formatSharpestCurve } from './format.js';
 import { FINGER } from '../map/hitPad.js';
 
 const stationNames = (ids) => ids.map((id) => findStation(id).name);
@@ -71,6 +72,8 @@ export function infoPanelView(selected, shapes) {
         toName: findStation(track.to).name,
         waypointCount: track.waypoints.length,
         curve: Boolean(track.curve),
+        // 가장 급하게 휘는 곳 (곡선 반지름 또는 꺾인 각도와 제한 속도, 곧은 선로면 '')
+        sharpest: formatSharpestCurve(sharpestCurve(trackCoords(track)), track.curve),
         planned: Boolean(track.planned),
         buildCost: track.planned ? plannedTrackCost(track) : 0,
         // 계획 선로 전체 { count, cost } ([계획 선로 모두 짓기]는 2개 이상일 때만 보인다)
