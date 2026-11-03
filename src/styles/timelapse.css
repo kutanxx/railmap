@@ -15,11 +15,11 @@ body.timelapse-on :is(.top-left, .bottom-left, .side, .route-strip, .profile-pan
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(640px, calc(100vw - 32px));
+  width: min(640px, calc(100% - 32px)); /* 화면에 붙은 막대라 100%가 화면 폭 */
   padding: 8px 10px 8px 14px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   color: var(--navy);
   transform: translateX(-50%);

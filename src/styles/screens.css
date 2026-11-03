@@ -10,9 +10,9 @@
   width: 340px;
   max-width: calc(100vw - 32px);
   padding: 10px 12px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   color: var(--navy);
 }
@@ -54,7 +54,7 @@
   padding: 3px 10px;
   border: 1px solid var(--muted);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--muted);
   font: inherit;
   font-size: var(--text-small);
@@ -109,9 +109,9 @@
   z-index: 1;
   max-width: 760px;
   padding: 8px 10px 4px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
 }
 
@@ -156,9 +156,9 @@
   max-height: 100%;
   overflow-y: auto;
   padding: 20px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   color: var(--navy);
 }
@@ -166,6 +166,21 @@
 .dialog-title {
   font-size: var(--text-title);
   font-weight: 700;
+}
+
+/* 창 제목은 시작 화면 타이틀 판처럼 남색 머리 띠 (창 위 끝까지, 크림 글자) */
+.dialog > .dialog-title {
+  margin: -20px -20px 16px;
+  padding: 16px 20px;
+  border-radius: calc(var(--radius-panel) - var(--plate-border)) calc(var(--radius-panel) - var(--plate-border)) 0 0;
+  background: var(--navy);
+  color: var(--paper);
+  font-weight: 900;
+}
+
+/* 머리 띠 바로 아래 설명은 위 여백 없이 */
+.dialog > .dialog-title + .dialog-text {
+  margin-top: 0;
 }
 
 .dialog-text {
@@ -185,7 +200,7 @@
   padding: 8px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -199,7 +214,7 @@
 
 .dialog-buttons .dialog-primary {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .dialog-buttons .dialog-primary:hover {

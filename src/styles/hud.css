@@ -1,11 +1,18 @@
+/* Hallmark · shape: app screen · genre: playful · theme: brand · redesign: restyle · scope: app
+ * paper: #fbf7ee (road cream) · accent: #f2c230 · display: Pretendard 900 · body: Pretendard · signature: plates framed like the start screen's title plate (3px navy, cream), the [메뉴] rows pick with the yellow ▶ · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H3 E4 S3 R4 V4 · weakest: S, a restyle keeps the dense layout; the title-plate frame and the ▶ menu carry the start screen into the game */
+/* Hallmark · waive 24b · the game HUD spacing (6px, 10px, 14px …) is kept from the tested layout · a restyle keeps the layout; re-spacing about 100 rules would shift every panel that was checked on phones and narrow windows */
+
 /* 화면 가장자리 조작: 위쪽 두 줄(날짜·배속·돈 / 도구)과 화면 판·버튼 공통 모양
    (왼쪽 아래 줄·펼침 판은 hud-bottom.css, [알림]·[목표] 목록과 정산 숫자는 hud-lists.css)
    모양 규칙 (reports/레일맵 화면 디자인 스타일.md):
-   - 화면 판(누르는 것이 든 묶음·패널·펼침)은 흰 바탕 + 남색 2px + 둥근 모서리 10px + 바깥 땅색 띠 2px
+   - 화면 판(누르는 것이 든 묶음·패널·펼침)은 크림 바탕(--paper) + 남색 3px(--plate-border) + 둥근 모서리 12px + 바깥 땅색 띠 2px
+     (시작 화면 타이틀 판과 같은 굵은 틀. 2026-11-04 Hallmark restyle)
      (땅색 띠는 흐림 없는 단색 선이다. 선로·도로 위에 겹쳐도 판과 붙어 보이지 않게 틈을 만든다)
-   - 그 안의 버튼은 평소 흰 바탕, 마우스를 올리면 땅색, 고르거나 켜진 것만 남색으로 꽉 채운다
+   - 그 안의 버튼은 평소 크림 바탕, 마우스를 올리면 땅색, 고르거나 켜진 것만 남색으로 꽉 채운다.
+     [메뉴] 펼침 항목만 시작 화면 메뉴처럼 고른 줄을 노랗게 칠하고 ▶를 붙인다 (hud-bottom.css)
    - 누를 수 없는 정보(자금 줄, 혼잡도 설명)는 얇은 var(--info-border) 선으로 조용하게
-   - 노란 점·꼬리·지시선은 지도 위 것(역 이름표, 알림)에만 쓴다. 화면 것에는 달지 않는다 */
+   - 노란 점·꼬리·지시선은 지도 위 것(역 이름표, 알림)에만 쓴다. 화면 것에는 달지 않는다 (노란 칠은 ▶가 붙는 고르는 줄에만) */
 
 /* 화면 판 */
 .toolbar,
@@ -15,9 +22,9 @@
   display: flex;
   gap: 2px;
   padding: 4px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
 }
 
@@ -38,9 +45,17 @@
   cursor: pointer;
 }
 
+/* 누르는 순간 살짝 내려앉는다 */
+.tool-button:active,
+.speed-button:active,
+.hud-button:not(:disabled):active,
+.file-button:active {
+  transform: translateY(1px);
+}
+
 .tool-button:hover,
 .speed-button:hover,
-.hud-button:hover:not(:disabled),
+.hud-button:not(:disabled, .active, [aria-expanded='true']):hover,
 .file-button:hover {
   background: var(--land);
 }
@@ -57,7 +72,7 @@
 .hud-button.active,
 .hud-button[aria-expanded='true'] {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 /* ── 위쪽 둘째 줄: 도구 막대 (가장 자주 누르는 곳이라 조금 크게) ── */
@@ -125,7 +140,7 @@
   padding: 7px 12px;
   border: 1px solid var(--info-border);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font-size: var(--text-strong);
 }
@@ -177,7 +192,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   background: var(--danger);
-  color: #ffffff;
+  color: var(--paper);
   font-size: var(--text-small);
   font-weight: 700;
 }

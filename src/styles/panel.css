@@ -32,9 +32,9 @@
   width: 100%;
   padding: 14px;
   pointer-events: auto;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   box-shadow: var(--panel-ring);
 }
@@ -46,7 +46,8 @@
 .panel-title {
   margin-bottom: 12px;
   font-size: var(--text-title);
-  font-weight: 700;
+  /* 시작 화면 큰 제목처럼 가장 굵게 (패널 제목만) */
+  font-weight: 900;
 }
 
 .panel-field {
@@ -84,7 +85,7 @@
   padding: 7px;
   border: 2px solid var(--danger);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--danger);
   font: inherit;
   font-size: var(--text-body);
@@ -94,7 +95,7 @@
 
 .panel-delete:hover {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 /* 패널의 방향 조절 */
@@ -122,7 +123,7 @@
   padding: 4px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-small);
@@ -340,9 +341,9 @@
   gap: 6px;
   width: 44px;
   padding: 4px 0 8px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
 }
 

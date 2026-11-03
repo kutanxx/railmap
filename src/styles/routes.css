@@ -35,7 +35,7 @@
   padding: 7px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -45,7 +45,7 @@
 
 .route-draft-buttons .route-finish {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 /* 노선 종류 [지하철][광역급행]: 고른 쪽만 남색으로 채운다 (새 노선 만들기, 노선 정보) */
@@ -60,7 +60,7 @@
   padding: 6px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -70,7 +70,7 @@
 
 .route-kind button[aria-pressed='true'] {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .route-kind-note {
@@ -90,7 +90,7 @@
 .route-swatch {
   width: 26px;
   height: 26px;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--paper);
   border-radius: 50%;
   outline: 2px solid transparent;
   cursor: pointer;
@@ -127,7 +127,7 @@
   padding: 3px 8px;
   border: 2px solid transparent;
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -152,7 +152,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  color: #ffffff;
+  color: var(--paper);
   font-size: var(--text-small);
   font-weight: 700;
 }
@@ -203,7 +203,7 @@
   height: 28px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-strong);
@@ -263,7 +263,7 @@
   padding: 0 6px;
   border: 1px solid var(--muted);
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--paper);
   color: var(--muted);
   font: inherit;
   font-size: var(--text-small);
@@ -294,7 +294,7 @@
   padding: 5px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -305,7 +305,7 @@
 /* 끼워넣는 중 */
 .route-insert.active {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .route-edit-message:not(:empty) {
@@ -354,7 +354,7 @@
   padding: 0 5px;
   border-radius: 4px;
   background: var(--danger);
-  color: #ffffff;
+  color: var(--paper);
   font-size: var(--text-small);
 }
 

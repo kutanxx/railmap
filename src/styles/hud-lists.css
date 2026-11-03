@@ -11,7 +11,7 @@
 /* 아직 보지 않은 알림이 있으면 글자를 남색 칸으로 (숫자와 함께 바뀐다) */
 .hud-button.has-unread {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .notice-log {
@@ -74,7 +74,7 @@
   padding: 2px 8px;
   border: 1px solid var(--info-border);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   white-space: nowrap;
   font-size: var(--text-body);
   font-weight: 700;
@@ -165,11 +165,11 @@
   left: 50%;
   z-index: 6;
   box-sizing: border-box;
-  width: min(360px, calc(100vw - 32px));
+  width: min(360px, calc(100% - 32px)); /* 화면에 붙은 칸이라 100%가 화면 폭 */
   padding: 6px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   transform: translateX(-50%);
 }

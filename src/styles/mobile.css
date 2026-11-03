@@ -17,9 +17,9 @@
   width: max-content;
   max-width: calc(100vw - 32px);
   padding: 6px 6px 6px 14px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   color: var(--navy);
   font-size: var(--text-body);

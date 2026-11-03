@@ -29,9 +29,9 @@
   align-items: center;
   gap: 16px;
   padding: 8px 12px;
-  border: 2px solid var(--navy);
+  border: var(--plate-border) solid var(--navy);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   box-shadow: var(--panel-ring);
   color: var(--navy);
 }
@@ -174,7 +174,7 @@ body.diagram-open .profile-panel {
   /* 아래 안내는 여러 줄로 꺾어 출처 글(오른쪽 아래) 위에 둔다 */
   .diagram-hint {
     bottom: 32px;
-    width: calc(100vw - 32px);
+    width: calc(100% - 32px);
     text-align: center;
     white-space: normal;
   }

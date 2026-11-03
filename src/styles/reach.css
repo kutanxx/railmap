@@ -7,7 +7,7 @@
   padding: 6px;
   border: 2px solid var(--navy);
   border-radius: var(--radius-button);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--navy);
   font: inherit;
   font-size: var(--text-body);
@@ -21,7 +21,7 @@
 
 .panel-reach-toggle.active {
   background: var(--navy);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 /* 색 설명: 색 칸 + 10분·20분·30분, 아래 한 줄 설명 */

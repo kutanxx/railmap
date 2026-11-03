@@ -58,6 +58,25 @@
   text-align: left;
 }
 
+/* [메뉴] 항목은 시작 화면 메뉴처럼: 고른 줄(마우스·초점)은 노랗게 칠하고 앞에 ▶ ([새로 시작]은 빼고 빨간 그대로) */
+.file-button:not(.file-reset)::before {
+  display: inline-block;
+  width: 1.1em;
+  visibility: hidden;
+  content: '▶\FE0E';
+  font-size: var(--text-small);
+}
+
+.file-button:not(.file-reset):not(.confirm):hover,
+.file-button:not(.file-reset):not(.confirm):focus-visible {
+  background: var(--accent);
+}
+
+.file-button:not(.file-reset):hover::before,
+.file-button:not(.file-reset):focus-visible::before {
+  visibility: visible;
+}
+
 /* 메뉴 맨 아래 [새로 시작]은 줄로 떼어 빨갛게 (실수로 누르지 않게) */
 .popover-divider {
   width: 100%;
@@ -73,7 +92,7 @@
 /* [새로 시작]을 한 번 눌러 "정말요?"를 묻는 중 */
 .file-button.confirm {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--paper);
 }
 
 /* 소리 펼침: [소리 켬] · 음량 막대 · [음악 켬] */
@@ -105,7 +124,7 @@
   padding: 6px 10px;
   border: 1px solid var(--info-border);
   border-radius: var(--radius-panel);
-  background: #ffffff;
+  background: var(--paper);
   color: var(--muted);
   font-size: var(--text-small);
   white-space: nowrap;
