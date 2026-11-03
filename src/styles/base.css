@@ -11,6 +11,8 @@
   --navy: #1f3a55; /* 남색: 글자, 판 테두리, 고른 것 */
   --accent: #f2c230; /* 노랑: 지도 위 점, 고른 도구의 단축키. 늘 남색 위에서만 쓴다 */
   --land: #efe7d6; /* 땅색: 지도 바탕, 마우스를 올린 버튼, 화면 판 둘레 띠 */
+  --paper: #fbf7ee; /* 도로색 크림: 시작 화면의 판 바탕, 남색 위 큰 글자 (순수 흰색 대신, 지도 도로와 같은 색) */
+  --font-ui: 'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; /* 화면 글꼴 */
   --divider: #d6c9af; /* 판 안의 칸막이 줄 */
   --info-border: #cfc0a3; /* 누를 수 없는 정보 띠의 얇은 테두리 */
   --danger: #b0402f; /* 위험한 버튼(지우기, 새로 시작), 넘침, 적자 */
@@ -38,8 +40,10 @@ body {
   margin: 0;
   height: 100%;
   background: var(--land);
+  /* 옆으로 넘치는 것이 있어도 화면이 옆으로 밀리지 않게 */
+  overflow-x: clip;
   /* 화면 글꼴: Pretendard (main.js가 불러온다). 못 받으면 컴퓨터에 있는 한글 글꼴로 */
-  font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-family: var(--font-ui);
   /* 숫자 폭을 똑같이 맞춰서, 자금이 바뀌어도 옆 글자가 좌우로 밀리지 않게 */
   font-variant-numeric: tabular-nums;
 }

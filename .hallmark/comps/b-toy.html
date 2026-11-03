@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시안 B · 장난감</title>
+<link rel="stylesheet" href="brand.css" />
+<style>
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 40px 40px 64px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .title { margin: 0; font-size: 64px; font-weight: 800; letter-spacing: -0.03em; }
+  .lede { margin: 4px 0 0; font-size: 18px; color: var(--color-muted); }
+  .go { min-height: 56px; padding: 0 28px; border: 3px solid var(--color-ink); border-radius: 999px; background: var(--color-accent); color: var(--color-ink); font-size: 19px; font-weight: 800; box-shadow: 0 4px 0 var(--color-ink); }
+  .go:hover { transform: translateY(-1px); }
+  .go:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--color-ink); }
+
+  .tabs { display: flex; gap: 8px; margin: 40px 0 0; }
+  .tabs button { min-height: 44px; padding: 0 18px; border: 3px solid var(--color-ink); border-radius: 999px; background: var(--color-paper); font-weight: 800; font-size: 16px; }
+  .tabs button[aria-selected='true'] { background: var(--color-ink); color: var(--color-on-ink); }
+
+  /* 도시 노선: 굵은 선 위에 도시마다 역 하나 */
+  .line { position: relative; margin: 36px 0 8px; padding: 0 24px; }
+  .line::before { content: ''; position: absolute; left: 24px; right: 24px; top: 21px; height: 14px; border-radius: 7px; background: var(--color-ink); }
+  .stops { position: relative; display: flex; justify-content: space-between; list-style: none; margin: 0; padding: 0; }
+  .stop { display: grid; justify-items: center; gap: 10px; border: 0; background: none; padding: 0; font-weight: 800; font-size: 18px; }
+  .dot { width: 56px; height: 56px; border-radius: 50%; border: 6px solid var(--color-ink); background: var(--color-platform); }
+  .stop[aria-pressed='true'] .dot { background: var(--color-accent); transform: scale(1.15); }
+  .stop .sub { font-size: 13px; font-weight: 600; color: var(--color-muted); }
+
+  .card { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 0; margin-top: 32px; border: 3px solid var(--color-ink); border-radius: 20px; overflow: hidden; background: var(--color-paper); }
+  .card img { width: 100%; height: 100%; min-height: 360px; object-fit: cover; border-right: 3px solid var(--color-ink); }
+  .info { padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+  .info h2 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.02em; }
+  .info p { margin: 0; color: var(--color-muted); font-size: 17px; }
+  .chunky { min-height: 52px; border: 3px solid var(--color-ink); border-radius: 14px; background: var(--color-paper); font-weight: 800; font-size: 17px; box-shadow: 0 3px 0 var(--color-ink); }
+  .chunky.primary { background: var(--color-ink); color: var(--color-on-ink); }
+  .chunky:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--color-ink); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .years { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--color-muted); font-size: 14px; }
+  .years button { min-height: 36px; padding: 0 12px; border: 2px solid var(--color-ink); border-radius: 999px; background: var(--color-land); font-weight: 800; font-size: 15px; }
+  .credit { margin-top: 40px; font-size: 13px; color: var(--color-muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 class="title">레일맵</h1>
+      <p class="lede">역을 놓고 선로를 깔면 열차가 달려요</p>
+    </div>
+    <button class="go" type="button">서울에서 바로 시작 ▶</button>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true">한국 도시 6</button>
+    <button role="tab">세계 도시 6</button>
+    <button role="tab">가상 지도 1</button>
+  </div>
+
+  <div class="line">
+    <ul class="stops">
+      <li><button class="stop" aria-pressed="true"><span class="dot"></span>서울</button></li>
+      <li><button class="stop"><span class="dot"></span>부산</button></li>
+      <li><button class="stop"><span class="dot"></span>인천</button></li>
+      <li><button class="stop"><span class="dot"></span>대구</button></li>
+      <li><button class="stop"><span class="dot"></span>대전</button></li>
+      <li><button class="stop"><span class="dot"></span>광주</button></li>
+    </ul>
+  </div>
+
+  <article class="card">
+    <img src="/thumbnails/seoul.svg" alt="서울 지도" />
+    <div class="info">
+      <h2>서울</h2>
+      <p>한강을 건너는 수도, 도심에서 분당까지</p>
+      <div class="pair">
+        <button class="chunky primary">새 게임</button>
+        <button class="chunky">샌드박스 (돈 무제한)</button>
+      </div>
+      <button class="chunky">실제 노선망으로 시작 (1~9호선 외 4개)</button>
+      <div class="years">그해의 노선망으로 <button>1974</button><button>1985</button><button>1996</button><button>2005</button><button>2015</button></div>
+    </div>
+  </article>
+  <p class="credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자, OpenFreeMap. 개통 연도: 서울교통공사, 일본 국토교통성 국토수치정보 가공, Wikidata</p>
+</div>
+</body>
+</html>

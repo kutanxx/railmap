@@ -1,0 +1,52 @@
+/* 시안 공통: 레일맵 아트 규칙의 색과 글꼴 (src/styles/base.css·CLAUDE.md 아트 규칙에서 가져옴). 순수 흰색 대신 도로색 크림 */
+@import '/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+
+:root {
+  --color-land: #efe7d6;
+  --color-block: #e9e0cc;
+  --color-paper: #fbf7ee;
+  --color-ink: #1f3a55;
+  --color-ink-hover: #2c4a68;
+  --color-muted: #6f6656;
+  --color-rule: #d6c9af;
+  --color-rule-soft: #cfc0a3;
+  --color-accent: #f2c230;
+  --color-platform: #a7bed4;
+  --color-track: #3e4651;
+  --color-on-ink: #fbf7ee;
+  --color-on-ink-soft: #d3dce5;
+  --color-focus: #1f3a55;
+  --font-ui: 'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: var(--color-land);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}

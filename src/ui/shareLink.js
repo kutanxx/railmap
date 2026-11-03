@@ -70,7 +70,7 @@ export function renderSharedCard(section, { shared, problem, onOpen, onClose }) 
   if (problem) {
     section.innerHTML = `
       <div class="start-shared-card">
-        <p class="start-first-label">공유받은 노선망</p>
+        <h2 class="start-shared-title">공유받은 노선망</h2>
         <p class="start-shared-text"></p>
         <div class="start-shared-buttons"><button type="button" class="start-shared-close">닫기</button></div>
       </div>`;
@@ -81,19 +81,18 @@ export function renderSharedCard(section, { shared, problem, onOpen, onClose }) 
     const existing = savedGameInfo(shared.region, true);
     section.innerHTML = `
       <div class="start-shared-card">
-        <p class="start-first-label">공유받은 노선망</p>
-        <p class="start-first-name"></p>
+        <h2 class="start-shared-title"></h2>
         <p class="start-shared-text"></p>
         <div class="start-shared-buttons">
-          <button type="button" class="start-first-go start-shared-open"></button>
+          <button type="button" class="start-shared-open"></button>
           <button type="button" class="start-shared-close">닫기</button>
         </div>
       </div>`;
-    section.querySelector('.start-first-name').textContent = `${region.name} · 역 ${stations.length}곳 · 노선 ${routes.length}개`;
+    section.querySelector('.start-shared-title').textContent = `공유받은 노선망: ${region.name}, 역 ${stations.length}곳, 노선 ${routes.length}개`;
     section.querySelector('.start-shared-text').textContent = existing
       ? `${region.name} 샌드박스에 저장해 둔 게임이 있어요. 열면 그 게임이 이 노선망으로 바뀌어요 (돈 무제한, 일반 게임은 그대로).`
       : `${region.name} 샌드박스(돈 무제한)로 열어요. 일반 게임 저장은 그대로예요.`;
-    section.querySelector('.start-shared-open').textContent = existing ? '샌드박스를 바꾸고 열기 ▶' : '샌드박스로 열기 ▶';
+    section.querySelector('.start-shared-open').textContent = existing ? '샌드박스를 바꾸고 열기' : '샌드박스로 열기';
     section.querySelector('.start-shared-open').addEventListener('click', onOpen);
   }
   section.querySelector('.start-shared-close').addEventListener('click', () => {

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시안 D · 게임 타이틀</title>
+<link rel="stylesheet" href="brand.css" />
+<style>
+  /* 첫 화면: 게임 타이틀. 서울 지도를 화면 가득 깔고 가운데에 타이틀 판과 메뉴 */
+  .title-screen { position: relative; min-height: 100svh; display: grid; place-items: center; padding: 40px 24px; background: var(--color-land) url('/thumbnails/seoul.svg') center / cover no-repeat; border-bottom: 6px solid var(--color-ink); }
+  .plate { width: min(520px, 100%); border: 6px solid var(--color-ink); border-radius: 18px; background: var(--color-paper); overflow: hidden; }
+  .plate-top { padding: 28px 32px 22px; background: var(--color-ink); color: var(--color-on-ink); text-align: center; }
+  .logo { margin: 0; font-size: 84px; line-height: 1; font-weight: 900; letter-spacing: -0.04em; }
+  /* 제목 아래 작은 노선: 역 다섯 개 (화면 장식이 아니라 게임의 말: 역을 놓고 선로를 깐다) */
+  .logo-line { display: flex; align-items: center; justify-content: center; margin: 16px auto 0; width: 260px; height: 16px; position: relative; }
+  .logo-line::before { content: ''; position: absolute; left: 8px; right: 8px; top: 5px; height: 6px; background: var(--color-accent); border-radius: 3px; }
+  .logo-line span { position: relative; flex: 1; display: flex; justify-content: center; }
+  .logo-line span::after { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--color-platform); border: 3px solid var(--color-on-ink); }
+  .tagline { margin: 14px 0 0; font-size: 17px; color: var(--color-on-ink-soft); }
+  .menu { list-style: none; margin: 0; padding: 18px; display: grid; gap: 10px; }
+  .menu button { width: 100%; min-height: 56px; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; padding: 0 18px; border: 3px solid var(--color-ink); border-radius: 10px; background: var(--color-paper); font-size: 19px; font-weight: 800; text-align: left; }
+  .menu button small { font-size: 14px; font-weight: 600; color: var(--color-muted); }
+  .menu .cursor { visibility: hidden; color: var(--color-ink); }
+  .menu button:hover, .menu button.is-on { background: var(--color-accent); }
+  .menu button:hover .cursor, .menu button.is-on .cursor { visibility: visible; }
+
+  /* 지도 고르기: 스테이지 고르기처럼 왼쪽 타일, 오른쪽 고른 도시 */
+  .select { max-width: 1200px; margin: 0 auto; padding: 48px 40px 64px; }
+  .select-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .select-head h2 { margin: 0; font-size: 40px; font-weight: 900; letter-spacing: -0.02em; }
+  .tabs { display: flex; gap: 8px; }
+  .tabs button { min-height: 44px; padding: 0 18px; border: 3px solid var(--color-ink); border-radius: 10px; background: var(--color-paper); font-weight: 800; font-size: 16px; }
+  .tabs button[aria-selected='true'] { background: var(--color-ink); color: var(--color-on-ink); }
+  .stage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px; margin-top: 24px; align-items: start; }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .tile { position: relative; padding: 0; border: 4px solid var(--color-ink); border-radius: 12px; background: var(--color-paper); overflow: hidden; text-align: left; }
+  .tile img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+  .tile b { display: block; padding: 8px 12px 10px; font-size: 18px; font-weight: 900; border-top: 4px solid var(--color-ink); }
+  .tile[aria-pressed='true'] { border-color: var(--color-accent); outline: 4px solid var(--color-ink); outline-offset: 0; }
+  .tile[aria-pressed='true'] b { background: var(--color-accent); }
+  .detail { border: 4px solid var(--color-ink); border-radius: 12px; background: var(--color-paper); padding: 22px; display: grid; gap: 12px; }
+  .detail h3 { margin: 0; font-size: 44px; font-weight: 900; letter-spacing: -0.02em; }
+  .detail p { margin: 0; color: var(--color-muted); font-size: 17px; }
+  .modes { display: grid; gap: 8px; }
+  .mode { min-height: 52px; display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 16px; border: 3px solid var(--color-ink); border-radius: 10px; background: var(--color-paper); font-weight: 800; font-size: 17px; text-align: left; }
+  .mode small { font-size: 14px; font-weight: 600; color: var(--color-muted); }
+  .mode.primary { background: var(--color-ink); color: var(--color-on-ink); }
+  .mode.primary small { color: var(--color-on-ink-soft); }
+  .mode:hover { background: var(--color-accent); color: var(--color-ink); }
+  .years { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; color: var(--color-muted); }
+  .years button { min-height: 36px; padding: 0 12px; border: 3px solid var(--color-ink); border-radius: 8px; background: var(--color-land); font-weight: 900; font-size: 15px; }
+  .credit { margin-top: 40px; font-size: 13px; color: var(--color-muted); }
+</style>
+</head>
+<body>
+<section class="title-screen">
+  <div class="plate">
+    <div class="plate-top">
+      <h1 class="logo">레일맵</h1>
+      <div class="logo-line" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <p class="tagline">역을 놓고 선로를 깔면 열차가 달려요</p>
+    </div>
+    <ul class="menu">
+      <li><button class="is-on"><span class="cursor">▶</span>바로 시작<small>서울 · 튜토리얼</small></button></li>
+      <li><button><span class="cursor">▶</span>지도 고르기<small>13개 지도</small></button></li>
+      <li><button><span class="cursor">▶</span>실제 노선망으로 시작<small>12개 도시</small></button></li>
+    </ul>
+  </div>
+</section>
+
+<section class="select">
+  <div class="select-head">
+    <h2>지도 고르기</h2>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true">한국 도시 6</button>
+      <button role="tab">세계 도시 6</button>
+      <button role="tab">가상 지도 1</button>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="tiles">
+      <button class="tile" aria-pressed="true"><img src="/thumbnails/seoul.svg" alt="" /><b>서울</b></button>
+      <button class="tile"><img src="/thumbnails/busan.svg" alt="" /><b>부산</b></button>
+      <button class="tile"><img src="/thumbnails/incheon.svg" alt="" /><b>인천</b></button>
+      <button class="tile"><img src="/thumbnails/daegu.svg" alt="" /><b>대구</b></button>
+      <button class="tile"><img src="/thumbnails/daejeon.svg" alt="" /><b>대전</b></button>
+      <button class="tile"><img src="/thumbnails/gwangju.svg" alt="" /><b>광주</b></button>
+    </div>
+    <aside class="detail">
+      <h3>서울</h3>
+      <p>한강을 건너는 수도, 도심에서 분당까지</p>
+      <div class="modes">
+        <button class="mode primary">새 게임<small>돈 600억으로</small></button>
+        <button class="mode">샌드박스<small>돈 무제한</small></button>
+        <button class="mode">실제 노선망으로 시작<small>1~9호선 외 4개</small></button>
+      </div>
+      <div class="years">그해의 노선망으로 <button>1974</button><button>1985</button><button>1996</button><button>2005</button><button>2015</button></div>
+    </aside>
+  </div>
+  <p class="credit">지도 그림·실제 노선 자료 © OpenStreetMap 기여자, OpenFreeMap. 개통 연도: 서울교통공사, 일본 국토교통성 국토수치정보 가공, Wikidata</p>
+</section>
+</body>
+</html>
